@@ -19,7 +19,8 @@ export const READ_BLOCKS = Object.freeze([
   {id:'fn',name:'Lớp Fn',command:0x16,length:512},
   {id:'rt',name:'Rapid Trigger',command:0x17,length:1024},
 ]);
-const ALLOWED = new Set(READ_BLOCKS.map(b=>b.command));
+// All nine read opcodes are source-traced; legacy Reader keeps its six-block UI.
+const ALLOWED = new Set([0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18]);
 export const hex = value => `0x${value.toString(16).toUpperCase().padStart(4,'0')}`;
 export const bytesHex = bytes => Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join(' ');
 export function buildReadPacket(command,offset,length,packetSize,last=false) {
@@ -108,3 +109,4 @@ export class A80Reader {
     }finally{this.active=false;if(this.abort===abort)this.abort=null;}
   }
 }
+export {ConfigSession,readSnapshot} from './config/session.js';

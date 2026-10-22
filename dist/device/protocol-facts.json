@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "evidence": "tests/fixtures/source/a80rt-manufacturer.json",
-  "qualification": "Manufacturer source only; no successful hardware RX or write ACK has been observed.",
+  "qualification": "Manufacturer source plus a measured native receiver link-loss header only; no successful configuration RX or write ACK has been observed.",
   "path": [
     "model-u/model-wired/model-dongle select getLBA80RT",
     "connection routes these devices to generic Device kS/yS",
@@ -840,5 +840,86 @@
     "writeAckShape": null,
     "rtModeNames": "whole/bottom/rtMode bits from source, no invented mode enumeration",
     "unknownFields": "Reject by field name; never guess offsets"
+  },
+  "writeTransport": {
+    "commands": {
+      "settings": 33,
+      "keymap": 34,
+      "lighting": 35,
+      "colors": 36,
+      "macro": 37,
+      "fn": 38,
+      "rt": 39,
+      "dks": 40
+    },
+    "packet": {
+      "header": 170,
+      "commandByte": 1,
+      "countByte": 2,
+      "offset": "u16le@3",
+      "reserved": [
+        5,
+        7
+      ],
+      "lastChunkByte": 6,
+      "payloadOffset": 8,
+      "source": [
+        "block-builder",
+        "read-chunking",
+        "command-table",
+        "led-encode",
+        "colors-encode"
+      ]
+    },
+    "configurationCount": "Actual captured payload bytes. Intentional safety deviation from sendReportSuper: first/only short source chunk advertises packetSize-8; local writer never counts zero packet padding as unknown configuration bytes. Short-count firmware acceptance/footprint remains unmeasured and production gated.",
+    "ack": {
+      "shape": null,
+      "qualification": "closed",
+      "source": "read-chunking",
+      "note": "Manufacturer handler broadly advances for any opcode except decimal55; this proves neither ACK header/count/offset nor payload echo. No user-entered policy. Production internal policy returns null until model-specific measured evidence is added."
+    },
+    "retry": "None for writes or control; a send, ACK timeout, abort or disconnect after TX is possibly partial and must remain unconfirmed.",
+    "postWrite": {
+      "command": 0,
+      "payload": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "framing": "sendReportSuper block framing; count=packetSize-8, offset0, last1, zero padding. At32 bytes count24; NOT sendReportCmd arguments starting2.",
+      "source": [
+        "settings-encode",
+        "rt-encode",
+        "read-sequence",
+        "read-chunking"
+      ],
+      "meaning": "Source post-write step, also used after reads. Permanent flash/persistence semantics unproven; require read-back and reconnect evidence before a persistence claim."
+    },
+    "readback": "Only changed semantic fields, full complete changed blocks; unrelated opaque/volatile bytes are not equality targets. A matching ACK alone never verifies a draft."
+  },
+  "notifications": {
+    "linkLoss": {
+      "prefix": [
+        85,
+        252,
+        4
+      ],
+      "measuredHeader": [
+        85,
+        252,
+        4,
+        0,
+        0
+      ],
+      "reportedLength": 32,
+      "fullPayloadRetained": false,
+      "evidence": "tests/fixtures/a80rt-link-loss-header.json",
+      "source": [
+        "store-notifications",
+        "link-loss-handler"
+      ],
+      "meaning": "Receiver-to-keyboard link loss, not USB receiver disappearance. Invalidate current transport session and responding state; no inferred meanings for other notification values."
+    }
   }
 }

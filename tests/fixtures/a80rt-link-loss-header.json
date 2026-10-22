@@ -1,0 +1,26 @@
+{
+  "kind": "measured-native-hid-header-only",
+  "sourceArtifact": "work/a80rt-inspect/native-read-probe.json",
+  "sourceSha256": "fce4f57434d9a97dca9389b07fbf30e521fa6717d5dfa98791c7ddf1310f0e21",
+  "createdAt": "2026-10-22T08:39:41Z",
+  "device": {
+    "vendor_id": 3141,
+    "product_id": 65276,
+    "product_string": "A80RT U Dongle",
+    "usage_page": 65408,
+    "usage": 1,
+    "interface_number": 2
+  },
+  "reportId": 0,
+  "reportedLength": 32,
+  "capturedHeader": [
+    85,
+    252,
+    4,
+    0,
+    0
+  ],
+  "fullPayloadRetained": false,
+  "matchedConfigurationReply": false,
+  "scope": "Only first five bytes retained. No successful configuration RX, write, ACK, LED change or persistence evidence."
+}

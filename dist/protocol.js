@@ -1,4 +1,5 @@
 import {A80Transport} from './device/transport.js';
+import {readSnapshot} from './config/session.js';
 export {A80Transport};
 export const VENDOR = 0x0c45;
 export const DONGLE_PRODUCT = 0xfefc;
@@ -93,6 +94,12 @@ export class A80Reader {
   cancel(){this.abort?.abort();}
   async close(){this.cancel();await this.transport.close();}
   exchange(command,offset,length,last,signal){return this.transport.exchange(command,offset,length,last,signal);}
+  async readConfiguration(capability,{onProgress=()=>{}}={}) {
+    if(this.active)throw new Error('Một lượt đọc đang chạy.');
+    this.active=true;const abort=new AbortController();this.abort=abort;
+    try{return await readSnapshot(this.transport,capability,{signal:abort.signal,onProgress});}
+    finally{this.active=false;if(this.abort===abort)this.abort=null;}
+  }
   async readAll(onProgress=()=>{},onBlock=()=>{}) {
     if(this.active)throw new Error('Một lượt đọc đang chạy.');
     if(!this.getState().opened)throw new Error('Thiết bị chưa mở kết nối.');
@@ -109,4 +116,5 @@ export class A80Reader {
     }finally{this.active=false;if(this.abort===abort)this.abort=null;}
   }
 }
-export {ConfigSession,readSnapshot} from './config/session.js';
+export {ConfigSession} from './config/session.js';
+export {readSnapshot};

@@ -371,6 +371,38 @@
       "length": 260,
       "sha256": "a98dfea138fca060c7facea352b0d1c11d33a45bfb2c2f8ffef2ce88eaf94c19",
       "text": "window.getCloseLink=function(){e.handleClickInfo();var i=JSON.parse(localStorage.getItem(\"historyConnect\"));(i&&65408==i.usagePage||65376==i.usagePage)&&localStorage.removeItem(\"historyConnect\"),e.loading=!1,e.$message.error(e.$t(\"link_state\")),Hl.cmdState=!1}"
+    },
+    {
+      "id": "a80rt-fn-table",
+      "bundle": "app",
+      "offset": 60401,
+      "length": 5374,
+      "sha256": "9e9ee077c858eeba8c05721718c990a8a7abddc7d2408067d07409826a3714a3",
+      "text": "{key:\"getA80RT\",value:function(){var e=[{className:\"Esc isbg\",value:0,name:\"fun_text1\",isBorder:!1,key:41,keyCode:\"Escape\"},{className:\"margin-left-auto\",value:1,name:\"medium_text12\",isBorder:!1,key:58,keyCode:\"F1\",fnDisabled:!0},{className:\"\",value:2,name:\"medium_text3\",isBorder:!1,key:59,keyCode:\"F2\",fnDisabled:!0},{className:\"\",value:3,name:\"ALT + TAB\",isBorder:!1,key:60,keyCode:\"F3\",fnDisabled:!0},{className:\"\",value:4,name:\"WIN + E\",isBorder:!1,key:61,keyCode:\"F4\",fnDisabled:!0},{className:\"margin-left-auto isbg\",value:5,name:\"fun_text11\",isBorder:!1,key:62,keyCode:\"F5\",fnDisabled:!0},{className:\"isbg\",value:6,name:\"fun_text10\",isBorder:!1,key:63,keyCode:\"F6\",fnDisabled:!0},{className:\"isbg\",value:7,name:\"medium_text7\",isBorder:!1,key:64,keyCode:\"F7\",fnDisabled:!0},{className:\"\",value:8,name:\"medium_text5\",isBorder:!1,key:65,keyCode:\"F8\",fnDisabled:!0},{className:\"margin-left-auto\",value:9,name:\"medium_text8\",isBorder:!1,key:66,keyCode:\"F9\",fnDisabled:!0},{className:\"\",value:10,name:\"medium_text11\",isBorder:!1,key:67,keyCode:\"F10\",fnDisabled:!0},{className:\"\",value:11,name:\"medium_text10\",isBorder:!1,key:68,keyCode:\"F11\",fnDisabled:!0},{className:\"f12\",value:12,name:\"medium_text9\",isBorder:!1,key:69,keyCode:\"F12\",fnDisabled:!0},{className:\"\",value:16,name:\"fun_text5\",isBorder:!1,key:53,keyCode:\"Backquote\"},{className:\"\",value:17,name:\"fun_text2\",isBorder:!1,key:30,keyCode:\"Digit1\"},{className:\"\",value:18,name:\"fun_text3\",isBorder:!1,key:31,keyCode:\"Digit2\"},{className:\"\",value:19,name:\"fun_text4\",isBorder:!1,key:32,keyCode:\"Digit3\"},{className:\"\",value:106,name:\"Home\",isBorder:!1,keyType:1,key:76,keyCode:\"Delete\"},{className:\"Tab isbg\",value:32,name:\"fun_text9\",isBorder:!1,key:43,keyCode:\"Tab\"},{className:\"\",value:33,name:\"ANDR OID\",isBorder:!1,key:20,keyCode:\"KeyQ\"},{className:\"\",value:34,name:\"WIN\",isBorder:!1,key:26,keyCode:\"KeyW\"},{className:\"\",value:35,name:\"MAC\",isBorder:!1,key:8,keyCode:\"KeyE\"},{className:\"\",value:39,name:\"Print\",isBorder:!1,key:24,keyCode:\"KeyU\"},{className:\"\",value:40,name:\"Scroll\",isBorder:!1,key:12,keyCode:\"KeyI\"},{className:\"\",value:41,name:\"Pause\",isBorder:!1,key:18,keyCode:\"KeyO\"},{className:\"key-line\",value:60,name:\"fun_text8\",isBorder:!1,key:49,keyCode:\"Backslash\"},{className:\"\",value:69,name:\"fun_text7\",isBorder:!1,key:5,keyCode:\"KeyB\"},{className:\"\",value:90,name:\"fun_text10\",isBorder:!1,key:82,keyCode:\"ArrowUp\"},{className:\"w55 isbg\",value:81,name:\"fun_text15\",isBorder:!1,key:227,keyCode:\"MetaLeft\"},{className:\"w50 isbg\",value:88,name:\"fun_text13\",isBorder:!1,key:80,keyCode:\"ArrowLeft\"},{className:\"w50 isbg up\",value:89,name:\"fun_text11\",isBorder:!1,key:81,keyCode:\"ArrowDown\"},{className:\"w50 isbg\",value:91,name:\"fun_text12\",isBorder:!1,key:79,keyCode:\"ArrowRight\"},{className:\"\",value:65,name:\"fun_text61\",isBorder:!1,key:29,keyCode:\"KeyZ\"}];return e}},{key:\"getA80RTD\",value:function(){var e=[{className:\"Esc isbg\",value:0,name:\"fun_text1\",isBorder:!1,key:41,keyCode:\"Escape\"},{className:\"margin-left-auto\",value:1,name:\"medium_text12\",isBorder:!1,key:58,keyCode:\"F1\",fnDisabled:!0},{className:\"\",value:2,name:\"medium_text3\",isBorder:!1,key:59,keyCode:\"F2\",fnDisabled:!0},{className:\"\",value:3,name:\"ALT + TAB\",isBorder:!1,key:60,keyCode:\"F3\",fnDisabled:!0},{className:\"\",value:4,name:\"WIN + E\",isBorder:!1,key:61,keyCode:\"F4\",fnDisabled:!0},{className:\"margin-left-auto isbg\",value:5,name:\"fun_text11\",isBorder:!1,key:62,keyCode:\"F5\",fnDisabled:!0},{className:\"isbg\",value:6,name:\"fun_text10\",isBorder:!1,key:63,keyCode:\"F6\",fnDisabled:!0},{className:\"isbg\",value:7,name:\"medium_text7\",isBorder:!1,key:64,keyCode:\"F7\",fnDisabled:!0},{className:\"\",value:8,name:\"medium_text5\",isBorder:!1,key:65,keyCode:\"F8\",fnDisabled:!0},{className:\"margin-left-auto\",value:9,name:\"medium_text8\",isBorder:!1,key:66,keyCode:\"F9\",fnDisabled:!0},{className:\"\",value:10,name:\"medium_text11\",isBorder:!1,key:67,keyCode:\"F10\",fnDisabled:!0},{className:\"\",value:11,name:\"medium_text10\",isBorder:!1,key:68,keyCode:\"F11\",fnDisabled:!0},{className:\"f12\",value:12,name:\"medium_text9\",isBorder:!1,key:69,keyCode:\"F12\",fnDisabled:!0},{className:\"\",value:106,name:\"Home\",isBorder:!1,keyType:1,key:76,keyCode:\"Delete\"},{className:\"Tab isbg\",value:32,name:\"fun_text9\",isBorder:!1,key:43,keyCode:\"Tab\"},{className:\"\",value:33,name:\"ANDR OID\",isBorder:!1,key:20,keyCode:\"KeyQ\"},{className:\"\",value:34,name:\"WIN\",isBorder:!1,key:26,keyCode:\"KeyW\"},{className:\"\",value:35,name:\"MAC\",isBorder:!1,key:8,keyCode:\"KeyE\"},{className:\"\",value:39,name:\"Print\",isBorder:!1,key:24,keyCode:\"KeyU\"},{className:\"\",value:40,name:\"Scroll\",isBorder:!1,key:12,keyCode:\"KeyI\"},{className:\"\",value:41,name:\"Pause\",isBorder:!1,key:18,keyCode:\"KeyO\"},{className:\"key-line\",value:60,name:\"fun_text8\",isBorder:!1,key:49,keyCode:\"Backslash\"},{className:\"\",value:69,name:\"fun_text7\",isBorder:!1,key:5,keyCode:\"KeyB\"},{className:\"\",value:90,name:\"fun_text10\",isBorder:!1,key:82,keyCode:\"ArrowUp\"},{className:\"w55 isbg\",value:81,name:\"fun_text15\",isBorder:!1,key:227,keyCode:\"MetaLeft\"},{className:\"w50 isbg\",value:88,name:\"fun_text13\",isBorder:!1,key:80,keyCode:\"ArrowLeft\"},{className:\"w50 isbg up\",value:89,name:\"fun_text11\",isBorder:!1,key:81,keyCode:\"ArrowDown\"},{className:\"w50 isbg\",value:91,name:\"fun_text12\",isBorder:!1,key:79,keyCode:\"ArrowRight\"},{className:\"\",value:65,name:\"fun_text61\",isBorder:!1,key:29,keyCode:\"KeyZ\"}];return e}"
+    },
+    {
+      "id": "fn-selection-guard",
+      "bundle": "app",
+      "offset": 1988463,
+      "length": 283,
+      "sha256": "acdfe0d45f21756887a5c4d34266589adb503cb30480e06141422d1718c34df3",
+      "text": "handleClick:function(e,i,t){if(!(!this.isClcik||this.isInitText&&e.disabled||this.typeKeyBorad&&e.fnDisabled||e.isImg||e.specialDisabled&&this.isRadio||e.specialDisabled&&this.isTask)){this.isRadio&&!e.isBorder&&this.getClostList(),this.list[i][t].isBorder=!this.list[i][t].isBorder;"
+    },
+    {
+      "id": "fn-layer-mode",
+      "bundle": "app",
+      "offset": 3291914,
+      "length": 56,
+      "sha256": "b5b6aa29dd04111459139a03c17549e41c0dacc317d4be61ba098097d3f4f3a6",
+      "text": "typeKeyBorad:Boolean(e.currentFn)&&0==e.functionCurrent,"
+    },
+    {
+      "id": "fn-edit-route",
+      "bundle": "app",
+      "offset": 3227116,
+      "length": 205,
+      "sha256": "7b8aacff2c3941bab6bdad7c29f53694af169b89f639da62a93ffd5ca984dbf5",
+      "text": "this.currentFn&&0==this.functionCurrent?(this.getBuildFn(o.value,n),Hl.sendReportSuper(Hl.cmd.WriteFn,this.allFnPack)):(this.setKeyArrayData(o.value,n),Hl.sendReportSuper(Hl.cmd.writeKey,this.allKeyPack)),"
     }
   ]
 }

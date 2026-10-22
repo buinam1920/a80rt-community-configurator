@@ -113,7 +113,8 @@ test('a short first chunk never publishes a zero-filled complete block',async()=
 test('disconnect during a read immediately permits a new connection without stale read UI',async()=>{
   class Element {
     textContent='';hidden=false;disabled=false;open=false;listeners=new Map();style={setProperty(){}};classList={toggle(){}};
-    append(){}replaceChildren(){}setAttribute(){}
+    children=[];get options(){return this.children;}
+    append(...children){this.children.push(...children);}replaceChildren(...children){this.children=children;}setAttribute(){}removeEventListener(){}
     addEventListener(type,callback){this.listeners.set(type,callback);}
     async trigger(type,event={}){await this.listeners.get(type)?.(event);}
   }
@@ -143,7 +144,8 @@ test('disconnect during a read immediately permits a new connection without stal
 test('receiver link-loss reaches the actual read controller and clears its busy state for recovery',async()=>{
   class Element {
     textContent='';hidden=false;disabled=false;open=false;listeners=new Map();style={setProperty(){}};classList={toggle(){}};
-    append(){}replaceChildren(){}setAttribute(){}
+    children=[];get options(){return this.children;}
+    append(...children){this.children.push(...children);}replaceChildren(...children){this.children=children;}setAttribute(){}removeEventListener(){}
     addEventListener(type,callback){this.listeners.set(type,callback);}
     async trigger(type,event={}){await this.listeners.get(type)?.(event);}
   }
@@ -162,7 +164,7 @@ test('receiver link-loss reaches the actual read controller and clears its busy 
     assert.equal(get('read-button').hidden,false);assert.equal(get('progress-wrap').hidden,true);assert.equal(get('disconnect-button').disabled,false);
     await get('disconnect-button').trigger('click');assert.equal(get('connect-button').disabled,false);
     device.respond=packet=>queueMicrotask(()=>device.emit(packet));await get('connect-button').trigger('click');
-    await get('read-button').trigger('click');assert.match(get('message').textContent,/Đã đọc đủ 6/);
+    await get('read-button').trigger('click');assert.match(get('message').textContent,/Đã đọc đủ 9/);
     assert.equal(get('read-button').hidden,false);await get('disconnect-button').trigger('click');
   }finally{
     await reading;globalThis.document=oldDocument;globalThis.window=oldWindow;
@@ -173,7 +175,8 @@ test('receiver link-loss reaches the actual read controller and clears its busy 
 test('an old delayed read completion cannot clear or report success over a newer active read',async()=>{
   class Element {
     textContent='';hidden=false;disabled=false;open=false;listeners=new Map();style={setProperty(){}};classList={toggle(){}};
-    append(){}replaceChildren(){}setAttribute(){}
+    children=[];get options(){return this.children;}
+    append(...children){this.children.push(...children);}replaceChildren(...children){this.children=children;}setAttribute(){}removeEventListener(){}
     addEventListener(type,callback){this.listeners.set(type,callback);}
     async trigger(type,event={}){await this.listeners.get(type)?.(event);}
   }
@@ -182,15 +185,15 @@ test('an old delayed read completion cannot clear or report success over a newer
   const first=new Receiver(),second=new Receiver(),hid=new EventTarget();let selected=first;hid.requestDevice=async()=>[selected];
   globalThis.document={getElementById:get,createElement:()=>new Element(),createTextNode:text=>({textContent:text})};
   globalThis.window={isSecureContext:true};Object.defineProperty(globalThis,'navigator',{configurable:true,value:{hid}});
-  const {A80Reader:AppReader}=await import('../dist/protocol.js?v=0.2.0'),original=AppReader.prototype.readAll;
+  const {A80Reader:AppReader}=await import('../dist/protocol.js'),original=AppReader.prototype.readConfiguration;
   let releaseOld,oldReading,newReading;const delayed=new Promise(resolve=>{releaseOld=resolve;});
-  AppReader.prototype.readAll=async function(onProgress,onBlock){
-    try{return await original.call(this,onProgress,onBlock);}
+  AppReader.prototype.readConfiguration=async function(capability,{onProgress}){
+    try{return await original.call(this,capability,{onProgress});}
     catch(error){
       if(this.device!==first)throw error;
       await delayed;
       // Explicitly replay detached operation callbacks/completion after recovery.
-      onProgress({block:'rt',completed:2128,total:2128});onBlock('rt',Array(1024).fill(99));return {};
+      onProgress({block:'rt',completed:4688,total:4688});return {};
     }
   };
   try{
@@ -205,7 +208,7 @@ test('an old delayed read completion cannot clear or report success over a newer
     await get('cancel-button').trigger('click');await newReading;assert.equal(get('read-button').hidden,false);
     await get('disconnect-button').trigger('click');
   }finally{
-    releaseOld();await oldReading;await newReading;AppReader.prototype.readAll=original;
+    releaseOld();await oldReading;await newReading;AppReader.prototype.readConfiguration=original;
     globalThis.document=oldDocument;globalThis.window=oldWindow;
     if(oldNavigator)Object.defineProperty(globalThis,'navigator',oldNavigator);else delete globalThis.navigator;
   }

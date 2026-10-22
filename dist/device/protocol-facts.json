@@ -121,7 +121,28 @@
         "key-types",
         "key-encode"
       ],
-      "reserved": "Same record format as keymap"
+      "reserved": "Same record format as keymap",
+      "lockedSlots": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "lockEvidence": [
+        "a80rt-fn-table",
+        "fn-selection-guard",
+        "fn-layer-mode",
+        "fn-edit-route"
+      ],
+      "lockMeaning": "A80RT / A80RT U / Dongle Fn F1–F12 cannot be selected/remapped by the source editor; base layer and all other physical slots remain editable. Source-only, not hardware qualification."
     },
     "rt": {
       "command": 23,

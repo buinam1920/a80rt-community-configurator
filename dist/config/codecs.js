@@ -176,7 +176,10 @@ export function patchBlock(blockId,raw,edits,capability) {
     checkEdit(edit);
     if (blockId==='rt') patchRT(bytes,edit,capability);
     else if (blockId==='settings' || blockId==='lighting') patchScalar(blockId,bytes,edit,capability);
-    else if (blockId==='keymap' || blockId==='fn') patchBinding(bytes,edit,capability);
+    else if (blockId==='keymap' || blockId==='fn') {
+      if(blockId==='fn'&&capability.limits.fnLockedSlots.includes(edit.slot))fail('Fn','F1–F12 bindings are locked by the A80RT source editor');
+      patchBinding(bytes,edit,capability);
+    }
     else if (blockId==='colors') {
       const offset=slotOffset(edit,4,capability), {field,value}=edit;
       if (field!=='rgb' || !value || typeof value!=='object' || Array.isArray(value)) fail(field);

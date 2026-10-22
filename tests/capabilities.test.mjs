@@ -3,6 +3,31 @@ import assert from 'node:assert/strict';
 import {identifyDevice, readPlan} from '../dist/device/capabilities.js';
 const descriptor=(productId=0xfefc,productName='A80RT U Dongle')=>({vendorId:0x0c45,productId,productName});
 
+test('Capability exposes the shared identity, field, feature and firmware contracts',()=>{
+  for(const [productId,productName,model,transport] of [
+    [0xfefc,'A80RT U Dongle','a80rt-u-dongle','dongle'],
+    [0x80a1,'A80RT U','a80rt-u','wired'],[0x80a2,'A80RT','a80rt','wired'],
+  ]){
+    const cap=identifyDevice(descriptor(productId,productName));
+    assert.deepEqual(cap.identity,{vendorId:0x0c45,productId,productName,transport,model});
+    assert.equal(cap.fields.settings.polling,transport==='wired');
+    assert.equal(cap.fields.settings.sleep,transport==='dongle');
+    assert.equal(cap.fields.rt.actuationMm,true);
+    assert.equal(cap.fields.lighting.gearMode,false);
+    assert.equal(cap.fields.colors.rgb,true);
+    assert.equal(cap.fields.keymap.binding,true);
+    assert.equal(cap.fields.fn.binding,true);
+    assert.deepEqual(cap.fields.macro,{});
+    assert.deepEqual(cap.fields.dks,{});
+    assert.deepEqual(cap.features,{sourceAdvancedBindings:['rs','socd','dks','mt','tgl'],writeQualified:false});
+    assert.deepEqual(cap.firmware,{status:'unverified',officialUrl:null});
+    for(const value of [cap.identity,cap.fields,cap.fields.settings,cap.fields.rt,cap.features,cap.features.sourceAdvancedBindings,cap.firmware])assert.ok(Object.isFrozen(value));
+    assert.throws(()=>{cap.identity.productName='OTHER';},TypeError);
+    assert.throws(()=>{cap.fields.rt.actuationMm=false;},TypeError);
+    assert.equal(identifyDevice(descriptor(productId,`  ${productName.toLowerCase()}  `)),cap);
+  }
+});
+
 test('identifies exact A80RT names plus VID/PID, never a shared PID alone',()=>{
   const cap=identifyDevice(descriptor());
   assert.equal(cap.model,'a80rt-u-dongle');

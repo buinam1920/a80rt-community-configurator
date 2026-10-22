@@ -133,6 +133,42 @@ function patchBinding(bytes,edit,capability) {
   }
 }
 
+// Read the edited semantic value and its owned bytes from the final block.
+// Keep slot/field identity separate from the byte offsets used for preservation.
+function editedField(blockId,bytes,{slot,field}) {
+  if (blockId==='settings' || blockId==='lighting') {
+    const offset=(blockId==='settings' ? SETTINGS : LIGHTING)[field];
+    return {value:bytes[offset],offsets:[offset]};
+  }
+  if (blockId==='rt') {
+    const offset=slot*8;
+    if (field==='switchId') return {value:bytes[offset],offsets:[offset]};
+    if (own(FLAGS,field)) return {value:!!(bytes[offset+1]&FLAGS[field]),offsets:[offset+1]};
+    const index=offset+DISTANCES[field];
+    return {value:word(bytes,index)/100,offsets:[index,index+1]};
+  }
+  const offset=slot*4;
+  if (blockId==='colors') return {value:{red:bytes[offset+1],green:bytes[offset+2],blue:bytes[offset+3]},offsets:[offset+1,offset+2,offset+3]};
+  return {value:binding(bytes,offset),offsets:[offset,offset+1,offset+2,offset+3]};
+}
+
+function fieldChanges(blockId,before,after,edits) {
+  const fields=new Map();
+  for (const edit of edits) {
+    const path=blockId==='settings' || blockId==='lighting' ? `fields.${edit.field}` : `records[${edit.slot}].${edit.field}`;
+    fields.set(path,edit);
+  }
+  const changes=[];
+  for (const [path,edit] of fields) {
+    const original=editedField(blockId,before,edit), final=editedField(blockId,after,edit);
+    // Flags share a byte: a changed neighbor must not revive a reverted flag edit.
+    if (Object.is(original.value,final.value)) continue;
+    const byteOffsets=final.offsets.filter(offset=>before[offset]!==after[offset]);
+    if (byteOffsets.length) changes.push({block:blockId,path,before:original.value,after:final.value,byteOffsets});
+  }
+  return changes.sort((a,b)=>a.byteOffsets[0]-b.byteOffsets[0] || a.path.localeCompare(b.path));
+}
+
 export function patchBlock(blockId,raw,edits,capability) {
   const bytes=copyBlock(blockId,raw,capability), before=bytes.slice();
   if (!Array.isArray(edits)) fail('edits','expected edit array');
@@ -158,5 +194,5 @@ export function patchBlock(blockId,raw,edits,capability) {
       if (edits.some(edit=>edit.slot===slot&&(edit.field===field||edit.field==='switchId')) && word(bytes,offset+relative)>Math.round(travel*100)) fail(field,'exceeds switch travel');
     }
   }
-  return {bytes,changes:Array.from(bytes.keys()).filter(offset=>bytes[offset]!==before[offset]).map(offset=>({offset,before:before[offset],after:bytes[offset]}))};
+  return {bytes,changes:fieldChanges(blockId,before,bytes,edits)};
 }

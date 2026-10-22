@@ -18,14 +18,27 @@ const freeze = object => {
 
 function createCapability(model) {
   const dongle = model[0] === 0xfefc;
+  const identity = {vendorId:0x0c45,productId:model[0],productName:model[1],transport:dongle ? 'dongle' : 'wired',model:model[2]};
+  const settings = {polling:!dongle,sleep:dongle,wake:false,stability:true,autoCalibration:true,topDeadZone:true,bottomDeadZone:true,responseTime:false,osMode:false,tftTime:false};
+  const advanced = ['rs','socd','dks','mt','tgl'];
   const capability = freeze({
+    identity,
+    // Flat properties remain compatibility aliases for the original consumers.
     model:model[2],name:model[1],vendorId:0x0c45,productId:model[0],
     source:'protocol-facts.json',hardwareQualified:false,
     transport:dongle ? 'dongle' : 'wired',
     slots:KEYS.map(key=>key.slot),
     blocks:Object.fromEntries(BLOCKS.map(([id,command,length,writeCommand])=>[id,{command,length,...(writeCommand ? {writeCommand} : {})}])),
-    settings:{polling:!dongle,sleep:dongle,wake:false,stability:true,autoCalibration:true,topDeadZone:true,bottomDeadZone:true,responseTime:false,osMode:false,tftTime:false},
-    advanced:['rs','socd','dks','mt','tgl'],
+    settings,advanced,
+    // Booleans describe local field editing, not successful device writes.
+    fields:{
+      device:{version:false,battery:false,axialModel:false},settings,
+      rt:{switchId:true,whole:true,bottom:true,rtMode:true,actuationMm:true,pressMm:true,releaseMm:true},
+      lighting:{mode:true,red:true,green:true,blue:true,secondaryRed:true,secondaryGreen:true,secondaryBlue:true,colorMode:true,brightness:true,speed:true,direction:true,gearMode:false},
+      colors:{rgb:true},keymap:{binding:true},fn:{binding:true},macro:{},dks:{},
+    },
+    features:{sourceAdvancedBindings:advanced,writeQualified:false},
+    firmware:{status:'unverified',officialUrl:null},
     limits:{
       macroReadSpan:1024,macroPhysicalCapacity:null,macroPointerEntries:100,macroPointerBytes:400,
       macroSourceUiBudget:512,writeAckShape:null,

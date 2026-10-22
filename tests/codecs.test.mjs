@@ -16,9 +16,55 @@ test('RT W slot34 threshold80 is0.8mm;1.2mm patch owns only LE16 threshold bytes
   assert.equal(result.bytes[34*8+2],120);
   assert.equal(result.bytes[34*8+3],0);
   assert.deepEqual(diff(bytes,result.bytes),[34*8+2]);
-  assert.deepEqual(result.changes,[{offset:274,before:80,after:120}]);
+  assert.deepEqual(result.changes,[{block:'rt',path:'records[34].actuationMm',before:0.8,after:1.2,byteOffsets:[274]}]);
   assert.deepEqual(bytes,original);
   assert.notEqual(result.bytes,bytes);
+});
+
+test('Change tracks final semantic values, deduplicates edits and omits reverted shared flags',()=>{
+  const bytes=new Uint8Array(1024);bytes[272]=1;bytes[274]=80;
+  const result=patchBlock('rt',bytes,[
+    {slot:34,field:'actuationMm',value:1.2},{slot:34,field:'actuationMm',value:3},
+    {slot:34,field:'whole',value:true},{slot:34,field:'bottom',value:true},
+    {slot:34,field:'whole',value:false},{slot:34,field:'rtMode',value:false},
+    {slot:92,field:'whole',value:true},
+  ],cap());
+  assert.deepEqual(result.changes,[
+    {block:'rt',path:'records[34].bottom',before:false,after:true,byteOffsets:[273]},
+    {block:'rt',path:'records[34].actuationMm',before:0.8,after:3,byteOffsets:[274,275]},
+    {block:'rt',path:'records[92].whole',before:false,after:true,byteOffsets:[737]},
+  ]);
+  assert.deepEqual(patchBlock('rt',bytes,[
+    {slot:34,field:'actuationMm',value:1.2},{slot:34,field:'actuationMm',value:0.8},
+    {slot:34,field:'bottom',value:true},{slot:34,field:'bottom',value:false},
+  ],cap()).changes,[]);
+});
+
+test('Change carries typed scalar, RGB and binding values with only actual changed offsets',()=>{
+  const settings=new Uint8Array(32);settings[3]=1;
+  assert.deepEqual(patchBlock('settings',settings,[{field:'sleep',value:30}],cap()).changes,[
+    {block:'settings',path:'fields.sleep',before:1,after:30,byteOffsets:[3]},
+  ]);
+  const lighting=new Uint8Array(16);
+  assert.deepEqual(patchBlock('lighting',lighting,[{field:'red',value:201}],cap()).changes,[
+    {block:'lighting',path:'fields.red',before:0,after:201,byteOffsets:[1]},
+  ]);
+  const colors=new Uint8Array(512);colors.set([99,1,2,3],136);
+  const rgb=patchBlock('colors',colors,[{slot:34,field:'rgb',value:{red:1,green:8,blue:3}}],cap());
+  assert.deepEqual(rgb.changes,[{block:'colors',path:'records[34].rgb',before:{red:1,green:2,blue:3},after:{red:1,green:8,blue:3},byteOffsets:[138]}]);
+  for(const block of ['keymap','fn']){
+    const keys=new Uint8Array(512);keys.set([2,0,4,99],136);
+    const value={type:'keyboard',usage:26};
+    const result=patchBlock(block,keys,[{slot:34,field:'binding',value}],cap());
+    assert.deepEqual(result.changes,[{block,path:'records[34].binding',
+      before:{type:'keyboard',typeCode:2,bytes:Uint8Array.of(2,0,4,99),modifier:0,usage:4},
+      after:{type:'keyboard',typeCode:2,bytes:Uint8Array.of(2,0,26,99),modifier:0,usage:26},byteOffsets:[138]}]);
+    value.usage=5;result.changes[0].after.bytes[2]=10;
+    assert.equal(result.changes[0].after.usage,26);
+    assert.equal(result.bytes[138],26);
+    assert.equal(keys[138],4);
+    assert.deepEqual(patchBlock(block,keys,[{slot:34,field:'binding',value:{type:'keyboard',usage:26}},{slot:34,field:'binding',value:{type:'keyboard',usage:4}}],cap()).changes,[]);
+  }
 });
 
 test('all source blocks round-trip exact bytes; no defaults for raw zero',()=>{

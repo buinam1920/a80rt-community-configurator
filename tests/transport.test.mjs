@@ -139,3 +139,74 @@ test('disconnect during a read immediately permits a new connection without stal
     if(oldNavigator)Object.defineProperty(globalThis,'navigator',oldNavigator);else delete globalThis.navigator;
   }
 });
+
+test('receiver link-loss reaches the actual read controller and clears its busy state for recovery',async()=>{
+  class Element {
+    textContent='';hidden=false;disabled=false;open=false;listeners=new Map();style={setProperty(){}};classList={toggle(){}};
+    append(){}replaceChildren(){}setAttribute(){}
+    addEventListener(type,callback){this.listeners.set(type,callback);}
+    async trigger(type,event={}){await this.listeners.get(type)?.(event);}
+  }
+  const elements=new Map(),get=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
+  const oldDocument=globalThis.document,oldWindow=globalThis.window,oldNavigator=Object.getOwnPropertyDescriptor(globalThis,'navigator');
+  const device=new Receiver(),hid=new EventTarget();hid.requestDevice=async()=>[device];
+  globalThis.document={getElementById:get,createElement:()=>new Element(),createTextNode:text=>({textContent:text})};
+  globalThis.window={isSecureContext:true};Object.defineProperty(globalThis,'navigator',{configurable:true,value:{hid}});
+  let reading;
+  try{
+    await import('../dist/app.js?task3-link-loss-fix1');await get('connect-button').trigger('click');
+    reading=get('read-button').trigger('click');await new Promise(resolve=>setImmediate(resolve));
+    const captured=JSON.parse(readFileSync(new URL('./fixtures/a80rt-link-loss-header.json',import.meta.url),'utf8'));
+    const event=new Event('inputreport');event.reportId=0;event.data=new DataView(Uint8Array.from(captured.capturedHeader).buffer);device.dispatchEvent(event);
+    await reading;assert.match(get('message').textContent,/mất liên kết/);
+    assert.equal(get('read-button').hidden,false);assert.equal(get('progress-wrap').hidden,true);assert.equal(get('disconnect-button').disabled,false);
+    await get('disconnect-button').trigger('click');assert.equal(get('connect-button').disabled,false);
+    device.respond=packet=>queueMicrotask(()=>device.emit(packet));await get('connect-button').trigger('click');
+    await get('read-button').trigger('click');assert.match(get('message').textContent,/Đã đọc đủ 6/);
+    assert.equal(get('read-button').hidden,false);await get('disconnect-button').trigger('click');
+  }finally{
+    await reading;globalThis.document=oldDocument;globalThis.window=oldWindow;
+    if(oldNavigator)Object.defineProperty(globalThis,'navigator',oldNavigator);else delete globalThis.navigator;
+  }
+});
+
+test('an old delayed read completion cannot clear or report success over a newer active read',async()=>{
+  class Element {
+    textContent='';hidden=false;disabled=false;open=false;listeners=new Map();style={setProperty(){}};classList={toggle(){}};
+    append(){}replaceChildren(){}setAttribute(){}
+    addEventListener(type,callback){this.listeners.set(type,callback);}
+    async trigger(type,event={}){await this.listeners.get(type)?.(event);}
+  }
+  const elements=new Map(),get=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
+  const oldDocument=globalThis.document,oldWindow=globalThis.window,oldNavigator=Object.getOwnPropertyDescriptor(globalThis,'navigator');
+  const first=new Receiver(),second=new Receiver(),hid=new EventTarget();let selected=first;hid.requestDevice=async()=>[selected];
+  globalThis.document={getElementById:get,createElement:()=>new Element(),createTextNode:text=>({textContent:text})};
+  globalThis.window={isSecureContext:true};Object.defineProperty(globalThis,'navigator',{configurable:true,value:{hid}});
+  const {A80Reader:AppReader}=await import('../dist/protocol.js?v=0.2.0'),original=AppReader.prototype.readAll;
+  let releaseOld,oldReading,newReading;const delayed=new Promise(resolve=>{releaseOld=resolve;});
+  AppReader.prototype.readAll=async function(onProgress,onBlock){
+    try{return await original.call(this,onProgress,onBlock);}
+    catch(error){
+      if(this.device!==first)throw error;
+      await delayed;
+      // Explicitly replay detached operation callbacks/completion after recovery.
+      onProgress({block:'rt',completed:2128,total:2128});onBlock('rt',Array(1024).fill(99));return {};
+    }
+  };
+  try{
+    await import('../dist/app.js?task3-read-owner-fix1');await get('connect-button').trigger('click');
+    oldReading=get('read-button').trigger('click');await new Promise(resolve=>setImmediate(resolve));
+    await get('disconnect-button').trigger('click');assert.equal(get('connect-button').disabled,false);
+    selected=second;await get('connect-button').trigger('click');newReading=get('read-button').trigger('click');
+    await new Promise(resolve=>setImmediate(resolve));assert.ok(second.sent.length>0,'the replacement reader must actually start');releaseOld();await oldReading;
+    assert.equal(get('read-button').hidden,true,'old cleanup cannot clear a newer read');assert.equal(get('progress-wrap').hidden,false);
+    assert.doesNotMatch(get('message').textContent,/Đã đọc đủ|Đã dừng đọc/);assert.notEqual(get('progress-bar').style.width,'100%');
+    assert.equal(get('key-rt-raw').textContent,'Chưa có dữ liệu');
+    await get('cancel-button').trigger('click');await newReading;assert.equal(get('read-button').hidden,false);
+    await get('disconnect-button').trigger('click');
+  }finally{
+    releaseOld();await oldReading;await newReading;AppReader.prototype.readAll=original;
+    globalThis.document=oldDocument;globalThis.window=oldWindow;
+    if(oldNavigator)Object.defineProperty(globalThis,'navigator',oldNavigator);else delete globalThis.navigator;
+  }
+});

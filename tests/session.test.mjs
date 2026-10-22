@@ -306,13 +306,14 @@ test('all eight source write groups preserve whole input bytes and use bounded c
   }
 });
 
-test('readSnapshot rejects a mixed read if a direct qualified write occurs between complete block reads',async()=>{
+test('readSnapshot excludes direct writes between complete block reads and returns an unmixed snapshot',async()=>{
   const {device,transport}=await setup();let writing;
   try{
-    await assert.rejects(protocol.readSnapshot(transport,capability,{onProgress:event=>{
-      if(event.block==='device')writing=transport.writeBlock(0x23,device.blocks.lighting);
-    }}),/stale|snapshot/i);
-    await writing;
+    const snapshot=await protocol.readSnapshot(transport,capability,{onProgress:event=>{
+      if(event.block==='device')writing=assert.rejects(transport.writeBlock(0x23,device.blocks.lighting),/đang|running/i);
+    }});
+    await writing;assert.equal(Object.keys(snapshot.blocks).length,9);
+    assert.equal(device.sent.filter(packet=>packet[1]===0x23).length,0);
   }finally{await transport.close();}
 });
 
@@ -353,5 +354,55 @@ test('invalid apply transport cannot leave a valid session locked or discard its
     session.edit('colors',[rgb]);const result=await session.apply(null);
     assert.equal(result.status,'failed');assert.equal(session.applying,false);assert.equal(session.diff().length,1);
     session.revert();assert.deepEqual(session.diff(),[]);
+  }finally{await transport.close();}
+});
+
+test('a direct write queued before apply cannot be overwritten by the stale session block',async()=>{
+  const {device,transport,session}=await setup();
+  try{
+    const foreign=device.blocks.colors.slice();foreign[92*4+1]=123;
+    session.edit('colors',[rgb]);const queued=transport.writeBlock(0x24,foreign),applying=session.apply(transport);
+    await queued;const result=await applying;
+    assert.equal(device.blocks.colors[92*4+1],123,'the earlier queued edit must survive');
+    assert.equal(device.sent.filter(packet=>packet[1]===0x24).length,22,'no stale session chunk may be sent');
+    assert.equal(result.status,'failed');assert.deepEqual(result.writtenBlocks,[]);assert.deepEqual(result.attemptedBlocks,[]);
+    assert.match(result.error,/stale|snapshot|epoch/i);assert.equal(session.diff().length,1);
+  }finally{await transport.close();}
+});
+
+test('foreign writes control and direct exchanges cannot enter write control or readback transaction phases',async()=>{
+  const {device,transport,session}=await setup();const attempts=[];
+  try{
+    session.edit('colors',[rgb]);
+    const result=await session.apply(transport,{onProgress:event=>{
+      if(!['write','control','readback'].includes(event.phase))return;
+      for(const operation of [()=>transport.writeBlock(0x21,device.blocks.settings),()=>transport.sendControl(0,Uint8Array.of(0,0,0,0)),()=>transport.exchange(0x10,0,24,false)]){
+        attempts.push(operation().then(()=>({phase:event.phase,blocked:false}),()=>({phase:event.phase,blocked:true})));
+      }
+    }});
+    assert.equal(result.status,'verified');assert.equal(attempts.length,9);assert.ok((await Promise.all(attempts)).every(item=>item.blocked));
+    assert.equal(device.sent.filter(packet=>packet[1]===0x21).length,0);assert.equal(device.sent.filter(packet=>packet[1]===0).length,1);
+    assert.equal(device.sent.filter(packet=>packet[1]===0x10).length,0);
+  }finally{await transport.close();}
+});
+
+test('queued transaction cancellation emits no owned writes and releases transport admission',async()=>{
+  const {device,transport,session}=await setup();
+  try{
+    device.silent=true;session.edit('colors',[rgb]);const earlier=transport.readBlock(0x10,32);
+    const earlierFailure=assert.rejects(earlier,/chưa trả lời/),abort=new AbortController();
+    const applying=session.apply(transport,{signal:abort.signal});abort.abort();
+    await assert.rejects(transport.sendControl(0,Uint8Array.of(0,0,0,0)),/đang|running/i);
+    await earlierFailure;assert.equal((await applying).status,'failed');assert.equal(device.sent.filter(packet=>packet[1]===0x24).length,0);
+    device.silent=false;assert.equal((await transport.readBlock(0x10,32)).length,32);
+  }finally{await transport.close();}
+});
+
+test('a failed owned callback drains requests, expires its scope and releases transport admission',async()=>{
+  const {device,transport}=await setup();let scope;
+  try{
+    await assert.rejects(transport.withTransaction(async io=>{scope=io;await io.writeBlock(0x21,device.blocks.settings);throw new Error('owner callback failed');}),/owner callback failed/);
+    const count=device.sent.length;await assert.rejects(scope.writeBlock(0x21,device.blocks.settings),{name:'AbortError'});assert.equal(device.sent.length,count);
+    assert.equal((await transport.readBlock(0x10,32)).length,32);
   }finally{await transport.close();}
 });

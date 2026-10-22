@@ -122,7 +122,7 @@ async function connect(){
   finally{state.connecting=false;render();}
 }
 async function disconnect(){
-  const reader=state.reader;state.reader=null;
+  const reader=state.reader;state.reader=null;state.reading=false;state.activeBlock=null;
   if(reader)await reader.close().catch(()=>{});
   render();
 }
@@ -131,13 +131,14 @@ async function read(){
   const reader=state.reader;
   const sessionId=reader.getState().sessionId;
   const snapshot=deviceSnapshot(reader.device,reader.interface);snapshot.session=reader.getState();state.snapshot=snapshot;
-  const current=()=>state.reader===reader&&state.snapshot===snapshot&&reader.getState().sessionId===sessionId;
+  const ownsRead=()=>state.reader===reader&&state.snapshot===snapshot;
+  const current=()=>ownsRead()&&reader.getState().sessionId===sessionId;
   state.reading=true;state.progress=0;clearMessage();render();
   try{
     await reader.readAll(progress=>{if(!current())return;state.activeBlock=progress.block;state.progress=100*progress.completed/progress.total;render();},(id,bytes)=>{if(!current())return;snapshot.blocks[id]=bytes;render();});
     if(current()){snapshot.complete=true;message('Đã đọc đủ 6 nhóm cấu hình. Bạn có thể chọn phím để xem thông số hoặc xuất JSON.');}
-  }catch(error){if(current())message(error.name==='AbortError'?'Đã dừng đọc. Các nhóm đã nhận đủ vẫn được giữ để xem và xuất JSON.':`Đọc chưa hoàn tất: ${error.message}`,error.name!=='AbortError');}
-  finally{if(current()){snapshot.session=reader.getState();state.reading=false;state.activeBlock=null;render();}}
+  }catch(error){if(ownsRead())message(error.name==='AbortError'?'Đã dừng đọc. Các nhóm đã nhận đủ vẫn được giữ để xem và xuất JSON.':`Đọc chưa hoàn tất: ${error.message}`,error.name!=='AbortError');}
+  finally{if(ownsRead()){snapshot.session=reader.getState();state.reading=false;state.activeBlock=null;render();}}
 }
 function sample(){
   if(state.reader||state.reading)return;

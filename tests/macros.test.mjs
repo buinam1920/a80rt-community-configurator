@@ -43,3 +43,13 @@ test('macro payload cannot overwrite captured reserved header or flag bits',()=>
  const value=api.decodeMacros(raw,cap);value[0].events[0].flags=48;value[0].reserved=[0,0];value[0].events[0].action='up';
  const after=api.patchMacros(raw,value,cap).bytes;assert.deepEqual(Array.from(after.slice(402,404)),[77,88]);assert.equal(after[407],49);
 });
+
+test('duplicate macro-list edits cannot bypass deletion and reindex repair checks',()=>{
+ for(const layer of ['keymap','fn']){
+  const s=session();s.edit('macro',[{field:'macros',value:[{events:[event()]},{events:[{...event(),code:5}]}]}]);
+  s.edit(layer,[{slot:34,field:'binding',value:{type:'macro',index:0,mode:0,repeat:1}}]);
+  const before=s.draft,diff=s.diff(),macros=api.decodeMacros(before.macro,cap);
+  assert.throws(()=>s.transaction({macro:[{field:'macros',value:macros},{field:'macros',value:[macros[1]]}]}),/duplicate|reference/i);
+  assert.deepEqual(s.draft,before);assert.deepEqual(s.diff(),diff);assert.equal(api.decodeMacros(s.draft.macro,cap)[0].events[0].code,4);
+ }
+});

@@ -1,7 +1,7 @@
 import {identifyDevice,readPlan} from '../device/capabilities.js';
 import {decodeBlock,patchBlock,fieldChanges} from './codecs.js';
 import {patchMacros} from './macros.js';
-import {validateReferences,advancedEdits} from './advanced.js';
+import {validateReferenceEdits,advancedEdits} from './advanced.js';
 import {A80Transport} from '../device/transport.js';
 
 const origins=new WeakMap(),busyTransports=new WeakSet();
@@ -76,12 +76,15 @@ export class ConfigSession {
   advanced(binding){return this.transaction(advancedEdits(this.#draft,binding,this.#capability));}
   transaction(groups){
     this.#editable();if(!groups||typeof groups!=='object'||Array.isArray(groups))throw new Error('Edit groups required.');
+    // A macro list has one identity mapping per transaction. Reject ambiguous
+    // repeated lists before any group is staged or reference identity is lost.
+    if(Array.isArray(groups.macro)&&groups.macro.filter(edit=>edit?.field==='macros').length>1)throw new Error('Duplicate macro list edits are not allowed in one transaction.');
     const draft=copyBlocks(this.#draft),saved=new Map(this.#edits);
     for(const [id,edits]of Object.entries(groups)){
       const result=patchBlock(id,draft[id],edits,this.#capability);draft[id]=result.bytes;
       const fields=new Map(saved.get(id)??[]);for(const edit of edits)fields.set(`${edit.slot??'global'}:${edit.field}`,copy(edit));saved.set(id,fields);
     }
-    if(groups.macro){
+    if(groups.macro?.some(edit=>edit.field==='macros')){
       const macroEdit=groups.macro.find(e=>e.field==='macros');
       const remaps=patchMacros(this.#draft.macro,macroEdit.value,this.#capability).referenceChanges;
       for(const id of ['keymap','fn'])for(let slot=0;slot<this.#draft[id].length/4;slot++){
@@ -90,8 +93,7 @@ export class ConfigSession {
       }
     }
     if(Object.keys(groups).some(id=>['keymap','fn','macro','dks','rt'].includes(id))){
-      const previous=new Set(validateReferences(this.#draft,undefined,this.#capability));
-      const errors=validateReferences(draft,undefined,this.#capability).filter(error=>!previous.has(error));
+      const errors=validateReferenceEdits(this.#draft,draft,groups,this.#capability);
       if(errors.length)throw new Error(errors.join('; '));
     }
     this.#draft=draft;this.#edits=saved;return this.diff();

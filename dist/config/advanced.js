@@ -44,12 +44,28 @@ export function advancedEdits(blocks,binding,capability){
 export function patchAdvanced(blocks,binding,capability){
  const edits=advancedEdits(blocks,binding,capability),result=Object.fromEntries(Object.entries(blocks).map(([id,raw])=>[id,Uint8Array.from(raw)])),changes=[];
  for(const [id,list]of Object.entries(edits)){const patched=patchBlock(id,result[id],list,capability);result[id]=patched.bytes;changes.push(...patched.changes);}
- const old=new Set(validateReferences(blocks,undefined,capability)),errors=validateReferences(result,undefined,capability).filter(e=>!old.has(e));if(errors.length)fail(errors.join('; '));return {blocks:result,changes};
+ const errors=validateReferenceEdits(blocks,result,edits,capability);if(errors.length)fail(errors.join('; '));return {blocks:result,changes};
 }
-export function validateReferences(blocks,macros,capability){
- readPlan(capability);const errors=[];if(!macros){try{macros=decodeMacros(blocks.macro,capability);}catch(e){errors.push(e.message);macros=[];}}
+// Unrelated malformed captured data remains readable/editable. Matching old
+// error text does not exempt a relationship whose inputs this edit touches.
+export function validateReferenceEdits(before,after,groups,capability){
+ const scope={bindings:new Set(),patterns:new Set(),switches:new Set(),macro:!!groups.macro?.some(edit=>edit.field==='macros')};
+ for(const id of ['keymap','fn'])for(const edit of groups[id]??[])if(edit.field==='binding')scope.bindings.add(`${id}[${edit.slot}]`);
+ for(const edit of groups.dks??[])if(edit.field==='pattern')scope.patterns.add(edit.slot);
+ for(const edit of groups.rt??[])if(edit.field==='switchId')scope.switches.add(edit.slot);
+ const original=new Set(validateReferences(before,undefined,capability));
+ const affected=new Set(validateReferences(after,undefined,capability,scope));
+ return validateReferences(after,undefined,capability).filter(error=>affected.has(error)||!original.has(error));
+}
+export function validateReferences(blocks,macros,capability,scope){
+ readPlan(capability);const errors=[];if(!macros){try{macros=decodeMacros(blocks.macro,capability);}catch(e){if(!scope||scope.macro)errors.push(e.message);macros=[];}}
  for(const id of ['keymap','fn']){const data=blocks[id];if(!data)continue;
   for(let slot=0;slot<data.length/4;slot++){const [type,a,b,c]=data.slice(slot*4,slot*4+4),label=`${id}[${slot}]`;
+   if(scope){
+    const pairSlots=[11,12].includes(type)?[b,c].map(usage=>KEYS.find(key=>key.usage===usage)?.slot):[];
+    const affected=scope.bindings.has(label)||(type===6&&scope.macro)||(type===8&&(scope.patterns.has(a)||scope.switches.has(slot)))||pairSlots.some(member=>scope.bindings.has(`${id}[${member}]`));
+    if(!affected)continue;
+   }
    if(type===6&&a>=macros.length)errors.push(`${label} macro reference ${a} missing`);
    if(type===8){const t=blocks.dks?.slice(a*16,a*16+4);if(a<1||a>63||!t||!t.some(Boolean))errors.push(`${label} DKS reference ${a} missing`);else if(capability.slots.includes(slot)){const travel=capability.limits.switchTravelMm[blocks.rt?.[slot*8]];if(travel===undefined||Math.max(...t)>travel*10)errors.push(`${label} DKS threshold exceeds switch travel`);}}
    if((type===11||type===12)&&capability.slots.includes(slot)){

@@ -46,3 +46,39 @@ test('a new DKS assignment cannot overwrite a pattern used by another base/Fn ke
  const first=api.patchAdvanced(raw,{type:'dks',slots:[34],index:1,pattern},cap).blocks;
  assert.throws(()=>api.patchAdvanced(first,{type:'dks',slots:[49],layer:'fn',index:1,pattern:{...pattern,keys:[5,6,7,8]}},cap),/DKS.*used|reference/);
 });
+
+function invalidCapturedDks(){
+ const raw=blocks();raw.rt[34*8]=raw.rt[49*8]=2;
+ raw.keymap.set([8,1,0,222],136);raw.fn.set([8,2,0,223],196);
+ for(const index of [1,2]){const offset=index*16;raw.dks.set([10,34,34,10,99,4,88,5,77,6,66,7,1,2,4,8],offset);}
+ // An unrelated malformed captured macro pointer is opaque to DKS-only edits.
+ raw.macro[0]=255;raw.macro[1000]=211;return raw;
+}
+function capturedSession(raw){
+ return import('../dist/config/session.js').then(({ConfigSession})=>new ConfigSession({identity:cap.identity,blocks:raw,coverage:Object.fromEntries(readPlan(cap).map(({id,length})=>[id,{complete:true,expectedBytes:length,receivedBytes:length}]))},cap));
+}
+test('patchAdvanced revalidates touched preinvalid DKS travel and preserves unrelated captured errors',()=>{
+ const raw=invalidCapturedDks(),before=structuredClone(raw),binding={type:'dks',slots:[34],index:1,pattern:{...pattern,thresholds:[11,34,34,11]}};
+ assert.throws(()=>api.patchAdvanced(raw,binding,cap),/DKS threshold exceeds switch travel/);assert.deepEqual(raw,before);
+ const repaired=api.patchAdvanced(raw,{...binding,pattern:{...binding.pattern,thresholds:[11,33,33,11]}},cap).blocks;
+ assert.deepEqual(Array.from(repaired.dks.slice(16,20)),[11,33,33,11]);assert.equal(repaired.dks[20],99);assert.deepEqual(repaired.fn,raw.fn);assert.deepEqual(repaired.dks.slice(32),raw.dks.slice(32));assert.deepEqual(repaired.macro,raw.macro);
+});
+test('session revalidates preinvalid DKS patterns, bindings and switch IDs atomically',async()=>{
+ const raw=invalidCapturedDks(),s=await capturedSession(raw),before=s.draft;
+ const operations=[
+  ()=>s.advanced({type:'dks',slots:[34],index:1,pattern:{...pattern,thresholds:[11,34,34,11]}}),
+  ()=>s.edit('dks',[{slot:1,field:'pattern',value:{...pattern,thresholds:[11,34,34,11]}}]),
+  ()=>s.edit('keymap',[{slot:34,field:'binding',value:{type:'dks',index:1}}]),
+  ()=>s.edit('rt',[{slot:34,field:'switchId',value:3}]),
+  ()=>s.edit('rt',[{slot:49,field:'switchId',value:3}]),
+ ];
+ for(const apply of operations){assert.throws(apply,/DKS threshold exceeds switch travel/);assert.deepEqual(s.draft,before);assert.deepEqual(s.diff(),[]);}
+ s.edit('rt',[{slot:34,field:'whole',value:true}]);assert.equal(s.draft.rt[34*8+1],1);assert.deepEqual(s.draft.dks,raw.dks);assert.deepEqual(s.draft.macro,raw.macro);
+ s.edit('rt',[{slot:34,field:'switchId',value:1}]);assert.equal(s.draft.rt[34*8],1);assert.deepEqual(s.draft.fn,raw.fn);
+});
+test('editing a DKS pattern validates every base/Fn dependent switch and allows a valid repair',async()=>{
+ const raw=invalidCapturedDks();raw.rt[34*8]=1;raw.fn[197]=1;const s=await capturedSession(raw),before=s.draft;
+ assert.throws(()=>s.edit('dks',[{slot:1,field:'pattern',value:{...pattern,thresholds:[11,34,34,11]}}]),/fn\[49\].*DKS threshold exceeds switch travel/);assert.deepEqual(s.draft,before);
+ s.transaction({dks:[{slot:1,field:'pattern',value:{...pattern,thresholds:[11,33,33,11]}}],keymap:[{slot:50,field:'binding',value:{type:'tgl',key:4}}]});
+ assert.deepEqual(Array.from(s.draft.dks.slice(16,20)),[11,33,33,11]);assert.equal(s.draft.keymap[200],10);assert.deepEqual(s.draft.macro,raw.macro);assert.equal(s.draft.dks[20],99);
+});

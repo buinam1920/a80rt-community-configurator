@@ -1,6 +1,6 @@
 # A80RT: thiết kế nâng từ Reader thành driver cấu hình
 
-Trạng thái: đề xuất để người dùng duyệt, chưa triển khai phần ghi.
+Trạng thái: người dùng đã duyệt ngày 22/10/2026 bằng phản hồi “k”; chưa triển khai phần ghi.
 
 ## Mục tiêu và yêu cầu đã có
 
@@ -24,7 +24,7 @@ Hai hướng đã cân nhắc nhưng không đề xuất:
 1. Chỉ tạo vỏ giao diện cho web driver hãng: ít việc giao thức hơn nhưng vẫn phụ thuộc giao diện và hành vi cũ mà người dùng muốn thay.
 2. Đổi sang app desktop: có thể dùng HID native nhưng cần đóng gói/cài đặt và xử lý đa nền tảng; chưa có yêu cầu sử dụng ngoài Chrome/Edge và chưa có bằng chứng phải đổi nền tảng để giải quyết vấn đề hiện tại.
 
-Lựa chọn nền tảng này là đề xuất của người triển khai, chưa phải quyết định riêng do người dùng yêu cầu.
+Lựa chọn nền tảng này do người triển khai đề xuất trong thiết kế đã được duyệt.
 
 ## Các phần phải có
 

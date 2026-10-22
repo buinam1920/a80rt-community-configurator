@@ -97,11 +97,22 @@ blocks in the current ConfigSession, not merely `opened` or `hasResponse`.
 Close removes the old listener and invalidates pending/queued operations.
 Callbacks already captured in the old session cannot settle a new session's
 request; the regression test delivers such an old callback after reopening.
+The controller's 22 October 2026 review ruling narrows Task 1 acceptance to this
+callback/result isolation, including the app's prior-reader/snapshot guards.
+The authoritative plan and generated Task 1 brief now state that precise guarantee.
 The packet header has **no proven transaction ID**. A byte-identical delayed
 response emitted onto a newly opened handle and matching its current command,
 offset, and length is indistinguishable from a fresh response. Software
 generation checks cannot solve that stronger on-wire case. No arbitrary delay,
 guessed flush command, or claim of hardware freshness is introduced.
+
+The separate `format limitation: a byte-identical old frame through the current
+listener is accepted after reopen` test caches a first-session response and
+dispatches those exact bytes through the current EventTarget listener after
+reopening. It explicitly expects acceptance and a current-session RX trace.
+This is characterization of the format limitation, not proof of response freshness
+or hardware success. The detached-callback rejection test uses a fresh synthetic
+reply only after asserting that an invoked old callback did not complete the read.
 
 ## Hardware acceptance still pending
 

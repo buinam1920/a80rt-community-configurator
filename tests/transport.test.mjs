@@ -41,13 +41,32 @@ test('a detached old-session listener cannot complete a matching request after c
   const add=device.addEventListener.bind(device);device.addEventListener=(name,listener,...args)=>{if(name==='inputreport')listeners.push(listener);add(name,listener,...args);};
   const transport=new A80Transport(device,{timeoutMs:50});await transport.open();const oldId=transport.getState().sessionId;
   const old=transport.readBlock(0x10,24);const oldFailure=assert.rejects(old,{name:'AbortError'});await new Promise(resolve=>setImmediate(resolve));
-  const oldPacket=device.sent[0];await transport.close();await oldFailure;await transport.open();assert.notEqual(transport.getState().sessionId,oldId);
+  await transport.close();await oldFailure;await transport.open();assert.notEqual(transport.getState().sessionId,oldId);
   let completed=false;const current=transport.readBlock(0x10,24).then(bytes=>{completed=true;return bytes;});await new Promise(resolve=>setImmediate(resolve));
   const bytes=new Uint8Array(32);bytes.set([0x55,0x10,24,0,0,0,0,0]);bytes.fill(99,8);
   listeners[0]({reportId:0,data:new DataView(bytes.buffer)});
   await new Promise(resolve=>setImmediate(resolve));assert.equal(completed,false);assert.equal(transport.getState().hasResponse,false);
-  device.emit(oldPacket);assert.deepEqual(await current,new Uint8Array(24).fill(7));assert.equal(transport.getState().hasResponse,true);
+  // Deliver a fresh synthetic reply to the current request, after proving that
+  // the explicitly invoked detached callback above could not settle it.
+  device.emit(device.sent.at(-1));assert.deepEqual(await current,new Uint8Array(24).fill(7));assert.equal(transport.getState().hasResponse,true);
   await transport.close();assert.equal(transport.getState().hasResponse,false);
+});
+
+test('format limitation: a byte-identical old frame through the current listener is accepted after reopen',async()=>{
+  const device=new Receiver(),trace=[],transport=new A80Transport(device,{timeoutMs:50,onTrace:event=>trace.push(event)});
+  // Cache a complete response from the first session. No header byte identifies
+  // a session/transaction, so its delayed duplicate also matches the next read.
+  const cached=new Uint8Array(32);cached.set([0x55,0x10,24,0,0,0,0,0]);cached.fill(99,8);
+  const deliverCached=()=>{const event=new Event('inputreport');event.reportId=0;event.data=new DataView(cached.buffer);device.dispatchEvent(event);};
+  await transport.open();const oldSession=transport.getState().sessionId;
+  const old=transport.readBlock(0x10,24);await new Promise(resolve=>setImmediate(resolve));deliverCached();assert.deepEqual(await old,new Uint8Array(24).fill(99));
+  await transport.close();await transport.open();const currentSession=transport.getState().sessionId;assert.notEqual(currentSession,oldSession);
+  assert.equal(transport.getState().hasResponse,false);
+  const current=transport.readBlock(0x10,24);await new Promise(resolve=>setImmediate(resolve));
+  deliverCached(); // EventTarget routes this through the newly registered listener.
+  assert.deepEqual(await current,new Uint8Array(24).fill(99));assert.equal(transport.getState().hasResponse,true);
+  assert.equal(trace.filter(event=>event.type==='rx').at(-1).sessionId,currentSession);
+  await transport.close();
 });
 
 test('simultaneous block reads queue whole blocks and preserve exact measured first TX',async()=>{

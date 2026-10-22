@@ -1,0 +1,844 @@
+{
+  "schemaVersion": 1,
+  "evidence": "tests/fixtures/source/a80rt-manufacturer.json",
+  "qualification": "Manufacturer source only; no successful hardware RX or write ACK has been observed.",
+  "path": [
+    "model-u/model-wired/model-dongle select getLBA80RT",
+    "connection routes these devices to generic Device kS/yS",
+    "read-sequence consumes generic store arrays"
+  ],
+  "blocks": {
+    "device": {
+      "command": 16,
+      "length": 32,
+      "source": [
+        "store",
+        "read-sequence"
+      ],
+      "reserved": "All bytes except documented read-only fields below"
+    },
+    "settings": {
+      "command": 17,
+      "writeCommand": 33,
+      "length": 32,
+      "source": [
+        "store",
+        "settings",
+        "settings-encode"
+      ],
+      "reserved": [
+        0,
+        1,
+        2,
+        10,
+        12,
+        13,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+      ]
+    },
+    "keymap": {
+      "command": 18,
+      "writeCommand": 34,
+      "length": 512,
+      "stride": 4,
+      "source": [
+        "store",
+        "key-types",
+        "key-encode"
+      ],
+      "reserved": "Unknown types and unused bytes of each known type remain opaque"
+    },
+    "lighting": {
+      "command": 19,
+      "writeCommand": 35,
+      "length": 16,
+      "source": [
+        "store",
+        "lighting",
+        "led-encode",
+        "led-options",
+        "led-bounds"
+      ],
+      "reserved": [
+        4,
+        13,
+        14,
+        15
+      ],
+      "note": "Manufacturer initializes byte4=255 and14..15=aa55 when writing. Do not replace captured bytes with those defaults."
+    },
+    "colors": {
+      "command": 20,
+      "writeCommand": 36,
+      "length": 512,
+      "stride": 4,
+      "source": [
+        "store",
+        "colors",
+        "colors-encode"
+      ],
+      "reserved": "Record byte0 is slot marker; preserve it during RGB-only patch. Nonphysical slots opaque."
+    },
+    "macro": {
+      "command": 21,
+      "writeCommand": 37,
+      "length": 1024,
+      "source": [
+        "store",
+        "store-reads",
+        "read-sequence",
+        "macro-decode",
+        "macro-encode",
+        "read-chunking"
+      ],
+      "lengthMeaning": "A80RT source allocation/request span, NOT proven physical storage capacity; source can terminate read early on a zero chunk after400 bytes, which must not count as a complete block locally",
+      "physicalCapacity": null,
+      "reserved": "Body header bytes2..3 and event flag bits outside a0 remain opaque"
+    },
+    "fn": {
+      "command": 22,
+      "writeCommand": 38,
+      "length": 512,
+      "stride": 4,
+      "source": [
+        "store",
+        "read-sequence",
+        "key-types",
+        "key-encode"
+      ],
+      "reserved": "Same record format as keymap"
+    },
+    "rt": {
+      "command": 23,
+      "writeCommand": 39,
+      "length": 1024,
+      "stride": 8,
+      "source": [
+        "store",
+        "rt-decode",
+        "rt-encode",
+        "sensitivity-unit",
+        "model-u"
+      ],
+      "reserved": "Flag bits3..7 and all nonphysical records preserved"
+    },
+    "dks": {
+      "command": 24,
+      "writeCommand": 40,
+      "length": 1024,
+      "stride": 16,
+      "source": [
+        "store",
+        "dks",
+        "read-sequence"
+      ],
+      "reserved": "Even bytes4,6,8,10 not decoded by manufacturer; advanced editing deferred"
+    }
+  },
+  "deviceFields": {
+    "version": {
+      "offset": [
+        8,
+        9
+      ],
+      "type": "BCD low byte + major byte",
+      "writable": false,
+      "source": "device"
+    },
+    "battery": {
+      "offset": 17,
+      "type": "u8",
+      "writable": false,
+      "source": "device"
+    },
+    "axialModel": {
+      "offset": 20,
+      "type": "u16le",
+      "writable": false,
+      "source": "device"
+    },
+    "macroCapacity": {
+      "offset": null,
+      "type": "unknown",
+      "writable": false,
+      "source": "store-reads",
+      "note": "device bytes2,3 merely evaluated, never interpreted as capacity"
+    }
+  },
+  "rtFields": {
+    "switchId": {
+      "offset": 0,
+      "type": "u8",
+      "values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "source": "model-u",
+      "note": "0 is raw unspecified, not default1; switches2,3 have3.3mm travel, others3.4mm"
+    },
+    "whole": {
+      "offset": 1,
+      "type": "bit",
+      "mask": 1,
+      "values": [
+        false,
+        true
+      ],
+      "source": "rt-encode"
+    },
+    "bottom": {
+      "offset": 1,
+      "type": "bit",
+      "mask": 2,
+      "values": [
+        false,
+        true
+      ],
+      "source": "rt-encode"
+    },
+    "rtMode": {
+      "offset": 1,
+      "type": "bit",
+      "mask": 4,
+      "values": [
+        false,
+        true
+      ],
+      "source": "rt-encode"
+    },
+    "actuationMm": {
+      "offset": 2,
+      "type": "u16le",
+      "unit": "0.01mm",
+      "editRange": [
+        0.01,
+        3.4
+      ],
+      "source": [
+        "rt-encode",
+        "rt-decode"
+      ]
+    },
+    "pressMm": {
+      "offset": 4,
+      "type": "u16le",
+      "unit": "0.01mm",
+      "editRange": [
+        0,
+        3.4
+      ],
+      "source": [
+        "rt-encode",
+        "sensitivity-unit"
+      ]
+    },
+    "releaseMm": {
+      "offset": 6,
+      "type": "u16le",
+      "unit": "0.01mm",
+      "editRange": [
+        0,
+        3.4
+      ],
+      "source": [
+        "rt-encode",
+        "sensitivity-unit"
+      ]
+    }
+  },
+  "keyTypes": {
+    "0": {
+      "name": "empty",
+      "fields": [],
+      "source": "key-types"
+    },
+    "1": {
+      "name": "mouse",
+      "fields": {
+        "mouseCode": 1,
+        "code": 2
+      },
+      "reserved": [
+        3
+      ],
+      "source": [
+        "key-types",
+        "key-encode",
+        "special-key-table"
+      ],
+      "values": {
+        "mouseCodes": {
+          "1": [
+            1,
+            2,
+            4,
+            8,
+            16
+          ],
+          "3": [
+            1,
+            255
+          ]
+        }
+      }
+    },
+    "2": {
+      "name": "keyboard",
+      "fields": {
+        "modifier": 1,
+        "usage": 2
+      },
+      "reserved": [
+        3
+      ],
+      "note": "Modifier byte1 holds a HID modifier usage224..231, NOT a bitmask. Ordinary usage is in byte2. Combined values have no verified source editor.",
+      "source": [
+        "key-types",
+        "key-encode",
+        "modifier-table",
+        "keyboard-tables"
+      ],
+      "modifierValues": [
+        0,
+        224,
+        225,
+        226,
+        227,
+        228,
+        229,
+        230,
+        231
+      ]
+    },
+    "3": {
+      "name": "media",
+      "fields": {
+        "usage": "u16le@1"
+      },
+      "reserved": [
+        3
+      ],
+      "source": [
+        "key-types",
+        "key-encode",
+        "special-key-table"
+      ],
+      "values": [
+        404,
+        402,
+        394,
+        387,
+        205,
+        183,
+        182,
+        181,
+        233,
+        234,
+        226,
+        547,
+        551,
+        549,
+        548,
+        554,
+        545
+      ]
+    },
+    "4": {
+      "name": "unknown",
+      "editable": false
+    },
+    "5": {
+      "name": "unknown",
+      "editable": false
+    },
+    "6": {
+      "name": "macro",
+      "fields": {
+        "index": 1,
+        "mode": 2,
+        "repeat": 3
+      },
+      "source": "key-types",
+      "editable": "Task5 validates references"
+    },
+    "7": {
+      "name": "combination",
+      "fields": {
+        "key1": 1,
+        "key2": 2,
+        "key3": 3
+      },
+      "source": "key-types",
+      "modelSupported": false
+    },
+    "8": {
+      "name": "dks",
+      "fields": {
+        "index": 1
+      },
+      "reserved": [
+        2,
+        3
+      ],
+      "source": [
+        "key-types",
+        "advanced-encode"
+      ],
+      "reference": "index byte1 is DKS record ordinal; absolute byte offset=index*16"
+    },
+    "9": {
+      "name": "mt",
+      "fields": {
+        "tap": 1,
+        "hold": 2,
+        "time": "byte3*10ms"
+      },
+      "source": "key-types"
+    },
+    "10": {
+      "name": "tgl",
+      "fields": {
+        "key": 1
+      },
+      "reserved": [
+        2,
+        3
+      ],
+      "source": "key-types"
+    },
+    "11": {
+      "name": "socd",
+      "fields": {
+        "mode": 1,
+        "key1": 2,
+        "key2": 3
+      },
+      "source": [
+        "key-types",
+        "advanced-modes",
+        "advanced-encode"
+      ],
+      "modeValues": [
+        3,
+        1,
+        2,
+        4
+      ]
+    },
+    "12": {
+      "name": "rs",
+      "fields": {
+        "key1": 2,
+        "key2": 3
+      },
+      "reserved": [
+        1
+      ],
+      "source": "key-types"
+    },
+    "13": {
+      "name": "function",
+      "fields": {
+        "code": "u24be@1"
+      },
+      "source": [
+        "key-types",
+        "key-encode",
+        "function-table",
+        "function-filter"
+      ],
+      "values": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22
+      ]
+    }
+  },
+  "settingsFields": {
+    "sleep": {
+      "offset": 3,
+      "type": "u8",
+      "range": [
+        0,
+        30
+      ],
+      "model": "Dongle only",
+      "unit": "minutes; zero disables sleep",
+      "source": [
+        "model-dongle",
+        "settings-options",
+        "sleep-slider",
+        "sleep-input",
+        "settings-encode"
+      ]
+    },
+    "responseTime": {
+      "offset": 4,
+      "type": "u8",
+      "values": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "editable": false,
+      "source": "settings-options",
+      "note": "A80RT settings do not expose this control"
+    },
+    "polling": {
+      "offset": 5,
+      "type": "u8",
+      "values": [
+        3,
+        5,
+        6
+      ],
+      "labels": [
+        "1K",
+        "4K",
+        "8K"
+      ],
+      "model": "wired only",
+      "source": [
+        "settings-options",
+        "rate-filter",
+        "model-u"
+      ]
+    },
+    "osMode": {
+      "offset": 6,
+      "type": "u8",
+      "editable": false,
+      "source": "settings",
+      "note": "Exact supported values need A80RT OS control evidence"
+    },
+    "tftTime": {
+      "offset": 7,
+      "type": "u8",
+      "editable": false,
+      "source": "settings",
+      "note": "No TFT capability for A80RT"
+    },
+    "topDeadZone": {
+      "offset": 8,
+      "type": "u8",
+      "range": [
+        0,
+        50
+      ],
+      "unit": "raw manufacturer zone unit; millimetres not inferred",
+      "source": [
+        "settings",
+        "model-u"
+      ]
+    },
+    "bottomDeadZone": {
+      "offset": 9,
+      "type": "u8",
+      "range": [
+        0,
+        50
+      ],
+      "unit": "raw manufacturer zone unit; millimetres not inferred",
+      "source": [
+        "settings",
+        "model-u"
+      ]
+    },
+    "stability": {
+      "offset": 11,
+      "type": "u8",
+      "values": [
+        0,
+        1
+      ],
+      "source": [
+        "settings",
+        "model-u"
+      ]
+    },
+    "autoCalibration": {
+      "offset": 14,
+      "type": "u8",
+      "values": [
+        0,
+        1
+      ],
+      "source": [
+        "settings",
+        "model-u"
+      ]
+    },
+    "wake": {
+      "offset": 15,
+      "type": "u8",
+      "editable": false,
+      "source": "model-u",
+      "note": "Hidden for all three A80RT variants"
+    }
+  },
+  "lightingFields": {
+    "mode": {
+      "offset": 0,
+      "type": "u8",
+      "values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        128
+      ],
+      "source": "led-options"
+    },
+    "red": {
+      "offset": 1,
+      "type": "u8",
+      "range": [
+        0,
+        255
+      ],
+      "source": "lighting"
+    },
+    "green": {
+      "offset": 2,
+      "type": "u8",
+      "range": [
+        0,
+        255
+      ],
+      "source": "lighting"
+    },
+    "blue": {
+      "offset": 3,
+      "type": "u8",
+      "range": [
+        0,
+        255
+      ],
+      "source": "lighting"
+    },
+    "secondaryRed": {
+      "offset": 5,
+      "type": "u8",
+      "range": [
+        0,
+        255
+      ],
+      "source": "lighting"
+    },
+    "secondaryGreen": {
+      "offset": 6,
+      "type": "u8",
+      "range": [
+        0,
+        255
+      ],
+      "source": "lighting"
+    },
+    "secondaryBlue": {
+      "offset": 7,
+      "type": "u8",
+      "range": [
+        0,
+        255
+      ],
+      "source": "lighting"
+    },
+    "colorMode": {
+      "offset": 8,
+      "type": "u8",
+      "values": [
+        0,
+        1
+      ],
+      "source": "led-encode"
+    },
+    "brightness": {
+      "offset": 9,
+      "type": "u8",
+      "range": [
+        1,
+        5
+      ],
+      "source": "led-bounds"
+    },
+    "speed": {
+      "offset": 10,
+      "type": "u8",
+      "range": [
+        1,
+        5
+      ],
+      "source": "led-bounds"
+    },
+    "direction": {
+      "offset": 11,
+      "type": "u8",
+      "values": [
+        0,
+        1
+      ],
+      "source": "led-encode"
+    },
+    "gearMode": {
+      "offset": 12,
+      "type": "u8",
+      "editable": false,
+      "source": "lighting",
+      "note": "No A80RT effect declares GearMode; needs exact domain"
+    }
+  },
+  "macro": {
+    "pointerTable": {
+      "offset": 0,
+      "bytes": 400,
+      "entries": 100,
+      "type": "u32le absolute offset",
+      "terminator": 0
+    },
+    "body": {
+      "headerBytes": 4,
+      "count": "u16le@0 /2 events; reject odd value",
+      "reserved": [
+        2,
+        3
+      ]
+    },
+    "event": {
+      "bytes": 4,
+      "delay": "u16le@0",
+      "delayUnit": "milliseconds, sourced from browser event.timeStamp deltas; no hardware timing claim",
+      "code": "u8@2",
+      "flags": "u8@3",
+      "downMask": 128,
+      "keyboardMask": 32,
+      "sourceKeyboardFlags": [
+        176,
+        48
+      ],
+      "sourceMouseFlags": [
+        144,
+        16
+      ],
+      "reservedMask": 95
+    },
+    "uiBudget": "task count + event count <512 at insertion; NOT byte capacity",
+    "source": [
+      "macro-encode",
+      "macro-decode",
+      "macro-ui-limit",
+      "macro-timestamps"
+    ]
+  },
+  "dks": {
+    "stride": 16,
+    "thresholds": {
+      "offsets": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "type": "u8",
+      "unit": "0.1mm for A80RT, via getDksTotipValue; exact ordering/ranges to validate in Task5"
+    },
+    "keyCodes": {
+      "offsets": [
+        5,
+        7,
+        9,
+        11
+      ],
+      "type": "u8"
+    },
+    "actions": {
+      "offsets": [
+        12,
+        13,
+        14,
+        15
+      ],
+      "clickMasks": [
+        1,
+        2,
+        4,
+        8
+      ],
+      "holdMasks": [
+        16,
+        32,
+        64,
+        128
+      ]
+    },
+    "source": [
+      "dks",
+      "dks-encode",
+      "dks-units",
+      "advanced-encode"
+    ],
+    "editing": "Task5; do not guess reference allocation or overwrite even key bytes"
+  },
+  "limits": {
+    "macroPhysicalCapacity": null,
+    "writeAckShape": null,
+    "rtModeNames": "whole/bottom/rtMode bits from source, no invented mode enumeration",
+    "unknownFields": "Reject by field name; never guess offsets"
+  }
+}

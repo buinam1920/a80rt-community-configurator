@@ -1,0 +1,344 @@
+{
+  "kind": "manufacturer-source-excerpts",
+  "hardwareCapture": false,
+  "bundles": {
+    "app": {
+      "url": "https://leobog.driveall.cn/static/js/app.3086f769.js",
+      "sha256": "924907c838ff49c6d5a8699b903ed7bb473c086e468076904516fbd0ca3e9419"
+    },
+    "keyboard": {
+      "url": "https://leobog.driveall.cn/static/js/chunk-keyboard.c8da5c12.js",
+      "sha256": "82dc20028caf5df0527cf9f17e94fa306279e402726709baef7fa1bc0214e1c6"
+    }
+  },
+  "snippets": [
+    {
+      "id": "model-u",
+      "bundle": "app",
+      "offset": 1017346,
+      "length": 1039,
+      "sha256": "10a66387ac2a071cb1cd1b5f4ec58ae3c7d7eee5fcd1a38a0cb728b3b8ccccd5",
+      "text": "{productId:32929,name:\"A80RT U\",isAxial:!0,trip:34,currentTrip:12,minSensitivity:1,SensitivityStep:1,sensitivity:10,maxSensitivity:340,list:s.A.getLBA80RT(),keys:p(),fn:u.getA80RT(),isCustom:!0,customInfo:x.getDefault(),fnChar:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22],musicVersion:1,isZone:!0,zoneInfo:{min:0,max:50},defaultValue:1,axial:[{id:21,name:\"key_v7\",minSensitivity:1,value:1,trip:34,currentTrip:12},{id:18,name:\"key_v10\",minSensitivity:1,value:6,trip:34,currentTrip:12},{id:19,name:\"key_v8\",minSensitivity:1,value:4,trip:34,currentTrip:12},{id:20,name:\"key_v9\",minSensitivity:1,value:5,trip:34,currentTrip:12},{name:\"jade\",minSensitivity:1,value:2,trip:33,currentTrip:12},{name:\"king\",minSensitivity:1,value:3,trip:33,currentTrip:12}],advancedKeyList:[{id:1,name:\"RS\",isShowTrip:!0},{id:2,name:\"SCOD\",isShowTrip:!0},{id:3,name:\"DKS\"},{id:4,name:\"MT\"},{id:5,name:\"TGL\"}],settings:{isShowSleepTime:!1,isShowWaken:!1,isShowStability:!0,isShowCalibration:!0,isShowRate:!0,isShowFirmware:!0},listBtnHideIds:[6,7,8]},"
+    },
+    {
+      "id": "model-wired",
+      "bundle": "app",
+      "offset": 1020378,
+      "length": 1038,
+      "sha256": "4517ae0d600563c211320db647e6926dd99cace218de5c9e80d444a59b561a7d",
+      "text": "{productId:32930,name:\"A80RT\",isAxial:!0,trip:34,currentTrip:12,minSensitivity:1,SensitivityStep:1,sensitivity:10,maxSensitivity:340,list:s.A.getLBA80RT(),keys:p(),fn:u.getA80RTD(),fnChar:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22],isCustom:!0,customInfo:x.getDefault(),musicVersion:1,isZone:!0,zoneInfo:{min:0,max:50},defaultValue:1,axial:[{id:21,name:\"key_v7\",minSensitivity:1,value:1,trip:34,currentTrip:12},{id:18,name:\"key_v10\",minSensitivity:1,value:6,trip:34,currentTrip:12},{id:19,name:\"key_v8\",minSensitivity:1,value:4,trip:34,currentTrip:12},{id:20,name:\"key_v9\",minSensitivity:1,value:5,trip:34,currentTrip:12},{name:\"jade\",minSensitivity:1,value:2,trip:33,currentTrip:12},{name:\"king\",minSensitivity:1,value:3,trip:33,currentTrip:12}],advancedKeyList:[{id:1,name:\"RS\",isShowTrip:!0},{id:2,name:\"SCOD\",isShowTrip:!0},{id:3,name:\"DKS\"},{id:4,name:\"MT\"},{id:5,name:\"TGL\"}],settings:{isShowSleepTime:!1,isShowWaken:!1,isShowStability:!0,isShowCalibration:!0,isShowRate:!0,isShowFirmware:!0},listBtnHideIds:[6,7,8]},"
+    },
+    {
+      "id": "model-dongle",
+      "bundle": "app",
+      "offset": 1025602,
+      "length": 1100,
+      "sha256": "cd787d4191e39b626efb433ada0f0249d59fd4c7e5f74513e9b6b00a8fa37069",
+      "text": "{productId:65276,name:\"A80RT U Dongle\",isAxial:!0,trip:34,currentTrip:12,minSensitivity:1,SensitivityStep:1,sensitivity:10,maxSensitivity:340,list:s.A.getLBA80RT(),keys:p(),fn:u.getA80RT(),isCustom:!0,customInfo:x.getDefault(),fnChar:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22],musicVersion:1,isItem:!0,timeValue:1,rateOfValue:!0,isCalibration:!0,isZone:!0,zoneInfo:{min:0,max:50},defaultValue:1,axial:[{id:21,name:\"key_v7\",minSensitivity:1,value:1,trip:34,currentTrip:12},{id:18,name:\"key_v10\",minSensitivity:1,value:6,trip:34,currentTrip:12},{id:19,name:\"key_v8\",minSensitivity:1,value:4,trip:34,currentTrip:12},{id:20,name:\"key_v9\",minSensitivity:1,value:5,trip:34,currentTrip:12},{name:\"jade\",minSensitivity:1,value:2,trip:33,currentTrip:12},{name:\"king\",minSensitivity:1,value:3,trip:33,currentTrip:12}],advancedKeyList:[{id:1,name:\"RS\",isShowTrip:!0},{id:2,name:\"SCOD\",isShowTrip:!0},{id:3,name:\"DKS\"},{id:4,name:\"MT\"},{id:5,name:\"TGL\"}],settings:{isShowSleepTime:!0,isShowWaken:!1,isShowStability:!0,isShowCalibration:!0,isShowRate:!1,isShowFirmware:!0},listBtnHideIds:[6,7,8]},"
+    },
+    {
+      "id": "store",
+      "bundle": "app",
+      "offset": 1882800,
+      "length": 463,
+      "sha256": "d4e869b2ec36ad3db4ad9f9234f02f8c2cbbb76545d8c7a9ecb14671b31d5480",
+      "text": "eviceName:\"\",deviceList:[],versionInfo:null,deviceArray:new Array(32),keyBoardArray:new Array(32),allKeyArray:new Array(512),allLedArray:new Array(16),allColorArray:new Array(512),allDksArray:new Array(1024).fill(0),allRTArray:new Array(1024).fill(0),allMarcoArray:new Array(1024),allFnKeyArray:new Array(512).fill(0),lightBoxArray:new Array(24).fill(0),allDefFnList:new Array(512).fill(0),allSyncArray:new Array(512).fill(0),allScreenArray:new Array(24).fill(0)}"
+    },
+    {
+      "id": "store-reads",
+      "bundle": "app",
+      "offset": 1883597,
+      "length": 759,
+      "sha256": "d1f784c69f26bdf2b2f2c0fa7ab63fe0837ab8927616ddb4d0c174510dbc8635",
+      "text": "GET_SAVE_ALL:function(e,i){switch(i[1]){case 16:e.deviceArray=Ld(e.deviceArray,i);e.deviceArray[2],e.deviceArray[3];e.allMarcoArray=new Array(1024).fill(0);break;case 17:e.keyBoardArray=Ld(e.keyBoardArray,i);break;case 18:e.allKeyArray=Ld(e.allKeyArray,i);break;case 19:e.allLedArray=Ld(e.allLedArray,i);break;case 20:e.allColorArray=Ld(e.allColorArray,i);break;case 21:e.allMarcoArray=Ld(e.allMarcoArray,i);break;case 22:e.allFnKeyArray=Ld(e.allFnKeyArray,i);break;case 23:e.allRTArray=Ld(e.allRTArray,i);break;case 24:e.allDksArray=Ld(e.allDksArray,i);break;case 27:e.lightBoxArray=Ld(e.lightBoxArray,i);break;case 28:e.allDefFnList=Ld(e.allDefFnList,i);break;case 51:e.allSyncArray=Ld(e.allSyncArray,i);break;case 250:e.allScreenArray=i.slice(0,24);break}}"
+    },
+    {
+      "id": "device",
+      "bundle": "app",
+      "offset": 3194028,
+      "length": 898,
+      "sha256": "467b2f63aa1d37bf8a08ee0e1f2ab5a94c7ba9ad71bd01e55de90a3296349b7a",
+      "text": "getDeviceInfo:function(){var e;if(this.version=(((15&this.deviceArray[8])+10*((240&this.deviceArray[8])>>4)+100*this.deviceArray[9])/100).toFixed(2),this.macroMax=512,this.Electricity=this.deviceArray[17],this.AxialModel=this.deviceArray[20]+(this.deviceArray[21]<<8),this.Maxframe=this.deviceArray[22]+(this.deviceArray[23]<<8),this.gifFrame=this.deviceArray[24]+(this.deviceArray[25]<<8),this.ledFrame=this.deviceArray[26]+(this.deviceArray[27]<<8),this.deviceArray[28]&&null!==(e=this.RtInfo)&&void 0!==e&&e.screenConfig){var i=JSON.parse(JSON.stringify(this.RtInfo.screenConfig)),t={};t.name=i.name+\"_h\",t.width=i.height,t.height=i.width,t.localforageKey=\"w\".concat(t.width,\"h\").concat(t.height),this.$set(this.RtInfo,\"screenConfig\",t),this.addRtInfo(JSON.parse(JSON.stringify(this.RtInfo)))}this.getVersionInfo(this.version),this.setDefaRtAxial(),this.getAxialName(),this.getElectricityInfo()}"
+    },
+    {
+      "id": "settings",
+      "bundle": "app",
+      "offset": 3196333,
+      "length": 444,
+      "sha256": "2d885ed1fe03d964e37d2bd57b9f6a501632fe5303e152163dbb366cb1b1eb1a",
+      "text": "getKeyBordInfo:function(){var e={topValue:this.keyBoardArray[8],bottomValue:this.keyBoardArray[9],isDeadZone:this.getQueryPorfile()};this.zone=e,this.reportType=this.keyBoardArray[5],this.stability=this.keyBoardArray[11],this.AutoCalibration=this.keyBoardArray[14],this.restTime=this.keyBoardArray[3],this.Waken=this.keyBoardArray[15],this.responseTime=this.keyBoardArray[4],this.osMode=this.keyBoardArray[6],this.tftTime=this.keyBoardArray[7]}"
+    },
+    {
+      "id": "lighting",
+      "bundle": "app",
+      "offset": 3196778,
+      "length": 663,
+      "sha256": "5f0bec82a54de0c2269e07f2e51a181b0a71c17c79f0a606425d443289b0bde2",
+      "text": "getLedInfo:function(){this.colorInfo={LedMode:this.allLedArray[0],RValue:this.allLedArray[1],GValue:this.allLedArray[2],BValue:this.allLedArray[3],deputyRValue:this.allLedArray[5],deputyGValue:this.allLedArray[6],deputyBValue:this.allLedArray[7],colorMode:this.allLedArray[8],lightingValue:this.allLedArray[9]>this.maxLighting?this.maxLighting:this.allLedArray[9]||1,speedValue:this.allLedArray[10]>this.maxSpeed?this.maxSpeed:this.allLedArray[10]||1,directionVal:this.allLedArray[11],GearMode:this.allLedArray[12]},this.allledPack=this.allLedArray,this.getUpdateLedShow(this.colorInfo),26==this.colorInfo.LedMode&&this.RtInfo.isGifColor&&(this.activeName=\"gif\")}"
+    },
+    {
+      "id": "colors",
+      "bundle": "app",
+      "offset": 3197442,
+      "length": 375,
+      "sha256": "08135c2b66225d3a47e1208d6a5007b9f080e25bdbd3dcd18663ee1865231b7d",
+      "text": "getLedUserInfo:function(){var e=this;this.$nextTick((function(){for(var i=[],t=0;t<e.allColorArray.length;t+=4)i.push(e.allColorArray[t],e.allColorArray[t+1],e.allColorArray[t+2],e.allColorArray[t+3]);e.ledUserInfo=i;for(var n=[],o=0;o<126;o++)n[4*o]=o,n[4*o+1]=e.ledUserInfo[4*o+1],n[4*o+2]=e.ledUserInfo[4*o+2],n[4*o+3]=e.ledUserInfo[4*o+3];e.userLig=n,e.allColorPack=n}))}"
+    },
+    {
+      "id": "key-types",
+      "bundle": "app",
+      "offset": 3197818,
+      "length": 1459,
+      "sha256": "30d57de31de75700a4b21bc7c1a4c6cff9e8b2d0778fae41317bb2b8f8050d94",
+      "text": "getInityKeyValue:function(){for(var e=this.allKeyArray,i=0,t=[],n=[],o=[],a=[],r=[],s=[],d=[],l=[],c=[],m=function(){if(t.push(e[u]),t.push(e[u+1]),t.push(e[u+2]),t.push(e[u+3]),2==e[u]||1==e[u]||3==e[u])if(2==e[u]){var m=0==e[u+1]?e[u+2]:e[u+1],h=0==e[u+1]?0:1,f=u/4,x=0;n.push({key:m,value:f,special:h,mouse:x})}else if(3==e[u]){var w=e[u+1]+(e[u+2]<<8),p=0,g=u/4,y=0,S=1;n.push({key:w,value:g,special:p,mouse:y,medium:S})}else{var v=e[u+2],k=0,_=u/4,b=e[u+1];n.push({key:v,value:_,special:k,mouse:b})}else if(6==e[u]){var C=e[u+1],T=e[u+2],D=e[u+3],I=u/4;o.push({key:C,value:I,mode:T,num:D})}else if(7==e[u]){var F=u/4,A=e[u+1],L=e[u+2],B=e[u+3];c.push({value:F,key1:A,key2:L,key3:B})}else if(8==e[u]){var R=u/4,N=e[u+1];a.push({value:R,index:i,DKSvalue:N}),i++}else if(9==e[u]){var K=u/4,M=e[u+1],E=e[u+2],P=10*e[u+3];r.push({value:K,mtValue1:M,mtValue2:E,mtTime:P})}else if(10==e[u]){var V=u/4,O=e[u+1];s.push({value:V,tglVal:O})}else if(11==e[u]){var z=u/4,G=e[u+1],H=e[u+2],W=e[u+3];d.push({value:z,mode:G,key1:H,key2:W})}else if(12==e[u]){var U=u/4,$=e[u+2],j=e[u+3];l.push({value:U,key1:$,key2:j})}else if(13==e[u]){var Z=e[u+3]+(e[u+2]<<8)+(e[u+1]<<16),J=u/4,Y=uu(),X=Y.find((function(e){return e.value==Z}));X&&n.push({type:X.type,Fnvalue:Z,value:J})}},u=0;u<e.length;u+=4)m();this.allKeyPack=JSON.parse(JSON.stringify(e)),this.macroKeys=o,this.tglKeys=s,this.mtKeys=r,this.dksKeys=a,this.rsList=l,this.socdList=d,this.ordinaryKeys=n,this.CBList=c}"
+    },
+    {
+      "id": "dks",
+      "bundle": "app",
+      "offset": 3199512,
+      "length": 625,
+      "sha256": "913231c1ba021136373cc5511656f3324ec029071f150d2dc91fe9555d8fee49",
+      "text": "getDKSInfo:function(){var e=[],i=0,t=this.allDksArray;console.log(t),this.allDksPack=JSON.parse(JSON.stringify(t));for(var n=[],o=0;o<1024;o+=16)0==t[o]&&0==t[o+1]&&0==t[o+2]&&0==t[o+3]||(i++,e.push(o));for(var a=0;a<i;a++){var r=t[e[a]],s=t[e[a]+1],d=t[e[a]+2],l=t[e[a]+3],c=t[e[a]+5],m=t[e[a]+7],u=t[e[a]+9],h=t[e[a]+11],f=this.getAction(t,e[a],1,16),x=this.getAction(t,e[a],2,32),w=this.getAction(t,e[a],4,64),p=this.getAction(t,e[a],8,128);n.push({num1:r,num2:s,num3:d,num4:l,keycode1:c,keycode2:m,keycode3:u,keycode4:h,action1Info1:f,action1Info2:x,action1Info3:w,action1Info4:p,dksNum:i,dksIndex:e[a]})}this.dksArray=n}"
+    },
+    {
+      "id": "macro-decode",
+      "bundle": "app",
+      "offset": 3200420,
+      "length": 733,
+      "sha256": "19e909e1b5dc307089d1e14b54363b8547516bd7576d430e15b91c9047335eef",
+      "text": "getMacroData:function(){for(var e=0,i=this.allMarcoArray,t=0;t<400;t+=4){if(0==i[t]&&0==i[t+1]&&0==i[t+2]&&0==i[t+3])break;e++}for(var n=Array.from({length:e},(function(){return[]})),o=function(){for(var e=i[4*a]+(i[4*a+1]<<8)+(i[4*a+2]<<16)+(i[4*a+3]<<24),t=(i[e]+(i[e+1]<<8))/2,o=\"\",r=\"\",d=\"\",l=\"\",c=0;c<t;c++){o=i[e+4*c+4]+(i[e+4*c+5]<<8),r=i[e+4*c+6],d=128&i[e+4*c+7]?\"keydown\":\"keyup\",l=32&i[e+4*c+7]?0:1;var m=null;m=l?s.A.getAllKey().find((function(e){return e.keyCode==r&&e.mouse})):s.A.getAllKey().find((function(e){return e.keyCode==r}));var u=\"\",h=\"\";m&&(u=m.key,h=m.text),n[a].push({actionNum:t,time:o,delay:o,keyCodeValue:r,action:d,key:u,code:u,mouse:l,text:h,type:128&i[e+4*c+7]?1:2})}},a=0;a<e;a++)o();this.myArray=n}"
+    },
+    {
+      "id": "rt-encode",
+      "bundle": "app",
+      "offset": 3258741,
+      "length": 1331,
+      "sha256": "d5b94ee19f62e63721f2fc6c0bf09ec4edf91d4c5ed40c001a82b0b8788901bc",
+      "text": "getSenRt:function(e,i,t,n){for(var o=[],a=0;a<e.length;a++)n&&(i=this.RtInfo.isRtType?10*e[a].action_point*2:10*e[a].action_point),(e[a].isBorder||t)&&(this.RTlist[8*e[a].value+1]=0,4==e[a].action||5==e[a].action?this.RTlist[8*e[a].value+1]|=4:e[a].axial&&(e[a].axial.trip<i&&(i=e[a].axial.trip),e[a].axial.minSensitivity>e[a].downstroke&&0!=e[a].downstroke&&(e[a].downstroke=e[a].axial.minSensitivity),e[a].axial.minSensitivity>e[a].upstroke&&0!=e[a].upstroke&&(e[a].upstroke=e[a].axial.minSensitivity)),o.push(e[a].isBorder),this.RTlist[8*e[a].value]=e[a].axial&&e[a].axial.value?e[a].axial.value:0,1!=e[a].action&&5!=e[a].action||(this.RTlist[8*e[a].value+1]|=1),2!=e[a].action&&6!=e[a].action&&3!=e[a].action||(this.RTlist[8*e[a].value+1]|=2),this.RTlist[8*e[a].value+2]=10*i&255,this.RTlist[8*e[a].value+3]=10*i>>8,this.RTlist[8*e[a].value+4]=255&e[a].downstroke,this.RTlist[8*e[a].value+5]=e[a].downstroke>>8,this.RTlist[8*e[a].value+6]=255&e[a].upstroke,this.RTlist[8*e[a].value+7]=e[a].upstroke>>8);(this.ProfileList[this.Profilecurrent].rtModeList&&0==this.ProfileList[this.Profilecurrent].rtModeList.length||0==this.currentCus)&&(this.rtModeList=JSON.parse(JSON.stringify(this.$refs.keyboard.list.flat()))),this.getLoalData(),o.length>0&&(Hl.sendReportSuper(Hl.cmd.WriteRT,this.RTlist),this.getWaitSendOver(0,[0,0,0,0]))}"
+    },
+    {
+      "id": "rt-decode",
+      "bundle": "app",
+      "offset": 3206918,
+      "length": 658,
+      "sha256": "290b6afd7e81cb6568f7d5c5e2a7e63b065d3d1321f1504d545d9a2e00a048c6",
+      "text": "getQuerySenRT:function(e){for(var i=[],t=null,n=0;n<126;n++){var o=(this.RTlist[8*n+2]+(this.RTlist[8*n+3]<<8))/10?(this.RTlist[8*n+2]+(this.RTlist[8*n+3]<<8))/10:this.RtInfo.currentTrip,a=null;if(this.RtInfo.axial)for(var r=0;r<this.RtInfo.axial.length;r++){var s=0==this.RTlist[8*n]?this.RtInfo.defaultValue:this.RTlist[8*n];this.RtInfo.axial[r].value==s&&(a=this.RtInfo.axial[r])}i.push({value:n,type:this.RTlist[8*n],axial:a,action:this.RTlist[8*n+1],Makelevel:this.RtInfo.isRtType?o/2:o,DownRt:this.RTlist[8*n+4]+(this.RTlist[8*n+5]<<8),UpRt:this.RTlist[8*n+6]+(this.RTlist[8*n+7]<<8)})}for(var d=0;d<i.length;d++)i[d].value==e.value&&(t=i[d]);return t}"
+    },
+    {
+      "id": "key-encode",
+      "bundle": "app",
+      "offset": 3225659,
+      "length": 262,
+      "sha256": "5e96f294d77744ffe78c8949f57353f245e5126dac03c3cb4f9f2dfbe1353490",
+      "text": "getUpdateKeyData:function(e){var i=[2,0,0,0];return e.medium?(i[0]=3,i[1]=255&e.value,i[2]=e.value>>8):e.mouse?(i[0]=1,i[1]=e.mouse,i[2]=e.value):e.type?(i[0]=13,i[1]=(16711680&e.value)>>16,i[2]=(65280&e.value)>>8,i[3]=255&e.value):i[1==e.special?1:2]=e.value,i}"
+    },
+    {
+      "id": "macro-encode",
+      "bundle": "app",
+      "offset": 2809910,
+      "length": 1086,
+      "sha256": "13a0773a0bfcdd01308b56de401b16f9bda99d3a4589748609d2c109c8d6ac0c",
+      "text": "getManagerTop:function(){for(var e=new Array(400).fill(0),i=0;i<this.taskList.length;i++)e[4*i]=255&this.taskList[i].addr,e[4*i+1]=255&(this.taskList[i].addr>>=8),e[4*i+2]=255&(this.taskList[i].addr>>=8),e[4*i+3]=255&(this.taskList[i].addr>>=8);return e},getManagerData:function(e){if(!(e&&this.isTranscribe||this.isTranscribe)){for(var i=[],t=0;t<this.taskList.length;t++){this.taskList[t].addr=0==t?400:i[t-1].length+this.taskList[t-1].addr;var n=new Uint8Array(4*this.taskList[t].keyRecords.length+4),o=2*this.taskList[t].keyRecords.length;n[0]=255&o,n[1]=o>>8;for(var a=0;a<this.taskList[t].keyRecords.length;a++)n[4*(a+1)]=255&this.taskList[t].keyRecords[a].delay,n[4*(a+1)+1]=this.taskList[t].keyRecords[a].delay>>8,n[4*(a+1)+2]=this.taskList[t].keyRecords[a].keyCodeValue,this.taskList[t].keyRecords[a].mouse?n[4*(a+1)+3]=1==this.taskList[t].keyRecords[a].type?144:16:n[4*(a+1)+3]=1==this.taskList[t].keyRecords[a].type?176:48;i.push(n)}var r=i.reduce((function(e,i){return e.concat(Array.from(i))}),[]),s=this.getManagerTop().concat(r);this.$emit(\"handleSave\",this.taskList,s)}}"
+    },
+    {
+      "id": "macro-ui-limit",
+      "bundle": "app",
+      "offset": 2806433,
+      "length": 188,
+      "sha256": "7dd089ed6131b9c8189e281b8545cce695d2d65b1c9fff9da22b8df1f89df179",
+      "text": "getMacroMax:function(){for(var e=this.taskList.length,i=0;i<this.taskList.length;i++)e+=this.taskList[i].keyRecords.length;if(e>=512)return this.$message.error(this.$t(\"macro_memory\")),!0}"
+    },
+    {
+      "id": "read-sequence",
+      "bundle": "app",
+      "offset": 3794923,
+      "length": 1015,
+      "sha256": "188d1e4b574eafb4ac84132dcb6d3796305af5b12034e2ca98594233bd3e2eb2",
+      "text": "getDeviceInfo:function(e){var i=this;return(0,Ar.A)(Br().mark((function t(){var n,o;return Br().wrap((function(t){while(1)switch(t.prev=t.next){case 0:return t.prev=0,e.collections&&Hl.getPackLen(e.collections[0].outputReports[0].items[0].reportCount),console.log(\"this.deviceArray\",i.deviceArray),t.next=5,Hl.sendReportSuper(16,i.deviceArray);case 5:i.getLineState(),i.getWaitSendOver(17,i.keyBoardArray),i.getWaitSendOver(18,i.allKeyArray),i.getWaitSendOver(19,i.allLedArray),i.getWaitSendOver(20,i.allColorArray),i.getWaitSendOver(21,i.allMarcoArray),i.getWaitSendOver(22,i.allFnKeyArray),null!==(n=i.RtInfo)&&void 0!==n&&n.isFnDefa&&i.getWaitSendOver(28,i.allDefFnist),i.isButtonHidden(3)||i.getWaitSendOver(23,i.allRTArray),!i.isButtonHidden(4)&&null!==(o=i.RtInfo)&&void 0!==o&&o.trip&&i.getWaitSendOver(24,i.allDksArray),i.getWaitSendOver(0,[0,0,0,0]),t.next=22;break;case 18:t.prev=18,t.t0=t[\"catch\"](0),i.getPcUpdateList(e),i.handleOpenConnect();case 22:case\"end\":return t.stop()}}),t,null,[[0,18]])})))()}"
+    },
+    {
+      "id": "connection",
+      "bundle": "app",
+      "offset": 3791160,
+      "length": 702,
+      "sha256": "b8339a414d2cc8e31134f1268d93a0b39633eae3a8ccf943d046219a845caecc",
+      "text": "getLinkevice:function(e){var i=this,t=this.setKeyBoard(e);if(!t)return Hl.getCloseLink();Hl.m_keyboard_instance=e,Hl.m_keyboard_instance.open().then((function(){return 5396==e.productId?(i.getDeviceState(),i.loading=!1,void(i.LinkState=101)):58383==e.productId?(i.getDeviceState(),i.loading=!1,void(i.LinkState=102)):49989==e.productId?(i.getDeviceState(),i.loading=!1,void(i.LinkState=103)):6790==e.vendorId||65272==e.productId||64256==e.productId?(i.loading=!0,i.getMouseInfo(e),void i.getDeviceState()):(i.loading=!0,Hl.inputreport(),i.getDeviceState(),i.getDeviceInfo(e),i.historyState=!0,void i.$store.dispatch(\"device/updateDeviceName\",e.productName))})).catch((function(e){console.log(\"e\",e)}))}"
+    },
+    {
+      "id": "led-encode",
+      "bundle": "app",
+      "offset": 3261092,
+      "length": 981,
+      "sha256": "44799065c4f8e5f735cf89567f11af0e5f8c2f099595d413d72a8e01257b87f5",
+      "text": "getSendReportAll:function(){var e=this;return(0,Ar.A)(Br().mark((function i(){return Br().wrap((function(i){while(1)switch(i.prev=i.next){case 0:return e.syncTime&&(clearInterval(e.syncTime),e.syncTime=null),i.next=3,new Promise((function(e){return setTimeout(e,250)}));case 3:e.allledPack[0]=e.isSwitchOn?e.effectList[e.effectCurrent].value:0,e.allledPack[1]=e.RValue,e.allledPack[2]=e.GValue,e.allledPack[3]=e.BValue,e.allledPack[4]=255,e.allledPack[5]=e.colorInfo.deputyRValue,e.allledPack[6]=e.colorInfo.deputyGValue,e.allledPack[7]=e.colorInfo.deputyBValue,e.allledPack[8]=\"0x0\"+e.colourful,e.allledPack[9]=e.lightingValue,e.allledPack[10]=e.speedValue,e.allledPack[11]=e.colorState.direction?e.directionVal:0,e.allledPack[12]=e.colorInfo.GearMode,e.allledPack[14]=170,e.allledPack[15]=85,e.loading=!0,e.getWaitSendOver(35,e.allledPack),e.getLoalData(),setTimeout((function(){e.packTotalAll==e.packTotal&&e.getSyncEffect()}),200);case 22:case\"end\":return i.stop()}}),i)})))()}"
+    },
+    {
+      "id": "colors-encode",
+      "bundle": "app",
+      "offset": 3272292,
+      "length": 610,
+      "sha256": "90970025db1c7ce87ef73220ce66c33b860d977f5871d06d40b4d8a07af6c00a",
+      "text": "getUserPack:function(e){for(var i=[],t=this.$refs.keyboard.list.flat(),n=0;n<t.length;n++)e?(i.push(t[n]),this.userLig[4*t[n].value]=t[n].value,this.userLig[4*t[n].value+1]=0,this.userLig[4*t[n].value+2]=0,this.userLig[4*t[n].value+3]=0):t[n].isBorder&&(i.push(t[n]),this.userLig[4*t[n].value]=t[n].value,this.userLig[4*t[n].value+1]=this.RValue,this.userLig[4*t[n].value+2]=this.GValue,this.userLig[4*t[n].value+3]=this.BValue);this.allColorPack=JSON.parse(JSON.stringify(this.userLig)),this.getLoalData(),0!=i.length?(this.getSendReportAll(),this.getWaitSendOver(36,this.allColorPack,!0)):this.isUserData=!0}"
+    },
+    {
+      "id": "settings-encode",
+      "bundle": "app",
+      "offset": 3203545,
+      "length": 394,
+      "sha256": "55bff4f4b91645ab4fb8f69028497f31ebf0c84144aa5aedda0e8a10bda33d23",
+      "text": "handleClickReport:function(e){this.getReportRate(e);var i=new Array(14).fill(0);i[3]=this.restTime,i[4]=this.responseTime,i[5]=e,i[6]=this.osMode,i[7]=this.tftTime,i[8]=this.zone.topValue,i[9]=this.zone.bottomValue,i[11]=this.stability,i[14]=this.AutoCalibration,i[15]=this.Waken,this.getWaitSendOver(Hl.cmd.WriteReport,i),this.getWaitSendOver(0,[0,0,0,0]),this.reportType=e,this.getLoalData()}"
+    },
+    {
+      "id": "settings-options",
+      "bundle": "app",
+      "offset": 2759536,
+      "length": 810,
+      "sha256": "25bf6617b0544bc4ad6572c61c80ca46e7f1d520ecc543a5ea192f92d934a58b",
+      "text": "data:function(){return{isISP:!1,isStability:!1,isWaken:!1,showTips:!1,isCalibration:!1,reportCurrent:0,langCurrent:0,current:0,sliderValue:0,isSwitchOn:!1,LangList:[],viewCurrent:2,maxTime:30,responseTimeValue:0,responseTimeList:[{text:\"1\",value:1},{text:\"2\",value:2},{text:\"3\",value:3},{text:\"4\",value:4},{text:\"5\",value:5}],tftTimeValue:0,tftTimeList:[{text:\"time_1\",value:0},{text:\"time_2\",value:1}],dateList:[{name:\"关闭时间\",value:1,show:0,text:\"closeDayName\"}],viewList:[{name:\"亮色主题\",text:\"themeBright\"},{name:\"暗色主题\",text:\"themeDark\"},{name:\"将主题与电脑同步\",text:\"themeWin\"}],list:[{name:\"界面设置\",text:\"settingView\"},{name:\"键盘设置\",text:\"keyNameSey\"},{name:\"更新\",text:\"updateName\"}],reportRateList:[{text:\"report_rate1\",value:3},{text:\"report_rate4\",value:4},{text:\"report_rate2\",value:5},{text:\"report_rate3\",value:6}]"
+    },
+    {
+      "id": "rate-filter",
+      "bundle": "app",
+      "offset": 2760807,
+      "length": 163,
+      "sha256": "d05d344d0ef9708bd278b694f00366009bf2c901a602e7c65706203a0ce39e84",
+      "text": "getRateList:function(){var e=this;return this.RtInfo.is2KRate?this.reportRateList:this.reportRateList.filter((function(i){return 4!=i.value&&!e.RtInfo.is2KRate}))}"
+    },
+    {
+      "id": "led-options",
+      "bundle": "app",
+      "offset": 1859616,
+      "length": 3850,
+      "sha256": "1bbc1f67a84ef223c0c800dd1aa668b4def9656cb85d166a86571934e7259ec7",
+      "text": "fd=[{name:\"静态恒亮\",text:\"lighting_icon1\",img:t(53400),imgSelct:t(66874),value:\"0x01\",light:!0,lightValue:5,speed:!1,direction:!1,color:!0,icon:\"iconfont icon-taiyang\",sort:1},{name:\"单点亮\",text:\"lighting_icon2\",img:t(99155),imgSelct:t(8523),value:\"0x02\",light:!0,lightValue:5,speed:!0,speedValue:3,direction:!1,color:!0,icon:\"iconfont icon-dengpao\",sort:2},{name:\"单熄灭\",text:\"lighting_icon3\",img:t(43946),imgSelct:t(32864),value:\"0x03\",light:!0,lightValue:5,speed:!0,speedValue:3,direction:!1,color:!0,icon:\"iconfont icon-guandeng\",sort:3},{name:\"繁星点点\",text:\"lighting_icon4\",img:t(27173),imgSelct:t(29969),value:\"0x04\",light:!0,lightValue:5,speed:!0,speedValue:3,direction:!1,color:!0,icon:\"iconfont icon-piaohuatexiao\",sort:4},{name:\"漫天飞雪\",text:\"lighting_icon5\",img:t(44284),imgSelct:t(50742),value:\"0x05\",light:!0,lightValue:5,speed:!0,speedValue:3,direction:!1,color:!0,icon:\"iconfont icon-Heavy_snow_to_snowstorm\",sort:5},{name:\"百花争艳\",text:\"lighting_icon6\",img:t(2391),imgSelct:t(36423),value:\"0x06\",light:!0,lightValue:5,speed:!0,speedValue:3,direction:!1,color:!1,icon:\"iconfont icon-icon\",sort:6},{name:\"动态呼吸\",text:\"lighting_icon7\",img:t(56814),imgSelct:t(62844),value:\"0x07\",light:!0,lightValue:5,speed:!0,speedValue:3,direction:!1,color:!0,icon:\"iconfont icon-weiqi\",sort:7},{name:\"光谱循环\",text:\"lighting_icon8\",img:t(88729),imgSelct:t(32173),value:\"0x08\",light:!0,lightValue:5,speed:!0,speedValue:3,direction:!1,color:!1,icon:\"iconfont icon-V\",sort:8},{name:\"彩泉涌动\",text:\"lighting_icon9\",img:t(82480),imgSelct:t(74466),value:\"0x09\",light:!0,lightValue:5,speed:!0,speedValue:3,direction:!1,color:!0,icon:\"iconfont icon-penquan\",sort:9},{name:\"多彩纵横\",text:\"lighting_icon10\",img:t(76746),imgSelct:t(8352),value:\"0x0a\",light:!0,lightValue:5,speed:!0,speedValue:3,direction:!0,directionPosition:\"upper\",directionValue:0,color:!0,icon:\"iconfont icon-zonghengicon\",sort:10},{name:\"随波逐流\",text:\"lighting_icon11\",img:t(31955),imgSelct:t(64171),value:\"0x0b\",light:!0,lightValue:5,speed:!0,speedValue:3,direction:!0,directionPosition:\"left\",directionValue:0,color:!0,icon:\"iconfont icon-liuchangyouxian\",sort:11},{name:\"峰回路转\",text:\"lighting_icon12\",img:t(57464),imgSelct:t(65274),value:\"0x0c\",light:!0,lightValue:5,speed:!0,speedValue:3,direction:!0,directionPosition:\"left\",directionValue:0,color:!0,icon:\"iconfont icon-kuangshan\",sort:12},{name:\"一触即发\",text:\"lighting_icon13\",img:t(25729),imgSelct:t(41381),value:\"0x0d\",light:!0,lightValue:5,speed:!0,speedValue:3,direction:!1,color:!0,icon:\"iconfont icon-shandian\",sort:13},{name:\"一石二鸟\",text:\"lighting_icon14\",img:t(89614),imgSelct:t(81756),value:\"0x0e\",light:!0,lightValue:5,speed:!0,speedValue:3,direction:!1,color:!0,icon:\"iconfont icon-niao\",sort:14},{name:\"涟漪扩散\",text:\"lighting_icon15\",img:t(32631),imgSelct:t(82407),value:\"0x0f\",light:!0,lightValue:5,speed:!0,speedValue:3,direction:!1,color:!0,icon:\"iconfont icon-kuosan\",sort:15},{name:\"川流不息\",text:\"lighting_icon16\",img:t(31996),imgSelct:t(66102),value:\"0x10\",light:!0,lightValue:5,speed:!0,speedValue:3,direction:!0,directionPosition:\"left\",directionValue:0,color:!0,icon:\"iconfont icon-hedao\",sort:16},{name:\"重峦叠嶂\",text:\"lighting_icon17\",img:t(61413),imgSelct:t(96849),value:\"0x11\",light:!0,lightValue:5,speed:!0,speedValue:3,direction:!1,color:!0,icon:\"iconfont icon-shan\",sort:17},{name:\"斜风细雨\",text:\"lighting_icon18\",img:t(14466),imgSelct:t(21064),value:\"0x12\",light:!0,lightValue:5,speed:!0,speedValue:3,direction:!0,directionPosition:\"left\",directionValue:0,color:!0,icon:\"iconfont icon-xiayu\",sort:18},{name:\"来回穿梭\",text:\"lighting_icon19\",img:t(35595),imgSelct:t(51763),value:\"0x13\",light:!0,lightValue:5,speed:!0,speedValue:3,direction:!1,color:!0,icon:\"iconfont icon-chuansuo\",sort:19},{name:\"自定义\",text:\"lighting_icon20\",img:t(16418),imgSelct:t(97448),value:\"0x80\",light:!0,lightValue:5,speed:!1,color:!0,icon:\"iconfont icon-zidingyi\",sort:99}"
+    },
+    {
+      "id": "led-bounds",
+      "bundle": "app",
+      "offset": 3185161,
+      "length": 1140,
+      "sha256": "d3ea0aad7cc45837fd52a4c091b05bb0236ffb701c14c3d1092e48f8e2819aab",
+      "text": "mounted:function(){var e,i,t,n,o,a,r=this;if(this.getLightBoxInit(),this.minLighting=(null===(e=this.RtInfo)||void 0===e||null===(e=e.effectConfig)||void 0===e?void 0:e.minLighting)||1,this.maxLighting=(null===(i=this.RtInfo)||void 0===i||null===(i=i.effectConfig)||void 0===i?void 0:i.maxLighting)||5,this.minSpeed=(null===(t=this.RtInfo)||void 0===t||null===(t=t.effectConfig)||void 0===t?void 0:t.minSpeed)||1,this.maxSpeed=(null===(n=this.RtInfo)||void 0===n||null===(n=n.effectConfig)||void 0===n?void 0:n.maxSpeed)||5,null!==(o=this.RtInfo)&&void 0!==o&&null!==(o=o.effectConfig)&&void 0!==o&&o.customEffect?this.effectList=[].concat((0,Fr.A)(fd),(0,Fr.A)(xd.filter((function(e){var i;return null===(i=r.RtInfo)||void 0===i||null===(i=i.effectConfig)||void 0===i?void 0:i.customEffect.includes(e.value)})))).sort((function(e,i){return e.sort-i.sort})):this.effectList=fd,null!==(a=this.RtInfo)&&void 0!==a&&null!==(a=a.effectConfig)&&void 0!==a&&a.hideEffect&&(this.effectList=this.effectList.filter((function(e){var i;return!(null!==(i=r.RtInfo)&&void 0!==i&&null!==(i=i.effectConfig)&&void 0!==i&&i.hideEffect.includes(e.value))})))"
+    },
+    {
+      "id": "sensitivity-unit",
+      "bundle": "app",
+      "offset": 1982192,
+      "length": 281,
+      "sha256": "09811c7b46b1eecbe92b3ca52900b6a53e571b533aefb76efa1b1625241940d6",
+      "text": "getSensitivityValue:function(e,i){return this.RtInfo&&Boolean(4&e.action)&&\"object\"===(0,om.A)(this.RtInfo.mode)&&this.RtInfo.mode&&this.RtInfo.mode.isSensitivity&&i<=1?this.RtInfo.mode.minTowSensitivity/100:this.RtInfo&&this.RtInfo.isRtType?i/2/100:this.RtInfo.rtType?i/1e3:i/100}"
+    },
+    {
+      "id": "sleep-slider",
+      "bundle": "app",
+      "offset": 2027529,
+      "length": 1653,
+      "sha256": "b228737aedf0c75f135546b86e6f6391e90bf35cecde499ab012346bd7d91f94",
+      "text": "d.RtInfo.isItem||null!==(e=d.RtInfo.settings)&&void 0!==e&&e.isShowSleepTime?l(\"div\",{staticClass:\"set-up-right-rgb\"},[l(\"div\",{staticClass:\"set-up-right-view-top\"},[l(\"div\",{staticClass:\"flex fvertical between\"},[l(\"div\",{staticClass:\"set-up-right-view-title\"},[d._v(\" \"+d._s(d.$t(\"sleepMode\"))+\" \")]),l(\"Switchs\",{on:{input:d.handleSwitonTime},model:{value:d.isSwitchOn,callback:function(e){d.isSwitchOn=e},expression:\"isSwitchOn\"}})],1),l(\"p\",{staticClass:\"set-up-right-view-title2\"},[d._v(\" \"+d._s(d.$t(\"adjustName\"))+\" \")])]),d.isSwitchOn?l(\"div\",{staticClass:\"set-up-right-view-main\",on:{mouseenter:d.handleColorSeenter,mouseleave:d.handleColorSeleave}},[d._l(d.dateList,(function(e,i){return l(\"div\",{key:i,staticClass:\"set-up-right-view-main-item\"},[l(\"div\",{staticClass:\"set-up-right-view-main-item-title set-up-right-view-main-item-top flex fright\"},[l(\"span\",[d._v(d._s(e.value)+\"min\")])]),l(\"div\",{staticClass:\"set-up-right-view-main-item-box fvertical\"},[l(\"div\",{staticClass:\"set-up-right-view-main-item-title\"},[d._v(\" \"+d._s(d.$t(e.text))+\" \")]),l(\"div\",{staticClass:\"f1\"},[l(\"Slider\",{ref:\"time\",refInFor:!0,attrs:{isEnd:!0,min:1,max:d.maxTime},on:{\"drag-end\":function(e){d.handleInput(e,i)},\"drag-ends\":function(e){d.handleInput(e,i)}},model:{value:e.value,callback:function(i){d.$set(e,\"value\",i)},expression:\"item.value\"}}),l(\"div\",{staticClass:\"set-up-right-view-main-item-line\"},d._l(60,(function(e){return l(\"div\",{key:e,staticClass:\"set-up-right-view-main-item-line-data\"})})),0),d._m(0,!0)],1)])])})),l(\"p\",{staticClass:\"set-up-right-view-main-item-title flex fright\"},[d._v(\" \"+d._s(d.$t(\"keyTime\"))+\" \")])],2):d._e()]):d._e(),"
+    },
+    {
+      "id": "sleep-input",
+      "bundle": "app",
+      "offset": 2764616,
+      "length": 108,
+      "sha256": "898dcefbea00391ed3158f3be854b9b1b7d2059eb3f9f1e8c014acc7d95332cb",
+      "text": "handleInput:function(e,i){this.$emit(\"handleSwitonTime\",e),this.dateList[i].show=1,this.dateList[i].value=e}"
+    },
+    {
+      "id": "read-chunking",
+      "bundle": "app",
+      "offset": 1924140,
+      "length": 986,
+      "sha256": "30f4b75142fbe181af1dcc50f0b111df34e1a5c5286f74b682a1b2f3c83c99b9",
+      "text": "sendReportSuper:function(e,i){var t=this,n=arguments.length>2&&void 0!==arguments[2]?arguments[2]:[];return new Promise((function(o,a){var r=t.packLen-8,s=Math.floor(i.length/r),d=i.length%r,l=0;0!=d&&(s+=1);var c=t.splitArrayIntoChunks(i,r),m=t.buildPkt_final(e,l==s-1&&0!=l&&0!=d?d:r,l*r,c[l],t.packLen,n,l==s-1);t.SendState=!1,t.sendReport(m);var u=setTimeout((function(){a(new Error(\"Send report super timed out\"))}),5e3);window.getAllDataSuper=function(i){if(55!=i.data.getUint8(1)){if(t.linkState=!1,clearInterval(t.timeoutInfo),t.timeoutInfo=null,t.timeout=0,t.getStoreData(i),t.cmdState)return t.cmdState=!1,clearTimeout(u),void o(i);if(l++,l>s-1&&i)return t.SendState=!0,clearTimeout(u),void o(i);var a=new Uint8Array(i.data.buffer);if(a[1]==t.cmd.ReadMarco){var m=a.subarray(8,-1);if(m.every((function(e){return 0===e}))&&l*r>400)return t.SendState=!0,clearTimeout(u),void o(i)}var h=t.buildPkt_final(e,l==s-1&&0!=l&&0!=d?d:r,l*r,c[l],t.packLen,n,l==s-1);t.sendReport(h)}}}))}"
+    },
+    {
+      "id": "dks-units",
+      "bundle": "app",
+      "offset": 3280801,
+      "length": 82,
+      "sha256": "7bd7c25ae1b57ab3c90a089cd7b004cd39772cd866958d8f44798e07f0b1b748",
+      "text": "getDksTotipValue:function(e){return this.RtInfo&&this.RtInfo.isRtType?e/2/10:e/10}"
+    },
+    {
+      "id": "dks-encode",
+      "bundle": "app",
+      "offset": 3255165,
+      "length": 1182,
+      "sha256": "baaf5e637f6c4ee8f52f14939308efd604a0689190c5bce1471097e9f0a12e85",
+      "text": "getSendDks:function(){var e=this.modeType.list[0].dksValue,i=this.modeType.list[1].dksValue,t=this.modeType.list[2].dksValue,n=this.modeType.list[3].dksValue;console.log(\"num1 num2 num3 num4\",e,i,t,n);var o=new Uint8Array(16);o[0]=e,o[1]=i,o[2]=t,o[3]=n,o[4]=0,o[5]=this.modeType.list[0].value,o[6]=0,o[7]=this.modeType.list[1].value,o[8]=0,o[9]=this.modeType.list[2].value,o[10]=0,o[11]=this.modeType.list[3].value;for(var a=0;a<this.modeType.list.length;a++)1==this.modeType.list[a].draggables[0].opacity&&this.modeType.list[a].draggables[0].width>25?o[12]|=1<<a+4:1==this.modeType.list[a].draggables[0].opacity&&(o[12]|=1<<a),1==this.modeType.list[a].draggables[1].opacity&&this.modeType.list[a].draggables[1].width>25||this.modeType.list[a].draggables[0].width>=198?o[13]|=1<<a+4:1==this.modeType.list[a].draggables[1].opacity&&(o[13]|=1<<a),1==this.modeType.list[a].draggables[2].opacity&&this.modeType.list[a].draggables[2].width>25||this.modeType.list[a].draggables[0].width>=298||this.modeType.list[a].draggables[1].width>=198?o[14]|=1<<a+4:1==this.modeType.list[a].draggables[2].opacity&&(o[14]|=1<<a),1==this.modeType.list[a].draggables[3].opacity&&(o[15]|=1<<a);return o}"
+    },
+    {
+      "id": "advanced-encode",
+      "bundle": "app",
+      "offset": 3251697,
+      "length": 2223,
+      "sha256": "b2a865b7f4ac70d515a5c421adaa9866bf6cc89c36645216ea68e66f3b38a890",
+      "text": "handleSave:function(){var e=this;this.$nextTick((function(){e.selecSenModel=null,e.showSenKey=!1}));var i=[];if(1==this.modeType.id||2==this.modeType.id)for(var t=0;t<this.modeType.list.length;t++)this.getEmptyKeyState(this.modeType.list[t].value);else this.getEmptyKeyState(this.modeType.data.value);switch(this.getSenKeyBoard(),this.modeType.id){case 1:i=this.modeType.list,this.modeType.list.forEach((function(i){e.$refs.keyboard.getSeek(i.value)}));for(var n=0;n<i.length;n++)this.setKeyArrayData(i[n].value,[12,0,Number(i[0].key),Number(i[1].key)]);this.getWaitSendOver(Hl.cmd.writeKey,this.allKeyPack),this.getWaitSendOver(0,[0,0,0,0]),this.handleDragBox(this.modeType.Makelevel);break;case 2:var o=this.actionSocd[this.modeType.mode].value;if(i=this.modeType.list,this.$refs.socdRT){var a=this.$refs.socdRT;a.whole=a.iswhole,a.bottom=a.isBottom,a.speed=a.isSpeed,this.releaseValue=a.releaseValue,this.dowValue=a.dowValue,this.whole=a.whole,this.bottom=a.bottom,this.speedRT=a.speed,this.modeType.list.forEach((function(i){e.$refs.keyboard.getSeek(i.value)})),this.$refs.keyboard.getUpdateAction(a,!0),this.handleDragBox(this.modeType.Makelevel)}for(var r=0;r<i.length;r++)this.setKeyArrayData(i[r].value,[11,o,Number(i[0].key),Number(i[1].key)]);this.getWaitSendOver(Hl.cmd.writeKey,this.allKeyPack);break;case 3:this.setKeyArrayData(this.modeType.data.value,[8,this.modeType.dksIndex/16,0,0]),this.setDksArrayData(this.modeType.dksIndex,this.getSendDks()),Hl.sendReportSuper(Hl.cmd.writeKey,this.allKeyPack),this.getWaitSendOver(Hl.cmd.WriteDks,this.allDksPack);break;case 4:this.getSaveAllKey([{value:this.modeType.data.value}],[9,Number(this.modeType.list[0].value),Number(this.modeType.list[1].value),this.modeType.list[0].time/10]);break;case 5:this.getSaveAllKey([{value:this.modeType.data.value}],[10,Number(this.modeType.list[0].value),0,0]);break}if(6==this.modeType.id){if(!this.modeType.list[1].value||!this.modeType.list[3].value)return void this.$message.error(this.$t(\"cb_error2\"));this.getSaveAllKey([{value:this.modeType.data.value}],[7,Number(this.modeType.list[1].value),Number(this.modeType.list[2].value),Number(this.modeType.list[3].value)])}this.$refs.bottomDrawer.isOpen=!1,this.modeType=null}"
+    },
+    {
+      "id": "advanced-modes",
+      "bundle": "app",
+      "offset": 3179164,
+      "length": 235,
+      "sha256": "4889966f1eb15ed7ee5a65f578f4d10f25eb33a4b9d8228aec4942642328cb76",
+      "text": "actionSocd:[{title:\"socd_select1\",text:\"socd_select_text1\",value:3},{title:\"socd_select2\",text:\"socd_select_text2\",value:1},{title:\"socd_select3\",text:\"socd_select_text3\",value:2},{title:\"socd_select4\",text:\"socd_select_text4\",value:4}"
+    },
+    {
+      "id": "macro-timestamps",
+      "bundle": "app",
+      "offset": 2815708,
+      "length": 1291,
+      "sha256": "d23c0736fa3775a15abc0ee48cdee8deac9bf872ae556e4836c1a86283abd8c5",
+      "text": "addAction:function(e){if(console.log(\"event\",e),!this.getFindList(e.code||e.key)){this.$nextTick((function(){var e=document.getElementById(\"box\");e.scrollTop=e.scrollHeight})),e.preventDefault();var i=Math.floor(e.timeStamp);if(!this.getMacroMax())if(e instanceof KeyboardEvent)if(\"keydown\"===e.type){if(e.repeat)return;this.taskList[this.taskCurrent].keyRecords=this.addMacroActionList(this.taskList[this.taskCurrent].keyRecords,i,this.getQuerykey(e.code||\"Shift\"!=e.key?e.code:\"ShiftRight\",!0),\"keydown\",0,e.code,1,this.getQuerykey(e.code||\"Shift\"!=e.key?e.code:\"ShiftRight\"))}else\"keyup\"===e.type&&(this.taskList[this.taskCurrent].keyRecords=this.addMacroActionList(this.taskList[this.taskCurrent].keyRecords,i,this.getQuerykey(e.code||\"Shift\"!=e.key?e.code:\"ShiftRight\",!0),\"keyup\",0,e.code,2,this.getQuerykey(e.code||\"Shift\"!=e.key?e.code:\"ShiftRight\")));else e instanceof MouseEvent&&(\"mousedown\"===e.type?2!=this.TaskNum&&(this.taskList[this.taskCurrent].keyRecords=this.addMacroActionList(this.taskList[this.taskCurrent].keyRecords,i,\"鼠标左键盘\",\"mousedown\",0,e.code,1,this.getQuerykey(e.code))):\"mouseup\"===e.type&&(this.taskList[this.taskCurrent].keyRecords=this.addMacroActionList(this.taskList[this.taskCurrent].keyRecords,i,\"鼠标右键盘\",\"mouseup\",0,e.code,2,this.getQuerykey(e.code))))}}"
+    },
+    {
+      "id": "function-table",
+      "bundle": "app",
+      "offset": 2005959,
+      "length": 1060,
+      "sha256": "e7c3da4f30a593922511fee0dbe5941b2c683b752e957f9a7c8ec32241c0aa00",
+      "text": "uu=function(){return[{name:\"恢复出厂设置\",value:1,type:1,text:\"fun_text1\"},{name:\"蓝牙通道1\",value:2,type:1,text:\"fun_text2\"},{name:\"蓝牙通道2\",value:3,type:1,text:\"fun_text3\"},{name:\"蓝牙通道3\",value:4,type:1,text:\"fun_text4\"},{name:\"无线回连\",value:5,type:1,text:\"fun_text5\"},{name:\"F区转换\",value:6,type:1,text:\"fun_text6\"},{name:\"查询电量\",value:7,type:1,text:\"fun_text7\"},{name:\"WIN\",value:8,type:1,text:\"WIN\"},{name:\"MAC\",value:9,type:1,text:\"MAC\"},{name:\"ANDROID\",value:10,type:1,text:\"ANDR OID\"},{name:\"灯光效果切换\",value:11,type:1,text:\"fun_text8\"},{name:\"灯光颜色切换\",value:12,type:1,text:\"fun_text9\"},{name:\"灯光亮度+\",value:13,type:1,text:\"fun_text10\"},{name:\"灯光亮度-\",value:14,type:1,text:\"fun_text11\"},{name:\"灯光速度+\",value:15,type:1,text:\"fun_text12\"},{name:\"灯光速度-\",value:16,type:1,text:\"fun_text13\"},{name:\"关闭灯光\",value:17,type:1,text:\"fun_text14\"},{name:\"ALT+TAB\",value:18,type:1,text:\"ALT + TAB\"},{name:\"WIN+E\",value:19,type:1,text:\"WIN + E\"},{name:\"WIN+TAB\",value:20,type:1,text:\" WIN + TAB\"},{name:\"WIN+H\",value:21,type:1,text:\" WIN + H\"},{name:\"锁定Win\",value:22,type:1,text:\"fun_text15\"},"
+    },
+    {
+      "id": "special-key-table",
+      "bundle": "app",
+      "offset": 2004526,
+      "length": 1432,
+      "sha256": "13ce08fcab3dad7c9b27f1c941f59540e243d137d7ddbeffb2efc80ce61cf142",
+      "text": "mu=function(){return[{name:\"鼠标左键\",key:\"\",value:1,mouse:1,text:\"mouse_text1\"},{name:\"鼠标中键\",key:\"\",value:4,mouse:1,text:\"mouse_text2\"},{name:\"鼠标右键\",key:\"\",value:2,mouse:1,text:\"mouse_text3\"},{name:\"鼠标向上滚动\",key:\"\",value:1,mouse:3,text:\"mouse_text4\"},{name:\"鼠标向下滚动\",key:\"\",value:255,mouse:3,text:\"mouse_text5\"},{name:\"鼠标前进键\",key:\"\",value:16,mouse:1,text:\"mouse_text6\"},{name:\"鼠标后退键\",key:\"\",value:8,mouse:1,text:\"mouse_text7\"},{name:\"我的电脑\",key:\"\",value:404,medium:1,text:\"medium_text1\"},{name:\"计算器\",key:\"\",value:402,medium:1,text:\"medium_text2\"},{name:\"邮箱\",key:\"\",value:394,medium:1,text:\"medium_text3\"},{name:\"多媒体\",key:\"\",value:387,medium:1,text:\"medium_text4\"},{name:\"播放/暂停\",key:\"\",value:205,medium:1,text:\"medium_text5\"},{name:\"播放停止\",key:\"\",value:183,medium:1,text:\"medium_text6\"},{name:\"上一首\",key:\"\",value:182,medium:1,text:\"medium_text7\"},{name:\"下一首\",key:\"\",value:181,medium:1,text:\"medium_text8\"},{name:\"音量 +\",key:\"\",value:233,medium:1,text:\"medium_text9\"},{name:\"音量 -\",key:\"\",value:234,medium:1,text:\"medium_text10\"},{name:\"静音\",key:\"\",value:226,medium:1,text:\"medium_text11\"},{name:\"主页\",key:\"\",value:547,medium:1,text:\"medium_text12\"},{name:\"刷新\",key:\"\",value:551,medium:1,text:\"medium_text13\"},{name:\"前进\",key:\"\",value:549,medium:1,text:\"medium_text14\"},{name:\"后退\",key:\"\",value:548,medium:1,text:\"medium_text15\"},{name:\"收藏\",key:\"\",value:554,medium:1,text:\"medium_text16\"},{name:\"搜索\",key:\"\",value:545,medium:1,text:\"medium_text17\"}]}"
+    },
+    {
+      "id": "modifier-table",
+      "bundle": "app",
+      "offset": 2018076,
+      "length": 422,
+      "sha256": "cfa568cf2b9f65e1cf68d4797d7456999932207c7e6b5dfdd94d43376a3b48ba",
+      "text": "hu=function(){return[{name:\"L-Ctrl\",key:\"\",value:224,special:1,deText:\"Strg\"},{name:\"R-Ctrl\",key:\"\",value:228,special:1,deText:\"Strg\"},{name:\"L-Shift\",key:\"\",value:225,special:1},{name:\"R-Shift\",key:\"\",value:229,special:1},{name:\"L-Alt\",key:\"\",value:226,special:1},{name:\"R-Alt\",key:\"\",value:230,special:1,deText:\"AltGr\",ptText:\"AltGr\"},{name:\"L-Win\",key:\"\",value:227,special:1},{name:\"R-Win\",key:\"\",value:231,special:1}]}"
+    },
+    {
+      "id": "keyboard-tables",
+      "bundle": "app",
+      "offset": 1998398,
+      "length": 6127,
+      "sha256": "6abfd45832b5b156f8745e8296b8ba0f0f89aebbacea5a6ee9ea47542089a5b9",
+      "text": "du=function(){var e=[{name:\"A\",value:4,jaText:\"ちAa\"},{name:\"B\",value:5,jaText:\"こBb\"},{name:\"C\",value:6,jaText:\"そCc\"},{name:\"D\",value:7,jaText:\"しDd\"},{name:\"E\",value:8,deText:\"E€\",ptText:\"E° €\",jaText:\"いぃEe\"},{name:\"F\",value:9,jaText:\"はFf\"},{name:\"G\",value:10,jaText:\"きGg\"},{name:\"H\",value:11,jaText:\"くHh\"},{name:\"I\",value:12,jaText:\"にIi\"},{name:\"J\",value:13,jaText:\"まJj\"},{name:\"K\",value:14,jaText:\"のKk\"},{name:\"L\",value:15,jaText:\"りLl\"},{name:\"M\",value:16,jaText:\"もMm\"},{name:\"N\",value:17,jaText:\"みNn\"},{name:\"O\",value:18,jaText:\"らOo\"},{name:\"P\",value:19,jaText:\"せPp\"},{name:\"Q\",value:20,deText:\"Q@\",ptText:\"Q /\",jaText:\"たQq\"},{name:\"R\",value:21,jaText:\"すRr\"},{name:\"S\",value:22,jaText:\"とSs\"},{name:\"T\",value:23,jaText:\"かTt\"},{name:\"U\",value:24,jaText:\"なUu\"},{name:\"V\",value:25,jaText:\"ひVv\"},{name:\"W\",value:26,ptText:\"W ?\",jaText:\"てWw\"},{name:\"X\",value:27,jaText:\"さXx\"},{name:\"Y\",value:28,deText:\"Z\",jaText:\"んYy\"},{name:\"Z\",value:29,deText:\"Y\",jaText:\"つっZz\"},{name:\"1 !\",value:30,deText:\"1 !\",ptText:\"1! ¹\",jaText:\"ぬ1!\"},{name:\"2 @\",value:31,deText:'2²\"',ptText:'2\" ²',jaText:'ふ2\"'},{name:\"3 #\",value:32,deText:\"3³§\",ptText:\"3# ³\",jaText:\"あぁ3#\"},{name:\"4 $\",value:33,deText:\"4 $\",ptText:\"4$£\",jaText:\"うぅ4$\"},{name:\"5 %\",value:34,deText:\"5 %\",ptText:\"5%¢\",jaText:\"えぇ5%\"},{name:\"6 ^\",value:35,deText:\"6 &\",ptText:\"6^ ¬\",jaText:\"おぉ6&\"},{name:\"7 &\",value:36,deText:\"7{/\",jaText:\"やゃ7'\"},{name:\"8 *\",value:37,deText:\"8[(\",jaText:\"ゆゅ8(\"},{name:\"9 (\",value:38,deText:\"9])\",jaText:\"よょ9)\"},{name:\"0 )\",value:39,deText:\"0}=\",jaText:\"わを0\"},{name:\"ˉ -\",value:45,deText:\"ß?\\\\\",jaText:\"ほ-=\"},{name:\"= +\",value:46,deText:\"´`\",ptText:\"=+ §\",jaText:\"へ^~\"},{name:\"[ {\",value:47,deText:\"Ü\",ptText:\"´ `\",jaText:\"゛@`\"},{name:\"] }\",value:48,deText:\"+~*\",ptText:\"[ { ª\",jaText:\"゜「[{\"},{name:\"\\\\ |\",value:49,deText:\"#'\",ptText:\"] } º\"},{name:\"; :\",value:51,deText:\"Ö\",ptText:\"Ç\",jaText:\"れ;+\"},{name:\"' \\\"\",value:52,deText:\"Ä\",ptText:\"~ ^\",jaText:\"け:*\"},{name:\"` ~\",value:53,deText:\"^°\",jaText:\"E/J\"},{name:\",<\",value:54,deText:\",;\",jaText:\"ね、,<\"},{name:\".>\",value:55,deText:\".:'\",jaText:\"る。.>\"},{name:\"/?\",value:56,deText:\"-_\",ptText:\"; :\",jaText:\"め・/?\"},{name:\"\\\\\",value:100,deText:\"<|>\",ptText:\"|\"},{name:\"Fn\",value:175}];return e.map((function(e){return su(su({},e),{},{key:\"\"})}))},lu=function(){return[{name:\"Esc\",key:\"\",value:41,deText:\"\"},{name:\"Tab\",key:\"\",value:43},{name:\"Caps\",key:\"\",value:57},{name:\"Backspace\",key:\"\",value:42},{name:\"Enter\",key:\"\",value:40},{name:\"Spacebar\",key:\"\",value:44},{name:\"L-Ctrl\",value:224,deText:\"Strg\"},{name:\"R-Ctrl\",value:228,deText:\"Strg\"},{name:\"L-Shift\",value:225},{name:\"R-Shift\",value:229},{name:\"L-Alt\",value:226},{name:\"R-Alt\",value:230,deText:\"AltGr\",ptText:\"AltGr\"},{name:\"L-Win\",value:227},{name:\"Super\",key:\"\",value:101,deText:\"Menu\",ptText:\"Menu\"},{name:\"↑\",key:\"\",value:82},{name:\"↓\",key:\"\",value:81},{name:\"→\",key:\"\",value:79},{name:\"←\",key:\"\",value:80},{name:\"Home\",key:\"\",value:74,deText:\"Pos1\"},{name:\"End\",key:\"\",value:77,deText:\"Ende\"},{name:\"Ins\",key:\"\",value:73},{name:\"Del\",key:\"\",value:76,deText:\"Entf\"},{name:\"PgUp\",key:\"\",value:75,deText:\"Bild↑\"},{name:\"PgDn\",key:\"\",value:78,deText:\"Bild↓\"},{name:\"Print\",key:\"\",value:70,deText:\"Druck\"},{name:\"Scroll\",key:\"\",value:71,deText:\"Rollen\"},{name:\"Pause\",key:\"\",value:72},{name:\"F1\",key:\"\",value:58},{name:\"F2\",key:\"\",value:59},{name:\"F3\",key:\"\",value:60},{name:\"F4\",key:\"\",value:61},{name:\"F5\",key:\"\",value:62},{name:\"F6\",key:\"\",value:63},{name:\"F7\",key:\"\",value:64},{name:\"F8\",key:\"\",value:65},{name:\"F9\",key:\"\",value:66},{name:\"F10\",key:\"\",value:67},{name:\"F11\",key:\"\",value:68},{name:\"F12\",key:\"\",value:69},{name:\"Num Lock\",key:\"\",value:83},{name:\"Num 1\",key:\"\",value:89},{name:\"Num 2\",key:\"\",value:90},{name:\"Num 3\",key:\"\",value:91},{name:\"Num 4\",key:\"\",value:92},{name:\"Num 5\",key:\"\",value:93},{name:\"Num 6\",key:\"\",value:94},{name:\"Num 7\",key:\"\",value:95},{name:\"Num 8\",key:\"\",value:96},{name:\"Num 9\",key:\"\",value:97},{name:\"Num 0\",key:\"\",value:98},{name:\"Num /\",key:\"\",value:84},{name:\"Num .\",key:\"\",value:99},{name:\"Num *\",key:\"\",value:85},{name:\"Num -\",key:\"\",value:86},{name:\"Num +\",key:\"\",value:87},{name:\"Num Enter\",key:\"\",value:88},{name:\"⊠\",value:107}]},cu=function(){return[{name:\"Esc\",key:\"\",value:41},{name:\"Tab\",key:\"\",value:43},{name:\"Caps\",key:\"\",value:57},{name:\"Back space\",key:\"\",value:42},{name:\"Enter\",key:\"\",value:40},{name:\"Space Bar\",key:\"\",value:44},{name:\"L-Ctrl\",key:\"\",value:224,deText:\"Strg\"},{name:\"R-Ctrl\",key:\"\",value:228,deText:\"Strg\"},{name:\"L-Shift\",key:\"\",value:225},{name:\"R-Shift\",key:\"\",value:229},{name:\"L-Alt\",key:\"\",value:226},{name:\"R-Alt\",key:\"\",value:230,deText:\"AltGr\",ptText:\"AltGr\"},{name:\"L-Win\",key:\"\",value:227},{name:\"R-Win\",key:\"\",value:231},{name:\"Super\",key:\"\",value:101,deText:\"Menu\",ptText:\"Menu\"},{name:\"↑\",key:\"\",value:82},{name:\"↓\",key:\"\",value:81},{name:\"→\",key:\"\",value:79},{name:\"←\",key:\"\",value:80},{name:\"Home\",key:\"\",value:74,deText:\"Pos1\"},{name:\"End\",key:\"\",value:77,deText:\"Ende\"},{name:\"Ins\",key:\"\",value:73},{name:\"Del\",key:\"\",value:76,deText:\"Entf\"},{name:\"PgUp\",key:\"\",value:75,deText:\"Bild↑\"},{name:\"PgDn\",key:\"\",value:78,deText:\"Bild↓\"},{name:\"Print\",key:\"\",value:70,deText:\"Druck\"},{name:\"Scroll\",key:\"\",value:71,deText:\"Rollen\"},{name:\"Pause\",key:\"\",value:72},{name:\"F1\",key:\"\",value:58},{name:\"F2\",key:\"\",value:59},{name:\"F3\",key:\"\",value:60},{name:\"F4\",key:\"\",value:61},{name:\"F5\",key:\"\",value:62},{name:\"F6\",key:\"\",value:63},{name:\"F7\",key:\"\",value:64},{name:\"F8\",key:\"\",value:65},{name:\"F9\",key:\"\",value:66},{name:\"F10\",key:\"\",value:67},{name:\"F11\",key:\"\",value:68},{name:\"F12\",key:\"\",value:69},{name:\"Num Lock\",key:\"\",value:83},{name:\"Num 1\",key:\"\",value:89},{name:\"Num 2\",key:\"\",value:90},{name:\"Num 3\",key:\"\",value:91},{name:\"Num 4\",key:\"\",value:92},{name:\"Num 5\",key:\"\",value:93},{name:\"Num 6\",key:\"\",value:94},{name:\"Num 7\",key:\"\",value:95},{name:\"Num 8\",key:\"\",value:96},{name:\"Num 9\",key:\"\",value:97},{name:\"Num 0\",key:\"\",value:98},{name:\"Num /\",key:\"\",value:84},{name:\"Num .\",key:\"\",value:99},{name:\"Num *\",key:\"\",value:85},{name:\"Num -\",key:\"\",value:86},{name:\"Num +\",key:\"\",value:87},{name:\"Num Enter\",key:\"\",value:88},{name:\"⊠\",value:111}]}"
+    },
+    {
+      "id": "function-filter",
+      "bundle": "app",
+      "offset": 2024093,
+      "length": 225,
+      "sha256": "c9ccadd279eb928a6caefa91d9f17a22ae179024387df8fb3267ace256965f2d",
+      "text": "filteredFunDataList:function(){var e,i=this;return null!==(e=this.RtInfo)&&void 0!==e&&e.fnChar?this.funData.filter((function(e){var t;return null===(t=i.RtInfo)||void 0===t?void 0:t.fnChar.includes(e.value)})):this.funData}}"
+    },
+    {
+      "id": "layout",
+      "bundle": "keyboard",
+      "offset": 338627,
+      "length": 6034,
+      "sha256": "e5ec325ff1fe31dd8ea71083afc89224098adae1ca2d5551fab688d06219f9eb",
+      "text": "getLBA80RT\",value:function(){var e=[[{className:\"Esc isbg\",value:0,name:\"Esc\",isBorder:!1,key:41,keyCode:\"Escape\"},{className:\"\",value:1,name:\"F1\",isBorder:!1,key:58,keyCode:\"F1\"},{className:\"\",value:2,name:\"F2\",isBorder:!1,key:59,keyCode:\"F2\"},{className:\"\",value:3,name:\"F3\",isBorder:!1,key:60,keyCode:\"F3\"},{className:\"\",value:4,name:\"F4\",isBorder:!1,key:61,keyCode:\"F4\"},{className:\"margin-left-auto\",value:5,name:\"F5\",isBorder:!1,key:62,keyCode:\"F5\"},{className:\"isbg\",value:6,name:\"F6\",isBorder:!1,key:63,keyCode:\"F6\"},{className:\"isbg\",value:7,name:\"F7\",isBorder:!1,key:64,keyCode:\"F7\"},{className:\"isbg\",value:8,name:\"F8\",isBorder:!1,key:65,keyCode:\"F8\"},{className:\"margin-left-auto\",value:9,name:\"F9\",isBorder:!1,key:66,keyCode:\"F9\"},{className:\"\",value:10,name:\"F10\",isBorder:!1,key:67,keyCode:\"F10\"},{className:\"\",value:11,name:\"F11\",isBorder:!1,key:68,keyCode:\"F11\"},{className:\"f12\",value:12,name:\"F12\",isBorder:!1,key:69,keyCode:\"F12\"},{className:\"f12\",value:103,name:\"Insert\",isBorder:!1,keyType:1,key:73,keyCode:\"Insert\"},{className:\"\",value:99,name:\"Print\",isBorder:!1,key:70,keyCode:\"PrintScreen\"}],[{className:\"\",value:16,name:\"` ~\",isBorder:!1,key:53,keyCode:\"Backquote\"},{className:\"\",value:17,name:\"1 !\",isBorder:!1,key:30,keyCode:\"Digit1\"},{className:\"\",value:18,name:\"2 @\",isBorder:!1,key:31,keyCode:\"Digit2\"},{className:\"\",value:19,name:\"3 #\",isBorder:!1,key:32,keyCode:\"Digit3\"},{className:\"\",value:20,name:\"4 $\",isBorder:!1,key:33,keyCode:\"Digit4\"},{className:\"\",value:21,name:\"5 %\",isBorder:!1,key:34,keyCode:\"Digit5\"},{className:\"\",value:22,name:\"6 ^\",isBorder:!1,key:35,keyCode:\"Digit6\"},{className:\"\",value:23,name:\"7 &\",isBorder:!1,key:36,keyCode:\"Digit7\"},{className:\"\",value:24,name:\"8 *\",isBorder:!1,key:37,keyCode:\"Digit8\"},{className:\"\",value:25,name:\"9 (\",isBorder:!1,key:38,keyCode:\"Digit9\"},{className:\"\",value:26,name:\"0 )\",isBorder:!1,key:39,keyCode:\"Digit0\"},{className:\"\",value:27,name:\"ˉ -\",isBorder:!1,key:45,keyCode:\"Minus\"},{className:\"\",value:28,name:\"= +\",isBorder:!1,key:46,keyCode:\"Equal\"},{className:\"Backspace isbg\",value:92,name:\"Backspace\",isBorder:!1,key:42,keyCode:\"Backspace\"},{className:\"\",value:106,name:\"Delete\",isBorder:!1,keyType:1,key:76,keyCode:\"Delete\"}],[{className:\"Tab isbg\",value:32,name:\"Tab\",isBorder:!1,key:43,keyCode:\"Tab\"},{className:\"\",value:33,name:\"Q\",isBorder:!1,key:20,keyCode:\"KeyQ\"},{className:\"\",value:34,name:\"W\",isBorder:!1,key:26,keyCode:\"KeyW\"},{className:\"\",value:35,name:\"E\",isBorder:!1,key:8,keyCode:\"KeyE\"},{className:\"\",value:36,name:\"R\",isBorder:!1,key:21,keyCode:\"KeyR\"},{className:\"\",value:37,name:\"T\",isBorder:!1,key:23,keyCode:\"KeyT\"},{className:\"\",value:38,name:\"Y\",isBorder:!1,key:28,keyCode:\"KeyY\"},{className:\"\",value:39,name:\"U\",isBorder:!1,key:24,keyCode:\"KeyU\"},{className:\"\",value:40,name:\"I\",isBorder:!1,key:12,keyCode:\"KeyI\"},{className:\"\",value:41,name:\"O\",isBorder:!1,key:18,keyCode:\"KeyO\"},{className:\"\",value:42,name:\"P\",isBorder:!1,key:19,keyCode:\"KeyP\"},{className:\"\",value:43,name:\"[ {\",isBorder:!1,key:47,keyCode:\"BracketLeft\"},{className:\"\",value:44,name:\"] }\",isBorder:!1,key:48,keyCode:\"BracketRight\"},{className:\"key-line\",value:60,name:\"\\\\ | \",isBorder:!1,key:49,keyCode:\"Backslash\"},{className:\"isbg\",value:105,name:\"PgUp\",isBorder:!1,key:75,keyCode:\"PageUp\"}],[{className:\"Caps isbg\",value:48,name:\"Caps\",isBorder:!1,key:57,keyCode:\"CapsLock\"},{className:\"\",value:49,name:\"A\",isBorder:!1,key:4,keyCode:\"KeyA\"},{className:\"\",value:50,name:\"S\",isBorder:!1,key:22,keyCode:\"KeyS\"},{className:\"\",value:51,name:\"D\",isBorder:!1,key:7,keyCode:\"KeyD\"},{className:\"\",value:52,name:\"F\",isBorder:!1,key:9,keyCode:\"KeyF\"},{className:\"\",value:53,name:\"G\",isBorder:!1,key:10,keyCode:\"KeyG\"},{className:\"\",value:54,name:\"H\",isBorder:!1,key:11,keyCode:\"KeyH\"},{className:\"\",value:55,name:\"J\",isBorder:!1,key:13,keyCode:\"KeyJ\"},{className:\"\",value:56,name:\"K\",isBorder:!1,key:14,keyCode:\"KeyK\"},{className:\"\",value:57,name:\"L\",isBorder:!1,key:15,keyCode:\"KeyL\"},{className:\"\",value:58,name:\"; :\",isBorder:!1,key:51,keyCode:\"Semicolon\"},{className:\"\",value:59,name:\"' \\\"\",isBorder:!1,key:52,keyCode:\"Quote\"},{className:\"Enter isbg\",value:76,name:\"Enter\",isBorder:!1,key:40,keyCode:\"Enter\"},{className:\"isbg\",value:108,name:\"PgDn\",isBorder:!1,key:78,keyCode:\"PageDown\"}],[{className:\"ShiftMax isbg\",value:64,name:\"L-Shift\",isBorder:!1,key:225,keyCode:\"ShiftLeft\"},{className:\"\",value:65,name:\"Z\",isBorder:!1,key:29,keyCode:\"KeyZ\"},{className:\"\",value:66,name:\"X\",isBorder:!1,key:27,keyCode:\"KeyX\"},{className:\"\",value:67,name:\"C\",isBorder:!1,key:6,keyCode:\"KeyC\"},{className:\"\",value:68,name:\"V\",isBorder:!1,key:25,keyCode:\"KeyV\"},{className:\"\",value:69,name:\"B\",isBorder:!1,key:5,keyCode:\"KeyB\"},{className:\"\",value:70,name:\"N\",isBorder:!1,key:17,keyCode:\"KeyN\"},{className:\"\",value:71,name:\"M\",isBorder:!1,key:16,keyCode:\"KeyM\"},{className:\"\",value:72,name:\", <\",isBorder:!1,key:54,keyCode:\"Comma\"},{className:\"\",value:73,name:\". >\",isBorder:!1,key:55,keyCode:\"Period\"},{className:\"\",value:74,name:\"/ ?\",isBorder:!1,key:56,keyCode:\"Slash\"},{className:\"Shift isbg\",value:75,name:\"R-Shift\",isBorder:!1,key:229,keyCode:\"ShiftRight\"},{className:\"\",value:90,name:\"↑\",isBorder:!1,key:82,keyCode:\"ArrowUp\"},{className:\"isbg\",value:107,name:\"End\",isBorder:!1,key:77,keyCode:\"End\"}],[{className:\"w55 ctrl isbg\",value:80,name:\"L-Ctrl\",isBorder:!1,key:224,keyCode:\"ControlLeft\"},{className:\"w55 isbg\",value:81,name:\"L-Win\",isBorder:!1,key:227,keyCode:\"MetaLeft\"},{className:\"w55 isbg\",value:82,name:\"L-Alt\",isBorder:!1,key:226,keyCode:\"AltLeft\"},{className:\"f1\",value:83,name:\"Spacebar\",isBorder:!1,key:44,keyCode:\"Space\"},{className:\" isbg\",value:85,name:\"Fn\",isBorder:!1,key:0,keyCode:\"-1\"},{className:\" isbg fn2 \",value:87,name:\"R-Ctrl\",isBorder:!1,key:228,keyCode:\"ControlRight\"},{className:\"w50 isbg\",value:88,name:\"←\",isBorder:!1,key:80,keyCode:\"ArrowLeft\"},{className:\"w50 isbg up\",value:89,name:\"↓\",isBorder:!1,key:81,keyCode:\"ArrowDown\"},{className:\"w50 isbg\",value:91,name:\"→\",isBorder:!1,key:79,keyCode:\"ArrowRight\"}]];return e}"
+    }
+  ]
+}

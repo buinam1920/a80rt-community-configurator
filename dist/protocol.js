@@ -1,5 +1,13 @@
 export const VENDOR = 0x0c45;
-export const PRODUCTS = [0x80a1,0x80a2];
+export const DONGLE_PRODUCT = 0xfefc;
+export const PRODUCTS = [0x80a1,0x80a2,DONGLE_PRODUCT];
+// The receiver exposes a separate vendor collection from the wired keyboard.
+export const DEVICE_FILTERS = Object.freeze([
+  {vendorId:VENDOR,productId:0x80a1,usagePage:0xff68,usage:0x61},
+  {vendorId:VENDOR,productId:0x80a2,usagePage:0xff68,usage:0x61},
+  {vendorId:VENDOR,productId:DONGLE_PRODUCT,usagePage:0xff80,usage:1},
+]);
+export const transportName = device => device.productId===DONGLE_PRODUCT?'Đầu thu 2.4 GHz':'Cáp USB';
 export const USAGE_PAGES = [0xff68,0xff80,0xff60];
 export const READ_BLOCKS = Object.freeze([
   {id:'device',name:'Thông tin thiết bị',command:0x10,length:32},
@@ -46,6 +54,15 @@ export function selectInterface(device) {
   if(!choices.length) throw new Error('Không thấy giao diện cấu hình 32/64 byte phù hợp. Hãy cắm cáp USB và chọn giao diện A80RT khác.');
   return choices[0];
 }
+export function describeDevice(device) {
+  function reportSummary(report) {
+    return {reportId:report.reportId,bytes:(report.items??[]).reduce((sum,item)=>sum+item.reportSize*item.reportCount,0)/8};
+  }
+  function collectionSummary(collection) {
+    return {usagePage:collection.usagePage,usage:collection.usage,inputReports:(collection.inputReports??[]).map(reportSummary),outputReports:(collection.outputReports??[]).map(reportSummary),featureReports:(collection.featureReports??[]).map(reportSummary),children:(collection.children??[]).map(collectionSummary)};
+  }
+  return {productName:device.productName,vendorId:device.vendorId,productId:device.productId,transport:transportName(device),collections:(device.collections??[]).map(collectionSummary)};
+}
 export function decodeKey(blocks,slot) {
   const rt=blocks.rt, keymap=blocks.keymap, fn=blocks.fn;
   const r=slot*8,k=slot*4;
@@ -77,7 +94,7 @@ export class A80Reader {
         this.onPacket('in',new Uint8Array(event.data.buffer,event.data.byteOffset,event.data.byteLength));
         try{const reply=parseReply(event.data,command,offset,length);if(reply)finish(null,reply);}catch(error){finish(error);}
       };
-      const timer=setTimeout(()=>finish(new Error(`Bàn phím chưa trả lời lệnh ${hex(command)} tại vị trí ${offset}. Đóng tab driver hãng rồi thử lại bằng cáp USB.`)),this.timeout);
+      const timer=setTimeout(()=>finish(new Error(`Bàn phím chưa trả lời lệnh ${hex(command)} tại vị trí ${offset}. ${this.device.productId===DONGLE_PRODUCT?'Kiểm tra bàn phím đang bật ở chế độ 2.4 GHz, đánh thức bàn phím và đóng tab driver hãng rồi thử lại.':'Đóng tab driver hãng rồi thử cắm lại cáp USB.'}`)),this.timeout);
       if(signal.aborted){cancel();return;}
       signal.addEventListener('abort',cancel,{once:true});
       this.device.addEventListener('inputreport',receive);

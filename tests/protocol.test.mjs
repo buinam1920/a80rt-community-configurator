@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {A80Reader,READ_BLOCKS,buildReadPacket,parseReply,decodeKey,selectInterface} from '../dist/protocol.js';
+import {A80Reader,READ_BLOCKS,DEVICE_FILTERS,describeDevice,buildReadPacket,parseReply,decodeKey,selectInterface} from '../dist/protocol.js';
 import {KEYS} from '../dist/layout.js';
 
 class Device extends EventTarget {
@@ -76,4 +76,25 @@ test('decoding preserves zero sentinels, original mapping bytes, and RT flags',(
 test('unrelated frames are not accepted as successful reads',()=>{
   assert.equal(parseReply(new Uint8Array([0x55,0x37,0,0,0,0,0,0]),0x10,0,24),null);
   assert.equal(parseReply(new Uint8Array([0xaa,0x10,0,0,0,0,0,0]),0x10,0,24),null);
+});
+test('device picker includes the exact A80RT U receiver collection',()=>{
+  const matches=(device,usagePage,usage)=>DEVICE_FILTERS.some(f=>f.vendorId===device.vendorId&&f.productId===device.productId&&f.usagePage===usagePage&&f.usage===usage);
+  const receiver={vendorId:0x0c45,productId:0xfefc};
+  assert.equal(matches(receiver,0xff80,1),true,'wireless receiver must be offered by the picker');
+  assert.equal(matches(receiver,1,6),false,'standard keyboard input is not a configuration interface');
+  assert.equal(matches({vendorId:0x0c45,productId:0x80a2},0xff68,0x61),true);
+  assert.equal(matches({vendorId:0x0c45,productId:0x80a1},0xff68,0x61),true);
+  assert.equal(matches({vendorId:0x0c45,productId:0xfefe},0xff80,1),false,'a receiver for another model must not match');
+});
+test('A80RT U Dongle opens and reads all blocks over its separate 2.4 GHz collection',async()=>{
+  const device=new Device();device.productId=0xfefc;device.productName='A80RT U Dongle';device.collections[0].usagePage=0xff80;device.collections[0].usage=1;
+  const reader=new A80Reader(device,{timeout:100});assert.equal(reader.interface.usagePage,0xff80);
+  await reader.open();const data=await reader.readAll();assert.equal(data.rt.length,1024);assert.equal(data.keymap[511],(511+0x12)%256);
+  const description=describeDevice(device);assert.equal(description.transport,'Đầu thu 2.4 GHz');assert.equal(description.collections[0].outputReports[0].bytes,32);
+  await reader.close();
+});
+test('receiver interfaces nested inside a vendor collection are discoverable',()=>{
+  const device=new Device();device.productId=0xfefc;device.productName='A80RT U Dongle';
+  const child={...device.collections[0],usagePage:0xff80,usage:1};device.collections=[{usagePage:0xffff,usage:1,children:[child]}];
+  assert.equal(selectInterface(device).usagePage,0xff80);assert.equal(describeDevice(device).collections[0].children[0].outputReports[0].bytes,32);
 });

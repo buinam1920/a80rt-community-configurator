@@ -1,5 +1,5 @@
 import {LAYOUT,KEYS} from './layout.js';
-import {A80Reader,READ_BLOCKS,VENDOR,PRODUCTS,decodeKey,hex,bytesHex} from './protocol.js';
+import {A80Reader,READ_BLOCKS,VENDOR,DEVICE_FILTERS,describeDevice,transportName,decodeKey,hex,bytesHex} from './protocol.js?v=0.2.0';
 const $=id=>document.getElementById(id);
 const state={reader:null,snapshot:null,selected:34,layer:'base',reading:false,connecting:false,activeBlock:null,progress:0,totalPackets:0};
 const buttons=new Map();
@@ -10,7 +10,8 @@ function message(text,error=false){$('message').hidden=!text;$('message').textCo
 function clearMessage(){message('');}
 function setText(id,text){$(id).textContent=text;}
 function mode(){return state.snapshot?.source??'empty';}
-function describeSource(){if(mode()==='demo')return 'Dữ liệu mẫu';if(mode()==='import')return 'Bản đã lưu';if(mode()==='device')return state.reader?'Bàn phím thật':'Bản đọc trước';return 'Chưa có dữ liệu';}
+function describeSource(){if(mode()==='demo')return 'Dữ liệu mẫu';if(mode()==='import')return 'Bản đã lưu';if(mode()==='device')return state.reader?'Bàn phím thật':Object.keys(state.snapshot.blocks).length?'Bản đọc trước':'Thông tin thiết bị';return 'Chưa có dữ liệu';}
+function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.2.0',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
 function makeKeyboard(){
   for(const row of LAYOUT){
     const container=document.createElement('div');container.className='key-row';
@@ -75,24 +76,24 @@ function render(){
   $('read-button').hidden=state.reading;$('read-button').disabled=!connected||busy;
   $('cancel-button').hidden=!state.reading;$('cancel-button').disabled=false;
   $('sample-button').disabled=busy||connected;$('import-button').disabled=busy||connected;
-  $('export-button').disabled=(!hasData&&!(state.snapshot?.totalPackets>0))||busy;$('exit-sample').disabled=busy;
+  $('export-button').disabled=(!hasData&&!state.snapshot?.descriptor&&!(state.snapshot?.totalPackets>0))||busy;$('exit-sample').disabled=busy;
   $('sample-notice').hidden=source!=='demo';
   $('progress-wrap').hidden=!state.reading;$('progress-bar').style.width=`${state.progress}%`;
   const device=connected?state.reader.device:state.snapshot?.device;
   setText('device-name',device?.productName??'Chưa kết nối');
-  setText('device-sub',source==='demo'?'DỮ LIỆU MẪU · MINH HỌA':connected?'GIAO DIỆN CẤU HÌNH USB':source==='import'?'BẢN ĐỌC TỪ TỆP JSON':'LEOBOG A80RT / A80RT U');
+  setText('device-sub',source==='demo'?'DỮ LIỆU MẪU · MINH HỌA':connected?transportName(device).toLocaleUpperCase('vi-VN'):source==='import'?'BẢN ĐỌC TỪ TỆP JSON':'LEOBOG A80RT / A80RT U');
   const fields=connected?[
-    ['VID / PID',`${hex(device.vendorId)} / ${hex(device.productId)}`],['Gói tin',`${state.reader.interface.packetSize} byte`],['Trạng thái','Đã kết nối'],
-  ]:[['Kết nối','USB / WebHID'],['Trạng thái',source==='demo'?'Dữ liệu mẫu':hasData?'Bản đã lưu':'Đang chờ']];
+    ['Kết nối',transportName(device)],['VID / PID',`${hex(device.vendorId)} / ${hex(device.productId)}`],['Gói tin',`${state.reader.interface.packetSize} byte`],['Trạng thái','Đã kết nối'],
+  ]:[['Kết nối','USB / 2.4 GHz'],['Trạng thái',source==='demo'?'Dữ liệu mẫu':hasData?'Bản đã lưu':'Đang chờ']];
   $('device-meta').replaceChildren();for(const [label,value]of fields){const dt=document.createElement('dt');dt.textContent=label;const dd=document.createElement('dd');dd.textContent=value;$('device-meta').append(dt,dd);}
   $('connection-pill').className=`pill${connected?' connected':source==='demo'?' sample':''}`;
   $('connection-pill').replaceChildren(document.createElement('i'),document.createTextNode(connected?'Đã kết nối':source==='demo'?'Dữ liệu mẫu':'Chưa kết nối'));
-  setText('source-stat',describeSource());setText('source-note',state.snapshot?`${state.snapshot.complete?'Đủ 6 nhóm':'Bản đọc chưa đủ'} · ${time(state.snapshot.createdAt)}`:'Sẵn sàng kết nối');
+  setText('source-stat',describeSource());setText('source-note',state.snapshot?`${state.snapshot.complete?'Đủ 6 nhóm':hasData?'Bản đọc chưa đủ':'Chưa đọc cấu hình'} · ${time(state.snapshot.createdAt)}`:'Sẵn sàng kết nối');
   const count=Object.keys(state.snapshot?.blocks??{}).length;$('blocks-stat').replaceChildren(document.createTextNode(`${count} `));const total=document.createElement('em');total.textContent='/ 6';$('blocks-stat').append(total);
   setText('blocks-note',state.reading?`Đang đọc · ${Math.round(state.progress)}%`:hasData?'Dữ liệu có thể xuất thành JSON':'Thông tin, phím, Fn, RT và đèn');
   setText('next-title',state.connecting?'Đang mở kết nối…':connected?'Bàn phím đã sẵn sàng':source==='demo'?'Khám phá bằng dữ liệu mẫu':'Bắt đầu với bàn phím của bạn');
-  setText('next-copy',connected?'Chọn “Đọc cấu hình” để lấy thông số hiện tại.':source==='demo'?'Chọn từng phím để xem thông số minh họa, hoặc kết nối bàn phím thật.':'Cắm cáp USB, đóng tab driver hãng, rồi chọn kết nối.');
-  setText('keyboard-caption',source==='empty'?'Chưa đọc dữ liệu từ bàn phím':source==='demo'?'Mẫu minh họa · không phải dữ liệu thiết bị':state.reading?'Đang nhận cấu hình…':`${describeSource()} · ${state.snapshot.complete?'đã đọc đủ':'còn thiếu nhóm dữ liệu'}`);
+  setText('next-copy',connected?`${transportName(device)} · Chọn “Đọc cấu hình” để lấy thông số hiện tại.`:source==='demo'?'Chọn từng phím để xem thông số minh họa, hoặc kết nối bàn phím thật.':'Cắm cáp USB hoặc đầu thu 2.4 GHz, bật bàn phím và đóng tab driver hãng.');
+  setText('keyboard-caption',source==='empty'||(!hasData&&source==='device')?'Chưa đọc dữ liệu từ bàn phím':source==='demo'?'Mẫu minh họa · không phải dữ liệu thiết bị':state.reading?'Đang nhận cấu hình…':`${describeSource()} · ${state.snapshot.complete?'đã đọc đủ':'còn thiếu nhóm dữ liệu'}`);
   setText('read-label',state.reading?`Đang đọc · ${READ_BLOCKS.find(b=>b.id===state.activeBlock)?.name??'cấu hình'}`:'Đọc cấu hình hiện tại');
   setText('read-detail',state.reading?`${Math.round(state.progress)}% · có thể dừng bất cứ lúc nào`:'6 nhóm thông số · xử lý tại thiết bị');
   renderBlocks();renderSelection();renderLog();
@@ -107,14 +108,15 @@ async function connect(){
   if(!supported||state.connecting||state.reading)return;
   clearMessage();state.connecting=true;render();let reader;
   try{
-    const devices=await navigator.hid.requestDevice({filters:PRODUCTS.map(productId=>({vendorId:VENDOR,productId}))});
-    if(!devices.length){message('Chưa chọn thiết bị. Bạn có thể thử kết nối lại.');return;}
-    const candidates=devices.filter(d=>d.collections.some(c=>[0xff68,0xff80,0xff60].includes(c.usagePage)));
+    const devices=await navigator.hid.requestDevice({filters:DEVICE_FILTERS.map(filter=>({...filter}))});
+    if(!devices.length){message('Chưa chọn thiết bị. Với kết nối 2.4 GHz, chọn “A80RT U Dongle”; nếu danh sách trống, bật bàn phím ở chế độ 2.4 GHz rồi thử cắm lại đầu thu.');return;}
+    state.snapshot=deviceSnapshot(devices[0]);
     let lastError;
-    for(const device of candidates){try{reader=new A80Reader(device,{onPacket:addPacket});break;}catch(error){lastError=error;}}
-    if(!reader)throw lastError??new Error('Không tìm thấy giao diện cấu hình A80RT. Thử cắm cáp USB và chọn lại thiết bị.');
-    await reader.open();state.reader=reader;state.snapshot=null;state.progress=0;
-    message('Đã kết nối. Chọn “Đọc cấu hình” để bắt đầu lấy dữ liệu.');
+    for(const device of devices){try{reader=new A80Reader(device,{onPacket:addPacket});break;}catch(error){lastError=error;}}
+    if(!reader)throw lastError??new Error('Không tìm thấy giao diện cấu hình A80RT. Thử cắm lại đầu thu 2.4 GHz hoặc cáp USB.');
+    state.snapshot=deviceSnapshot(reader.device,reader.interface);
+    await reader.open();state.reader=reader;state.progress=0;
+    message(`Đã kết nối qua ${transportName(reader.device).toLocaleLowerCase('vi-VN')}. Chọn “Đọc cấu hình” để bắt đầu lấy dữ liệu.`);
   }catch(error){if(reader)await reader.close().catch(()=>{});message(error.name==='NotAllowedError'?'Trình duyệt chưa cấp quyền kết nối. Hãy mở trang trực tiếp trong Chrome/Edge rồi thử lại.':`Kết nối chưa thành công: ${error.message}`,true);}
   finally{state.connecting=false;render();}
 }
@@ -126,7 +128,7 @@ async function disconnect(){
 async function read(){
   if(!state.reader||state.reading)return;
   const reader=state.reader;
-  state.snapshot={schema:'a80rt-reader/v1',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:reader.device.productName,vendorId:reader.device.vendorId,productId:reader.device.productId},interface:{...reader.interface},blocks:{},packets:[],totalPackets:0};
+  state.snapshot=deviceSnapshot(reader.device,reader.interface);
   state.reading=true;state.progress=0;clearMessage();render();
   try{
     await reader.readAll(progress=>{state.activeBlock=progress.block;state.progress=100*progress.completed/progress.total;render();},(id,bytes)=>{state.snapshot.blocks[id]=bytes;render();});

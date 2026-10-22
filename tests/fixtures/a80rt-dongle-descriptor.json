@@ -1,0 +1,74 @@
+{
+  "source": {
+    "path": "C:/Users/Administrator/Downloads/a80rt-read-2026-10-22T04-14-25-963Z.json",
+    "createdAt": "2026-10-22T04:11:19.231Z",
+    "kind": "Measured WebHID descriptor summary and TX-only failed read; no successful RX",
+    "reportItems": "Original export records bytes only; tests reconstruct reportSize=8/reportCount=bytes, not measured individual report items"
+  },
+  "descriptor": {
+    "productName": "A80RT U Dongle",
+    "vendorId": 3141,
+    "productId": 65276,
+    "transport": "Đầu thu 2.4 GHz",
+    "collections": [
+      {
+        "usagePage": 65408,
+        "usage": 1,
+        "inputReports": [
+          {
+            "reportId": 0,
+            "bytes": 32
+          }
+        ],
+        "outputReports": [
+          {
+            "reportId": 0,
+            "bytes": 32
+          }
+        ],
+        "featureReports": [],
+        "children": []
+      }
+    ]
+  },
+  "interface": {
+    "usagePage": 65408,
+    "usage": 1,
+    "reportId": 0,
+    "packetSize": 32
+  },
+  "firstReadPacket": [
+    170,
+    16,
+    24,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ]
+}

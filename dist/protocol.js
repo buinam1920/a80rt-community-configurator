@@ -1,3 +1,5 @@
+import {A80Transport} from './device/transport.js';
+export {A80Transport};
 export const VENDOR = 0x0c45;
 export const DONGLE_PRODUCT = 0xfefc;
 export const PRODUCTS = [0x80a1,0x80a2,DONGLE_PRODUCT];
@@ -77,49 +79,32 @@ export function decodeKey(blocks,slot) {
   return result;
 }
 export class A80Reader {
-  constructor(device,{onPacket=()=>{},timeout=2500}={}) {
-    this.device=device; this.interface=selectInterface(device);this.onPacket=onPacket;this.timeout=timeout;this.active=false;this.abort=null;
+  constructor(device,{onPacket=()=>{},timeout=3000,onTrace=()=>{}}={}) {
+    this.device=device;this.onPacket=onPacket;this.timeout=timeout;this.active=false;this.abort=null;
+    this.transport=new A80Transport(device,{timeoutMs:timeout,onTrace:trace=>{
+      if(trace.type==='tx'||trace.type==='rx')this.onPacket(trace.type==='tx'?'out':'in',trace.bytes);
+      onTrace(trace);
+    }});
+    this.interface=this.transport.interface;
   }
-  async open(){if(!this.device.opened) await this.device.open();}
+  getState(){return this.transport.getState();}
+  async open(){await this.transport.open();}
   cancel(){this.abort?.abort();}
-  async close(){this.cancel();if(this.device.opened)await this.device.close();}
-  exchange(command,offset,length,last,signal) {
-    const packet=buildReadPacket(command,offset,length,this.interface.packetSize,last);
-    return new Promise((resolve,reject)=>{
-      let settled=false;
-      const finish=(error,value)=>{if(settled)return;settled=true;clearTimeout(timer);this.device.removeEventListener('inputreport',receive);signal.removeEventListener('abort',cancel);error?reject(error):resolve(value);};
-      const cancel=()=>finish(new DOMException('Đã dừng đọc.','AbortError'));
-      const receive=event=>{
-        if(event.reportId!==0)return;
-        this.onPacket('in',new Uint8Array(event.data.buffer,event.data.byteOffset,event.data.byteLength));
-        try{const reply=parseReply(event.data,command,offset,length);if(reply)finish(null,reply);}catch(error){finish(error);}
-      };
-      const timer=setTimeout(()=>finish(new Error(`Bàn phím chưa trả lời lệnh ${hex(command)} tại vị trí ${offset}. ${this.device.productId===DONGLE_PRODUCT?'Kiểm tra bàn phím đang bật ở chế độ 2.4 GHz, đánh thức bàn phím và đóng tab driver hãng rồi thử lại.':'Đóng tab driver hãng rồi thử cắm lại cáp USB.'}`)),this.timeout);
-      if(signal.aborted){cancel();return;}
-      signal.addEventListener('abort',cancel,{once:true});
-      this.device.addEventListener('inputreport',receive);
-      this.onPacket('out',packet);
-      Promise.resolve().then(()=>{if(signal.aborted)throw new DOMException('Đã dừng đọc.','AbortError');return this.device.sendReport(0,packet);}).catch(error=>finish(error));
-    });
-  }
+  async close(){this.cancel();await this.transport.close();}
+  exchange(command,offset,length,last,signal){return this.transport.exchange(command,offset,length,last,signal);}
   async readAll(onProgress=()=>{},onBlock=()=>{}) {
-    if(this.active) throw new Error('Một lượt đọc đang chạy.');
-    if(!this.device.opened)throw new Error('Thiết bị chưa mở kết nối.');
-    this.active=true; this.abort=new AbortController();
-    const signal=this.abort.signal, result={};let completed=0;
+    if(this.active)throw new Error('Một lượt đọc đang chạy.');
+    if(!this.getState().opened)throw new Error('Thiết bị chưa mở kết nối.');
+    this.active=true;const abort=new AbortController();this.abort=abort;
+    const result={};let completed=0;
     const total=READ_BLOCKS.reduce((sum,b)=>sum+b.length,0);
-    try {
+    try{
       for(const block of READ_BLOCKS){
-        const data=new Uint8Array(block.length),capacity=this.interface.packetSize-8;
-        for(let offset=0;offset<block.length;offset+=capacity){
-          if(signal.aborted)throw new DOMException('Đã dừng đọc.','AbortError');
-          const length=Math.min(capacity,block.length-offset);
-          const reply=await this.exchange(block.command,offset,length,offset+length===block.length,signal);
-          data.set(reply,offset);completed+=length;onProgress({completed,total,block:block.id,name:block.name});
-        }
-        result[block.id]=Array.from(data);onBlock(block.id,result[block.id]);
+        const data=await this.transport.readBlock(block.command,block.length,{signal:abort.signal});
+        result[block.id]=Array.from(data);completed+=block.length;
+        onProgress({completed,total,block:block.id,name:block.name});onBlock(block.id,result[block.id]);
       }
       return result;
-    }finally{this.active=false;this.abort=null;}
+    }finally{this.active=false;if(this.abort===abort)this.abort=null;}
   }
 }

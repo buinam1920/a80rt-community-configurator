@@ -805,7 +805,22 @@
       "macro-decode",
       "macro-ui-limit",
       "macro-timestamps"
-    ]
+    ],
+    "editing": "Captured span only; reject malformed, overlapping or out-of-span pointers. Preserve header2/3 and event reserved flags. Allocate only zero/unambiguously owned bytes; no measured physical capacity.",
+    "binding": {
+      "type": 6,
+      "index": "u8@1, zero-based",
+      "mode": {
+        "0": "regular",
+        "1": "repeat count",
+        "2": "press again to stop"
+      },
+      "repeat": "u8@3,1..255",
+      "source": [
+        "macro-repeat-modes",
+        "advanced-encode"
+      ]
+    }
   },
   "dks": {
     "stride": 16,
@@ -817,7 +832,12 @@
         3
       ],
       "type": "u8",
-      "unit": "0.1mm for A80RT, via getDksTotipValue; exact ordering/ranges to validate in Task5"
+      "unit": "0.1mm for A80RT, via getDksTotipValue; exact ordering/ranges to validate in Task5",
+      "source": [
+        "dks-paired-travel",
+        "dks-units"
+      ],
+      "order": "[low,high,high,low];0<low<high<=switch trip, A80RT0.1mm units"
     },
     "keyCodes": {
       "offsets": [
@@ -852,9 +872,11 @@
       "dks",
       "dks-encode",
       "dks-units",
-      "advanced-encode"
+      "advanced-encode",
+      "dks-index-allocation",
+      "dks-paired-travel"
     ],
-    "editing": "Task5; do not guess reference allocation or overwrite even key bytes"
+    "editing": "Indices1..63 within captured1024; index0 reserved by source allocator. Preserve offsets4/6/8/10. One source template per assigned key; reject overwriting another key reference."
   },
   "limits": {
     "macroPhysicalCapacity": null,
@@ -942,5 +964,17 @@
       ],
       "meaning": "Receiver-to-keyboard link loss, not USB receiver disappearance. Invalidate current transport session and responding state; no inferred meanings for other notification values."
     }
+  },
+  "advancedEditing": {
+    "source": [
+      "advanced-encode",
+      "advanced-modes",
+      "mt-time-domain"
+    ],
+    "mt": "type9,tap@1,hold@2,timeMs/10@3;10..1000ms step10",
+    "tgl": "type10,key@1; preserve2/3",
+    "rs": "type12,0,first HID usage,second HID usage; assign both physical slots atomically",
+    "socd": "type11,mode,first HID usage,second HID usage; modes3/1/2/4; assign both atomically",
+    "references": "DKS pattern8/index@1; macro6/index@1. DKS/MT/TGL key bytes are HID usages, not nested macro references."
   }
 }

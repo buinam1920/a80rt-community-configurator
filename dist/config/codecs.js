@@ -1,4 +1,6 @@
 import {readPlan} from '../device/capabilities.js';
+import {decodeMacros,patchMacros} from './macros.js';
+import {encodeAdvancedBinding,decodePattern,patchPattern} from './advanced.js';
 
 const SETTINGS = {sleep:3,responseTime:4,polling:5,osMode:6,tftTime:7,topDeadZone:8,bottomDeadZone:9,stability:11,autoCalibration:14,wake:15};
 const LIGHTING = {mode:0,red:1,green:2,blue:3,secondaryRed:5,secondaryGreen:6,secondaryBlue:7,colorMode:8,brightness:9,speed:10,direction:11,gearMode:12};
@@ -114,7 +116,7 @@ function patchBinding(bytes,edit,capability) {
   if (field!=='binding' || !value || typeof value!=='object' || Array.isArray(value)) fail(field);
   const types = {empty:['type'],keyboard:['type','usage','modifier'],mouse:['type','mouseCode','code'],media:['type','usage'],function:['type','code']};
   const properties = own(types,value.type) ? types[value.type] : null;
-  if (!properties) fail(`binding.${value.type}`,'editor needs verified advanced reference validation');
+  if (!properties) { bytes.set(encodeAdvancedBinding(value,bytes.slice(offset,offset+4),capability),offset);return; }
   for (const key of Object.keys(value)) if (!properties.includes(key)) fail(`binding.${key}`,'unknown property');
   // Preserve byte3 for the simple types: manufacturer decoding leaves it opaque.
   if (value.type==='empty') bytes.fill(0,offset,offset+3);
@@ -135,7 +137,9 @@ function patchBinding(bytes,edit,capability) {
 
 // Read the edited semantic value and its owned bytes from the final block.
 // Keep slot/field identity separate from the byte offsets used for preservation.
-function editedField(blockId,bytes,{slot,field}) {
+function editedField(blockId,bytes,{slot,field},capability) {
+  if(blockId==='macro')return {value:decodeMacros(bytes,capability).map(m=>({events:m.events.map(({flags,...event})=>event)})),offsets:Array.from({length:bytes.length},(_,i)=>i)};
+  if(blockId==='dks')return {value:decodePattern(bytes,slot),offsets:[0,1,2,3,5,7,9,11,12,13,14,15].map(i=>slot*16+i)};
   if (blockId==='settings' || blockId==='lighting') {
     const offset=(blockId==='settings' ? SETTINGS : LIGHTING)[field];
     return {value:bytes[offset],offsets:[offset]};
@@ -152,17 +156,17 @@ function editedField(blockId,bytes,{slot,field}) {
   return {value:binding(bytes,offset),offsets:[offset,offset+1,offset+2,offset+3]};
 }
 
-function fieldChanges(blockId,before,after,edits) {
+export function fieldChanges(blockId,before,after,edits,capability) {
   const fields=new Map();
   for (const edit of edits) {
-    const path=blockId==='settings' || blockId==='lighting' ? `fields.${edit.field}` : `records[${edit.slot}].${edit.field}`;
+    const path=blockId==='settings' || blockId==='lighting' || blockId==='macro' ? `fields.${edit.field}` : `records[${edit.slot}].${edit.field}`;
     fields.set(path,edit);
   }
   const changes=[];
   for (const [path,edit] of fields) {
-    const original=editedField(blockId,before,edit), final=editedField(blockId,after,edit);
+    const original=editedField(blockId,before,edit,capability), final=editedField(blockId,after,edit,capability);
     // Flags share a byte: a changed neighbor must not revive a reverted flag edit.
-    if (Object.is(original.value,final.value)) continue;
+    if (JSON.stringify(original.value)===JSON.stringify(final.value)) continue;
     const byteOffsets=final.offsets.filter(offset=>before[offset]!==after[offset]);
     if (byteOffsets.length) changes.push({block:blockId,path,before:original.value,after:final.value,byteOffsets});
   }
@@ -174,7 +178,9 @@ export function patchBlock(blockId,raw,edits,capability) {
   if (!Array.isArray(edits)) fail('edits','expected edit array');
   for (const edit of edits) {
     checkEdit(edit);
-    if (blockId==='rt') patchRT(bytes,edit,capability);
+    if(blockId==='macro'){if(edit.field!=='macros'||own(edit,'slot'))fail(edit.field);bytes.set(patchMacros(bytes,edit.value,capability).bytes);}
+    else if(blockId==='dks'){if(edit.field!=='pattern')fail(edit.field);bytes.set(patchPattern(bytes,edit.slot,edit.value,capability));}
+    else if (blockId==='rt') patchRT(bytes,edit,capability);
     else if (blockId==='settings' || blockId==='lighting') patchScalar(blockId,bytes,edit,capability);
     else if (blockId==='keymap' || blockId==='fn') {
       if(blockId==='fn'&&capability.limits.fnLockedSlots.includes(edit.slot))fail('Fn','F1–F12 bindings are locked by the A80RT source editor');
@@ -197,5 +203,5 @@ export function patchBlock(blockId,raw,edits,capability) {
       if (edits.some(edit=>edit.slot===slot&&(edit.field===field||edit.field==='switchId')) && word(bytes,offset+relative)>Math.round(travel*100)) fail(field,'exceeds switch travel');
     }
   }
-  return {bytes,changes:fieldChanges(blockId,before,bytes,edits)};
+  return {bytes,changes:fieldChanges(blockId,before,bytes,edits,capability)};
 }

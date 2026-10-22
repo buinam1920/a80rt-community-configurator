@@ -403,6 +403,38 @@
       "length": 205,
       "sha256": "7b8aacff2c3941bab6bdad7c29f53694af169b89f639da62a93ffd5ca984dbf5",
       "text": "this.currentFn&&0==this.functionCurrent?(this.getBuildFn(o.value,n),Hl.sendReportSuper(Hl.cmd.WriteFn,this.allFnPack)):(this.setKeyArrayData(o.value,n),Hl.sendReportSuper(Hl.cmd.writeKey,this.allKeyPack)),"
+    },
+    {
+      "id": "dks-paired-travel",
+      "bundle": "app",
+      "offset": 3248324,
+      "length": 1521,
+      "sha256": "9a5db05d5e5a6d67e9b7c8a5dac4272314f3e9f87801967272da2616cf979789",
+      "text": "setDksValue:function(){var e=this;this.$nextTick((function(){if(e.$refs.silderDks){var i=e.RtInfo.isAxial?e.modeType.data.axial.trip:e.RtInfo.trip;e.$refs.silderDks.value=e.getDksTotipValue(e.modeType.list[0].dksValue),e.$refs.silderDks2.value=e.getDksTotipValue(e.modeType.list[1].dksValue),e.$refs.silderDks3.value=e.getDksTotipValue(e.modeType.list[2].dksValue),e.$refs.silderDks4.value=e.getDksTotipValue(e.modeType.list[3].dksValue),e.$refs.silderDks.maxValue=e.getDksTotipValue(i)-.1,e.$refs.silderDks4.maxValue=e.getDksTotipValue(i)-.1,e.$refs.silderDks2.maxValue=e.getDksTotipValue(i),e.$refs.silderDks3.maxValue=e.getDksTotipValue(i),e.$refs.silderDks.show=!1,e.$refs.silderDks2.show=!1,e.$refs.silderDks3.show=!1,e.$refs.silderDks4.show=!1}}))},startDrag:function(e,i){var t=this;this.$nextTick((function(){if(e){var n=t.RtInfo.isRtType?10*e*2:10*e;switch(i){case 0:case 3:t.modeType.list[0].dksValue=n,t.modeType.list[3].dksValue=n,t.$refs.silderDks.value=Number(e),t.$refs.silderDks4.value=Number(e),n>=t.modeType.list[1].dksValue&&(t.modeType.list[1].dksValue=10*e+1,t.modeType.list[2].dksValue=10*e+1,t.$refs.silderDks2.value=Number(e)+.1,t.$refs.silderDks3.value=Number(e)+.1);break;case 1:case 2:if(n<=t.modeType.list[0].dksValue)return t.$refs.silderDks2.value=Number(t.$refs.silderDks.value)+.1,void(t.$refs.silderDks3.value=Number(t.$refs.silderDks.value)+.1);t.modeType.list[1].dksValue=n,t.modeType.list[2].dksValue=n,t.$refs.silderDks2.value=Number(e),t.$refs.silderDks3.value=Number(e);break}}}))},"
+    },
+    {
+      "id": "dks-index-allocation",
+      "bundle": "app",
+      "offset": 3269506,
+      "length": 315,
+      "sha256": "5a8dd4623e0666469fcbf2d71cb481f4212468a9fc0851988c4242d4770d092d",
+      "text": "handleDrawer:function(e){var i=16,t=[];this.seniorKeyList.forEach((function(e){3==e.id&&t.push(e)})),0==t.length?e.dksIndex=i:e.dksIndex=t[t.length-1].dksIndex+16,this.RtInfo.isRtType&&(e.Makelevel=e.Makelevel/2),this.modeType=JSON.parse(JSON.stringify(e)),this.$forceUpdate(),this.$refs.bottomDrawer.openDrawer()},"
+    },
+    {
+      "id": "mt-time-domain",
+      "bundle": "app",
+      "offset": 1803957,
+      "length": 190,
+      "sha256": "93acb58a2d341443a3b922a80a30e657ee908a7335e7186a4caba6da0d4d6950",
+      "text": "ref:\"mt\",staticClass:\"f1\",attrs:{min:10,max:1e3,step:10},model:{value:m.modeType.list[0].time,callback:function(e){m.$set(m.modeType.list[0],\"time\",e)},expression:\"modeType.list[0].time\"}}),"
+    },
+    {
+      "id": "macro-repeat-modes",
+      "bundle": "app",
+      "offset": 1865329,
+      "length": 152,
+      "sha256": "d9c6cf0fadf9dbb2086486ae821928daec02f6b01adfcdd6c2297b19c92530ce",
+      "text": "gd=[{value:0,label:\"常规\",text:\"macro_mask_select1\"},{value:2,label:\"再次按键结束\",text:\"macro_mask_select2\"},{value:1,label:\"重复播放\",text:\"macro_mask_select3\"}],"
     }
   ]
 }

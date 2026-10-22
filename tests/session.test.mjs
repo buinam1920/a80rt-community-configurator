@@ -50,8 +50,9 @@ function api(){
   assert.equal(typeof protocol.readSnapshot,'function','complete read provenance must be exposed');
   return protocol;
 }
-async function setup({qualified=true,packetSize=32}={}){
+async function setup({qualified=true,packetSize=32,cleanAdvanced=false}={}){
   const {ConfigSession,readSnapshot}=api(),device=new Receiver();
+  if(cleanAdvanced)for(const id of ['macro','dks','keymap','fn'])device.blocks[id].fill(0);
   device.collections[0].outputReports[0].items[0].reportCount=packetSize;
   const transport=new (qualified?QualifiedSyntheticTransport:protocol.A80Transport)(device,{timeoutMs:10});
   await transport.open();const snapshot=await readSnapshot(transport,capability);
@@ -405,4 +406,23 @@ test('a failed owned callback drains requests, expires its scope and releases tr
     const count=device.sent.length;await assert.rejects(scope.writeBlock(0x21,device.blocks.settings),{name:'AbortError'});assert.equal(device.sent.length,count);
     assert.equal((await transport.readBlock(0x10,32)).length,32);
   }finally{await transport.close();}
+});
+
+test('macro and DKS semantic paths verify complete events and patterns without opaque-byte equality',async()=>{
+ const {device,transport,session}=await setup({cleanAdvanced:true});
+ try{
+  session.edit('macro',[{field:'macros',value:[{events:[{device:'keyboard',action:'down',code:4,delayMs:513}]}]}]);
+  session.advanced({type:'dks',slots:[34],index:1,pattern:{thresholds:[10,20,20,10],keys:[4,5,6,7],actions:[1,2,4,8]}});
+  device.alterReply=(reply,packet)=>{if(packet[1]===0x18&&packet[3]===0)reply[8+20]^=1;};
+  const result=await session.apply(transport);assert.equal(result.status,'verified',result.error);assert.deepEqual(result.verifiedFields.map(c=>`${c.block}:${c.path}`),['keymap:records[34].binding','macro:fields.macros','dks:records[1].pattern']);assert.equal(session.diff().length,0);
+ }finally{await transport.close();}
+});
+test('a changed macro event or DKS action mismatch cannot pass semantic readback',async()=>{
+ for(const id of ['macro','dks']){const {device,transport,session}=await setup({cleanAdvanced:true});try{
+  if(id==='macro')session.edit('macro',[{field:'macros',value:[{events:[{device:'keyboard',action:'down',code:4,delayMs:513}]}]}]);
+  else session.advanced({type:'dks',slots:[34],index:1,pattern:{thresholds:[10,20,20,10],keys:[4,5,6,7],actions:[1,2,4,8]}});
+  const changedOffset=id==='macro'?404:28,command=capability.blocks[id].command;
+  device.alterReply=(reply,packet)=>{const offset=packet[3]|packet[4]<<8;if(packet[1]===command&&changedOffset>=offset&&changedOffset<offset+packet[2])reply[8+changedOffset-offset]^=1;};
+  const result=await session.apply(transport);assert.equal(result.status,'unconfirmed');assert.match(result.error,/mismatch/);assert.ok(session.diff().length>0);
+ }finally{await transport.close();}}
 });

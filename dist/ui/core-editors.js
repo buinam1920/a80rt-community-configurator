@@ -12,7 +12,7 @@ function parseColor(text){
 }
 
 // Selection/rendering only reads detached session bytes. Edits are semantic and atomic.
-export function createCoreEditorModel({session,capability,selectedSlots=[],onEdit=()=>{}}){
+export function createCoreEditorModel({session,capability,selectedSlots=[],onEdit=()=>{},isBusy=()=>false}){
   let slots=[],layer='base';
   const setSelection=selection=>{
     if(!Array.isArray(selection)||selection.some(slot=>!capability?.slots.includes(slot)))throw new Error('Selection needs physical A80RT slots.');
@@ -27,7 +27,7 @@ export function createCoreEditorModel({session,capability,selectedSlots=[],onEdi
     const rt=Object.fromEntries(RT_FIELDS.map(field=>[field,common(slots.map(slot=>rtRecords[slot]?.[field]))]));
     const travels=slots.map(slot=>capability?.limits.switchTravelMm[rtRecords[slot]?.switchId]);
     const source=snapshot?.provenance.source;
-    return {slots:[...slots],layer,complete,editable:complete&&slots.length>0&&!session?.applying,
+    return {slots:[...slots],layer,complete,editable:complete&&slots.length>0&&!session?.applying&&!isBusy(),
       canApply:false,reason:!complete?'Đọc đủ snapshot 9 nhóm để chỉnh sửa.':source==='sample'?'Dữ liệu mẫu · chỉ sửa bản nháp trong trình duyệt, không gửi thiết bị.':source!=='device'?'Bản đã lưu · không có quyền ghi thiết bị.':'Bản nháp · chỉ gửi khi bấm Áp dụng và thiết bị đủ điều kiện.',
       rt,limits:{maxMm:travels.length&&travels.every(value=>value!==undefined)?Math.min(...travels):undefined,stepMm:capability?.limits.distanceStepMm},
       binding:common(slots.map(slot=>bindings[slot]?.binding)),bindingLocked:layer==='fn'&&slots.some(slot=>capability?.limits.fnLockedSlots.includes(slot)),
@@ -36,6 +36,7 @@ export function createCoreEditorModel({session,capability,selectedSlots=[],onEdi
   };
   return {view,setSelection,setLayer(next){if(!['base','fn'].includes(next))throw new Error('Unknown layer.');layer=next;},edit(block,field,value){
     const current=view();
+    if(isBusy()||session?.applying)throw new Error('Một giao dịch đang chạy.');
     if(!current.complete)throw new Error('Complete snapshot required before editing.');
     if(!slots.length)throw new Error('Selection is empty.');
     if(block==='binding'&&current.bindingLocked)throw new Error('Fn F1–F12 bị khóa theo cấu hình hãng.');
@@ -69,8 +70,8 @@ function bindingValue(binding){
   return null;
 }
 
-export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdit=()=>{},onLayerChange=()=>{}}){
-  const model=createCoreEditorModel({session,capability,selectedSlots,onEdit});
+export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdit=()=>{},onLayerChange=()=>{},isBusy=()=>false}){
+  const model=createCoreEditorModel({session,capability,selectedSlots,onEdit,isBusy});
   const listeners=[],controls=new Map(),panels=new Map(),tabs=new Map();let active='rt',destroyed=false;
   const make=(tag,text,className)=>{const el=document.createElement(tag);if(text)el.textContent=text;if(className)el.className=className;return el;};
   const listen=(el,type,fn)=>{el.addEventListener(type,fn);listeners.push(()=>el.removeEventListener(type,fn));};
@@ -123,7 +124,7 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
   rgbPanel.append(make('p','Màu vùng chọn nằm trong nhóm màu riêng; chọn hiệu ứng 128 để dùng màu từng phím. Hiệu ứng đồng bộ âm nhạc cần dịch vụ hãng, chưa tích hợp.','editor-hint'));
   root.replaceChildren(intro,reason,tabbar,...panels.values(),error);
   function refresh(){
-    if(destroyed)return;const view=model.view();
+    if(destroyed)return;const view=model.view(),entered=error.hidden?null:[...controls.values()].map(({input})=>[input,input.value]);
     selection.textContent=`${view.slots.length} phím đã chọn${view.slots.length?` · ${view.slots.map(slot=>KEYS.find(key=>key.slot===slot).label).slice(0,8).join(', ')}${view.slots.length>8?'…':''}`:''}`;
     reason.textContent=view.reason;
     for(const [id,tab]of tabs){tab.setAttribute('aria-selected',String(active===id));tab.tabIndex=active===id?0:-1;panels.get(id).hidden=active!==id;}
@@ -147,6 +148,8 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
       controls.get(key).input.value=Object.values(rgb).every(value=>value!==undefined)?colorHex(rgb):'';
     }
     controls.get('selectedColor').input.value=view.rgb.value?colorHex(view.rgb.value):'';controls.get('selectedColor').input.placeholder=view.rgb.mixed?'Giá trị khác nhau · #RRGGBB':'#RRGGBB';
+    // Preserve entered values on an error while still recomputing every lock.
+    if(entered)for(const [input,value]of entered)input.value=value;
   }
   refresh();
   return {setSelection(slots){model.setSelection(slots);refresh();},setLayer(next){model.setLayer(next);refresh();},refresh,destroy(){destroyed=true;for(const remove of listeners)remove();root.replaceChildren();}};

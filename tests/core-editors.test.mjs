@@ -59,3 +59,7 @@ test('empty selection and invalid edits retain draft; raw zero remains zero',()=
   const before=session.draft;assert.throws(()=>vm.edit('rt','pressMm',NaN));assert.deepEqual(session.draft,before);
   vm.setSelection([]);assert.equal(vm.view().editable,false);assert.throws(()=>vm.edit('colors','rgb',{red:0,green:0,blue:0}),/selection/i);
 });
+
+test('host busy state immediately disables core edits before apply enters the session',()=>{
+ let busy=false;const vm=createCoreEditorModel({session:sample(),capability:cap,selectedSlots:[34],isBusy:()=>busy});assert.equal(vm.view().editable,true);busy=true;assert.equal(vm.view().editable,false);assert.throws(()=>vm.edit('rt','pressMm',0.3),/running|giao dịch/);
+});

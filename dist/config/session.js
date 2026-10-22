@@ -1,5 +1,7 @@
 import {identifyDevice,readPlan} from '../device/capabilities.js';
-import {decodeBlock,patchBlock} from './codecs.js';
+import {decodeBlock,patchBlock,fieldChanges} from './codecs.js';
+import {patchMacros} from './macros.js';
+import {validateReferences,advancedEdits} from './advanced.js';
 import {A80Transport} from '../device/transport.js';
 
 const origins=new WeakMap(),busyTransports=new WeakSet();
@@ -70,18 +72,33 @@ export class ConfigSession {
     if(this.#applying)throw new Error('Một giao dịch đang chạy.');
     if(!completeCoverage(this.#blocks,this.#snapshot.coverage,this.#plan))throw new Error('Complete snapshot coverage is required before editing.');
   }
-  edit(blockId,edits){
-    this.#editable();
-    // Validate the atomic edit against current bytes before changing any draft state.
-    patchBlock(blockId,this.#draft[blockId],edits,this.#capability);
-    const fields=new Map(this.#edits.get(blockId)??[]);
-    for(const edit of edits)fields.set(`${edit.slot??'global'}:${edit.field}`,copy(edit));
-    const result=patchBlock(blockId,this.#blocks[blockId],[...fields.values()],this.#capability);
-    this.#edits.set(blockId,fields);this.#draft[blockId]=result.bytes;return this.diff();
+  edit(blockId,edits){return this.transaction({[blockId]:edits});}
+  advanced(binding){return this.transaction(advancedEdits(this.#draft,binding,this.#capability));}
+  transaction(groups){
+    this.#editable();if(!groups||typeof groups!=='object'||Array.isArray(groups))throw new Error('Edit groups required.');
+    const draft=copyBlocks(this.#draft),saved=new Map(this.#edits);
+    for(const [id,edits]of Object.entries(groups)){
+      const result=patchBlock(id,draft[id],edits,this.#capability);draft[id]=result.bytes;
+      const fields=new Map(saved.get(id)??[]);for(const edit of edits)fields.set(`${edit.slot??'global'}:${edit.field}`,copy(edit));saved.set(id,fields);
+    }
+    if(groups.macro){
+      const macroEdit=groups.macro.find(e=>e.field==='macros');
+      const remaps=patchMacros(this.#draft.macro,macroEdit.value,this.#capability).referenceChanges;
+      for(const id of ['keymap','fn'])for(let slot=0;slot<this.#draft[id].length/4;slot++){
+        const offset=slot*4;if(this.#draft[id][offset]!==6||!remaps.some(r=>r.before===this.#draft[id][offset+1]))continue;
+        if(!groups[id]?.some(e=>e.slot===slot&&e.field==='binding'))throw new Error(`${id}[${slot}] macro reference requires repair in the same transaction.`);
+      }
+    }
+    if(Object.keys(groups).some(id=>['keymap','fn','macro','dks','rt'].includes(id))){
+      const previous=new Set(validateReferences(this.#draft,undefined,this.#capability));
+      const errors=validateReferences(draft,undefined,this.#capability).filter(error=>!previous.has(error));
+      if(errors.length)throw new Error(errors.join('; '));
+    }
+    this.#draft=draft;this.#edits=saved;return this.diff();
   }
   revert(){this.#editable();this.#edits.clear();this.#draft=copyBlocks(this.#blocks);}
   diff(){
-    return this.#plan.flatMap(({id})=>this.#edits.has(id)?patchBlock(id,this.#blocks[id],[...this.#edits.get(id).values()],this.#capability).changes:[]);
+    return this.#plan.flatMap(({id})=>this.#edits.has(id)?fieldChanges(id,this.#blocks[id],this.#draft[id],[...this.#edits.get(id).values()],this.#capability):[]);
   }
   async apply(transport,{signal,onProgress=()=>{}}={}){
     if(this.#applying||busyTransports.has(transport))throw new Error('Một giao dịch đang chạy.');
@@ -127,12 +144,12 @@ export class ConfigSession {
           check();
           actualBlocks[id]=decodeBlock(id,actual,this.#capability).bytes;
           const fields=changes.filter(change=>change.block===id),paths=new Set(fields.map(change=>change.path));
-          const edits=[...this.#edits.get(id).values()].filter(edit=>paths.has(id==='settings'||id==='lighting'?`fields.${edit.field}`:`records[${edit.slot}].${edit.field}`));
+          const edits=[...this.#edits.get(id).values()].filter(edit=>paths.has(id==='settings'||id==='lighting'||id==='macro'?`fields.${edit.field}`:`records[${edit.slot}].${edit.field}`));
           if(edits.length!==fields.length)throw new Error(`Read-back cannot resolve every semantic field in ${id}; verification is unavailable.`);
           // Reapplying desired semantic values to the read bytes must be a no-op.
           // This checks all owned channels/bits, without comparing volatile or
           // opaque neighbors and without depending on a write-payload echo.
-          const different=new Set(patchBlock(id,actualBlocks[id],edits,this.#capability).changes.map(change=>change.path));
+          const different=new Set((id==='macro'?fieldChanges(id,actualBlocks[id],this.#draft[id],edits,this.#capability):patchBlock(id,actualBlocks[id],edits,this.#capability).changes).map(change=>change.path));
           for(const {block,path} of fields){
             if(different.has(path))mismatches.push(`${block}:${path}`);
             else result.verifiedFields.push({block,path});

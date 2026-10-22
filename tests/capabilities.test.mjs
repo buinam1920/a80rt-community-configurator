@@ -17,8 +17,8 @@ test('Capability exposes the shared identity, field, feature and firmware contra
     assert.equal(cap.fields.colors.rgb,true);
     assert.equal(cap.fields.keymap.binding,true);
     assert.equal(cap.fields.fn.binding,true);
-    assert.deepEqual(cap.fields.macro,{});
-    assert.deepEqual(cap.fields.dks,{});
+    assert.deepEqual(cap.fields.macro,{macros:true});
+    assert.deepEqual(cap.fields.dks,{pattern:true});
     assert.deepEqual(cap.features,{sourceAdvancedBindings:['rs','socd','dks','mt','tgl'],writeQualified:false});
     assert.deepEqual(cap.firmware,{status:'unverified',officialUrl:null});
     for(const value of [cap.identity,cap.fields,cap.fields.settings,cap.fields.rt,cap.features,cap.features.sourceAdvancedBindings,cap.firmware])assert.ok(Object.isFrozen(value));

@@ -35,7 +35,7 @@ function createCapability(model) {
       device:{version:false,battery:false,axialModel:false},settings,
       rt:{switchId:true,whole:true,bottom:true,rtMode:true,actuationMm:true,pressMm:true,releaseMm:true},
       lighting:{mode:true,red:true,green:true,blue:true,secondaryRed:true,secondaryGreen:true,secondaryBlue:true,colorMode:true,brightness:true,speed:true,direction:true,gearMode:false},
-      colors:{rgb:true},keymap:{binding:true},fn:{binding:true},macro:{},dks:{},
+      colors:{rgb:true},keymap:{binding:true},fn:{binding:true},macro:{macros:true},dks:{pattern:true},
     },
     features:{sourceAdvancedBindings:advanced,writeQualified:false},
     firmware:{status:'unverified',officialUrl:null},

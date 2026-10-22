@@ -3,6 +3,7 @@ import {A80Reader,VENDOR,DEVICE_FILTERS,describeDevice,transportName,decodeKey,h
 import {identifyDevice,readPlan} from './device/capabilities.js';
 import {ConfigSession} from './config/session.js';
 import {mountCoreEditors} from './ui/core-editors.js';
+import {mountAdvancedEditors} from './ui/advanced-editors.js';
 const SAMPLE_CAPABILITY=identifyDevice({vendorId:VENDOR,productId:0x80a2,productName:'A80RT'});
 const BLOCK_NAMES={device:'Thông tin thiết bị',settings:'Thiết lập chung',keymap:'Gán phím',lighting:'Thiết lập đèn',colors:'Màu từng phím',macro:'Macro',fn:'Lớp Fn',rt:'Rapid Trigger',dks:'DKS'};
 const FULL_BLOCKS=readPlan(SAMPLE_CAPABILITY).map(block=>({...block,name:BLOCK_NAMES[block.id]}));
@@ -178,7 +179,10 @@ function renderEditors(){
   const capability=state.capability??SAMPLE_CAPABILITY;
   if(mountedSession===state.session&&mountedCapability===capability)return;
   editors?.destroy();mountedSession=state.session;mountedCapability=capability;
-  editors=mountCoreEditors($('core-editors'),{session:state.session,capability,selectedSlots:state.selectedSlots,onEdit:()=>{renderSelection();renderDraft();},onLayerChange:layer=>{state.layer=layer;renderSelection();}});
+  const context={session:state.session,capability,selectedSlots:state.selectedSlots,isBusy:()=>state.reading||state.connecting||state.applying,onEdit:()=>{renderSelection();renderDraft();}};
+  const core=mountCoreEditors($('core-editors'),{...context,onLayerChange:layer=>{state.layer=layer;renderSelection();}});
+  const advanced=mountAdvancedEditors($('advanced-editors'),context);
+  editors={setSelection(slots){core.setSelection(slots);advanced.setSelection(slots);},setLayer(layer){core.setLayer(layer);advanced.setLayer(layer);},refresh(){core.refresh();advanced.refresh();},destroy(){core.destroy();advanced.destroy();}};
   editors.setLayer(state.layer);
 }
 function draftReason(){
@@ -199,7 +203,9 @@ function renderDraft(){
 async function applyDraft(){
   if($('apply-button').disabled)return;
   const reader=state.reader,session=state.session,abort=new AbortController();state.applyAbort=abort;state.applying=true;render();
-  const result=await session.apply(reader.transport,{signal:abort.signal,onProgress:progress=>{if(state.reader===reader&&state.session===session)message(`Đang ${progress.phase==='readback'?'đọc lại xác minh':'gửi bản nháp'}${progress.block?` · ${BLOCK_NAMES[progress.block]}`:''}…`);}});
+  const pending=session.apply(reader.transport,{signal:abort.signal,onProgress:progress=>{if(state.reader===reader&&state.session===session)message(`Đang ${progress.phase==='readback'?'đọc lại xác minh':'gửi bản nháp'}${progress.block?` · ${BLOCK_NAMES[progress.block]}`:''}…`);}});
+  editors?.refresh();
+  let result;try{result=await pending;}catch(error){result={status:'failed',error:error.message};}
   if(state.reader===reader&&state.session===session){
     if(result.status==='verified'){state.snapshot.blocks=session.snapshot.blocks;message('Đã áp dụng và đọc lại khớp các trường đã sửa. Chưa xác minh lưu qua lần kết nối lại.');}
     else message(`${result.status==='unconfirmed'?'Đã gửi một phần, chưa xác nhận':'Chưa áp dụng'}: ${result.error}`,true);

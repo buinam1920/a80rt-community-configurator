@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Kết nối và đọc cấu hình LEOBOG A80RT qua WebHID, trực tiếp trên trình duyệt.">
+  <meta name="theme-color" content="#111519"><title>A80RT Reader</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23c3f56b'/%3E%3Cpath d='M16 43L29 19h7l13 24h-8l-3-6H27l-3 6zm14-12h5l-2-5z' fill='%23111519'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./styles.css"><script type="module" src="./app.js"></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="./" aria-label="A80RT Reader"><span class="brand-icon">A<span>↗</span></span><span>A80RT<span class="brand-sub">READER / 0.1</span></span></a>
+    <div class="sidebar-section">KHÔNG GIAN LÀM VIỆC</div>
+    <div class="nav-current"><span>▦</span> Cấu hình bàn phím <span class="nav-dot"></span></div>
+    <div class="side-device"><div class="eyebrow">THIẾT BỊ</div><strong id="device-name">Chưa kết nối</strong><div id="device-sub">LEOBOG A80RT / A80RT U</div><div class="device-visual" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><dl id="device-meta"><dt>Kết nối</dt><dd>USB / WebHID</dd><dt>Trạng thái</dt><dd>Đang chờ</dd></dl></div>
+    <div class="side-bottom"><span class="readonly-dot"></span> CHẾ ĐỘ ĐỌC CẤU HÌNH<p>Dữ liệu thiết bị được xử lý trong trình duyệt của bạn.</p><a href="https://leobog.driveall.cn/" target="_blank" rel="noopener noreferrer">Web driver hãng ↗</a></div>
+  </aside>
+  <main>
+    <header class="topbar"><span>Workspace <span class="slash">/</span> A80RT Reader</span><span class="build-tag">BẢN THỬ NGHIỆM</span></header>
+    <section class="page-heading"><div><div class="eyebrow accent">LEOBOG · 82 PHÍM</div><h1>Cấu hình bàn phím<span>.</span></h1><p>Kết nối, đọc thông số và xem từng phím trên A80RT của bạn.</p></div><span id="connection-pill" class="pill"><i></i> Chưa kết nối</span></section>
+    <div id="browser-notice" class="notice" hidden></div>
+    <div id="sample-notice" class="notice sample-notice" hidden><span><strong>Đang xem dữ liệu mẫu.</strong> Các thông số này được tạo để thử giao diện.</span><button id="exit-sample" class="text-button">Thoát dữ liệu mẫu ×</button></div>
+    <section class="connect-strip"><div class="step-symbol">01</div><div class="connect-copy"><strong id="next-title">Bắt đầu với bàn phím của bạn</strong><p id="next-copy">Cắm cáp USB, đóng tab driver hãng, rồi chọn kết nối.</p></div><div class="actions"><button id="sample-button" class="button quiet">Xem dữ liệu mẫu</button><button id="connect-button" class="button primary">Kết nối bàn phím <span>↗</span></button><button id="disconnect-button" class="button quiet" hidden>Ngắt kết nối</button></div></section>
+    <div id="message" class="message" role="status" aria-live="polite" hidden></div>
+    <section class="stats" aria-label="Tổng quan"><div><span>NGUỒN DỮ LIỆU</span><strong id="source-stat">Chưa có dữ liệu</strong><small id="source-note">Sẵn sàng kết nối</small></div><div><span>CẤU HÌNH ĐÃ ĐỌC</span><strong id="blocks-stat">0 <em>/ 6</em></strong><small id="blocks-note">Thông tin, phím, Fn, RT và đèn</small></div><div><span>ĐIỂM NHẬN PHÍM</span><strong id="actuation-stat">— <em>mm</em></strong><small id="actuation-note">Chọn một phím để xem</small></div></section>
+    <div class="workspace-grid">
+      <section class="panel keyboard-panel"><div class="panel-heading"><div><h2>Bàn phím của bạn</h2><p>Chọn phím để xem thông số đã đọc.</p></div><div class="layer-switch" aria-label="Lớp phím"><button id="layer-base" aria-pressed="true">Mặc định</button><button id="layer-fn" aria-pressed="false">Fn</button></div></div><div class="keyboard-scroll"><div id="keyboard" class="keyboard" aria-label="Sơ đồ 82 phím"></div></div><div class="keyboard-footer"><span><i class="legend-dot"></i> Phím đang chọn</span><span id="keyboard-caption">Chưa đọc dữ liệu từ bàn phím</span></div><div class="read-toolbar"><div><strong id="read-label">Đọc cấu hình hiện tại</strong><p id="read-detail">6 nhóm thông số · xử lý tại thiết bị</p></div><button id="read-button" class="button primary" disabled>Đọc cấu hình <span>↓</span></button><button id="cancel-button" class="button quiet" hidden>Dừng đọc</button></div><div id="progress-wrap" class="progress" hidden><div id="progress-bar"></div></div></section>
+      <section class="panel inspector"><div class="panel-heading"><h2>Thông số phím</h2><span id="selected-slot" class="mono muted">#034</span></div><div class="selected-key"><span id="selected-key-name">W</span><small id="selected-key-label">PHÍM ĐANG CHỌN</small></div><div class="travel-title"><span>Điểm nhận phím</span><strong id="key-actuation">— <small>mm</small></strong></div><div class="travel-track"><div id="travel-fill"></div><i id="travel-marker"></i></div><div class="travel-scale"><span>0</span><span>1</span><span>2</span><span>3.4 mm</span></div><p id="key-state" class="inspector-hint">Đọc cấu hình để xem thông số thực.</p><dl class="key-details"><dt>Lớp đang xem</dt><dd id="key-layer">Mặc định</dd><dt>Mã gán phím</dt><dd id="key-mapping">—</dd><dt>Loại switch (ID)</dt><dd id="key-switch">—</dd><dt>Cờ chế độ RT</dt><dd id="key-flags">—</dd></dl><details class="raw-details"><summary>Dữ liệu gốc của phím</summary><div class="raw-key"><span>RT · 8 byte</span><code id="key-rt-raw">Chưa có dữ liệu</code><span>Gán phím · 4 byte</span><code id="key-map-raw">Chưa có dữ liệu</code><span>Ngưỡng nhấn / nhả (raw)</span><code id="key-thresholds">—</code></div></details><div class="small-note">Thông số được giải mã từ giao thức quan sát trong driver hãng; cần đối chiếu trên bàn phím thật.</div></section>
+    </div>
+    <section class="panel data-panel"><div class="panel-heading"><div><h2>Dữ liệu & chẩn đoán</h2><p>Lưu bản đọc để đối chiếu hoặc tiếp tục kiểm tra giao thức.</p></div><div class="actions"><button id="import-button" class="button quiet small">Mở bản đã lưu</button><button id="export-button" class="button quiet small" disabled>Xuất JSON ↗</button><input id="import-file" type="file" accept=".json,application/json" hidden></div></div><div id="block-list" class="block-list"></div><details id="diagnostics"><summary><span>Nhật ký giao tiếp</span><span id="packet-count" class="mono muted">0 gói</span></summary><pre id="log">Nhật ký xuất hiện khi bắt đầu đọc cấu hình.</pre></details></section>
+    <footer><span>A80RT READER <span class="muted">/</span> COMMUNITY EXPERIMENT</span><span>Chỉ đọc thông số · Bản 0.1</span></footer>
+  </main>
+</body>
+</html>

@@ -70,7 +70,7 @@ function bindingValue(binding){
   return null;
 }
 
-export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdit=()=>{},onLayerChange=()=>{},isBusy=()=>false}){
+export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdit=()=>{},onLayerChange=()=>{},onNavigate=()=>{},isBusy=()=>false}){
   const model=createCoreEditorModel({session,capability,selectedSlots,onEdit,isBusy});
   const listeners=[],controls=new Map(),panels=new Map(),tabs=new Map();let active='rt',destroyed=false;
   const make=(tag,text,className)=>{const el=document.createElement(tag);if(text)el.textContent=text;if(className)el.className=className;return el;};
@@ -81,8 +81,8 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
   for(const [id,label]of [['rt','Rapid Trigger'],['binding','Gán phím / Fn'],['rgb','RGB']]){
     const tab=make('button',label);tab.type='button';tab.id=`editor-tab-${id}`;tab.setAttribute('role','tab');tab.setAttribute('aria-controls',`editor-panel-${id}`);
     const panel=make('div',null,'editor-panel');panel.id=`editor-panel-${id}`;panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',tab.id);
-    tabs.set(id,tab);panels.set(id,panel);tabbar.append(tab);listen(tab,'click',()=>{active=id;refresh();});
-    listen(tab,'keydown',event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const ids=[...tabs.keys()],index=ids.indexOf(active);active=event.key==='Home'?ids[0]:event.key==='End'?ids.at(-1):ids[(index+(event.key==='ArrowRight'?1:2))%3];refresh();tabs.get(active).focus();});
+    tabs.set(id,tab);panels.set(id,panel);tabbar.append(tab);listen(tab,'click',()=>{onNavigate();active=id;refresh();});
+    listen(tab,'keydown',event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();onNavigate();const ids=[...tabs.keys()],index=ids.indexOf(active);active=event.key==='Home'?ids[0]:event.key==='End'?ids.at(-1):ids[(index+(event.key==='ArrowRight'?1:2))%3];refresh();tabs.get(active).focus();});
   }
   const commit=(block,field,value)=>{try{model.edit(block,field,value);error.hidden=true;error.textContent='';refresh();}catch(problem){error.textContent=problem.message;error.hidden=false;}};
   const field=(panel,key,label,type='number')=>{

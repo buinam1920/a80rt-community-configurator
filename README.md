@@ -1,6 +1,6 @@
-# A80RT Configurator — 0.3.0-preview
+# A80RT Configurator — 0.3.0
 
-Ứng dụng WebHID cục bộ để đọc đủ 9 nhóm cấu hình LEOBOG A80RT / A80RT U, chỉnh bản nháp RT, gán phím, Fn, đèn, màu từng phím, macro, phím nâng cao và thiết lập chung. Dữ liệu thiết bị và hồ sơ cấu hình được xử lý trong trình duyệt. Đây là bản xem trước sử dụng được cho cấu hình có dây được hỗ trợ; kiểm tra toàn bộ phạm vi vẫn đang thực hiện.
+Ứng dụng WebHID cục bộ để đọc đủ 9 nhóm cấu hình LEOBOG A80RT / A80RT U, chỉnh bản nháp RT, gán phím, Fn, đèn, màu từng phím, macro, phím nâng cao và thiết lập chung. Dữ liệu thiết bị và hồ sơ cấu hình được xử lý trong trình duyệt. [Bảng đối chiếu tính năng](docs/feature-parity.md) ghi riêng chức năng triển khai, kiểm thử mô phỏng, bằng chứng phần cứng và các mục phụ thuộc hãng.
 
 ## Sử dụng
 
@@ -13,15 +13,27 @@
 
 Các mục hiệu chuẩn và khôi phục vẫn bị khóa do chưa đo được ACK bảo trì. Firmware chỉ mở web hãng, không flash trong ứng dụng; chọn đúng model khi dùng công cụ ngoài.
 
+## RT và vùng chết toàn bàn phím
+
+Trong **Rapid Trigger**, chọn một hoặc nhiều phím để chỉnh điểm nhận, ngưỡng nhấn/nhả và **RT trên toàn hành trình** (whole, bit 0). Theo mô tả hãng, bật whole để RT duy trì hoạt động; tắt để RT có hiệu lực sau khi phím đạt điểm nhận. Đây là ngữ nghĩa từ nguồn hãng, chưa phải kết quả đo hành vi riêng. Bottom Optimization (bit 1) và Rampage Mode (bit 2) vẫn đọc được trong dữ liệu gốc nhưng không có bộ chỉnh đã chứng minh áp dụng cho A80RT U/Dongle; sửa cờ khác hoặc tải hồ sơ giữ nguyên hai bit này.
+
+Trong **Thiết lập & bảo trì → Thiết lập**, A80RT U và U Dongle có **Vùng chết phía trên/phía dưới · toàn bàn phím**: 0,00–0,50 mm, bước 0,01 mm. Đây là settings byte 8/9, độc lập vùng phím đang chọn; nhập số chỉ tạo bản nháp, bấm **Hoàn tác bản nháp** để bỏ. Số 0 và giá trị gốc chưa nhận diện được giữ nguyên cho tới khi bạn sửa đúng trường. Không suy ra một bit bật/tắt firmware riêng từ hai giá trị này.
+
+Bộ chọn switch từng phím chỉ mở cho A80RT U có dây theo điều kiện giao diện hãng; tên giữ theo bản dịch nguồn, ID lạ/hành trình lạ được hiển thị rõ và bảo toàn. Thay switch cần hiệu chuẩn bằng công cụ hãng, không đồng nghĩa ứng dụng đã hiệu chuẩn. A80RT thường chưa có bằng chứng áp dụng các bộ chỉnh mới này nên whole/switch/vùng chết được khóa; điểm nhận và ngưỡng RT đã có codec vẫn giữ phạm vi cũ. Dữ liệu mẫu là A80RT U tổng hợp, không phải dữ liệu USB.
+
 ## Hồ sơ cục bộ và phục hồi
 
 Trong **Hồ sơ cấu hình**, đặt tên rồi **Lưu bản nháp thành hồ sơ**. Hồ sơ được lưu trong IndexedDB của trình duyệt và phân theo đủ danh tính model, cổng kết nối, VID/PID và tên sản phẩm. Chọn hồ sơ để đổi tên, nhân bản, xóa hoặc xuất JSON v2. Mỗi lần lưu bản nháp tạo một hồ sơ mới. Đổi thư viện model để xem hồ sơ của model khác.
 
 **Xem trước đã chọn**, **Nhập hồ sơ JSON** và **Khôi phục phiên gần nhất** luôn mở bản xem trước. Bấm **Đưa vào bản nháp** để xác nhận. Khi đã có phiên chỉnh sửa, chỉ các trường được hỗ trợ được chuyển trong một giao dịch nguyên tử; byte chưa giải mã, marker màu, bit dành riêng, thông tin thiết bị và Fn F1–F12 giữ theo bản nháp hiện tại. Liên kết macro/DKS/RS/SOCD được kiểm tra; lỗi giữ nguyên toàn bộ bản nháp. Hồ sơ khác model, thiếu một trong 9 vùng, byte sai hoặc con trỏ macro lỗi bị từ chối.
 
+Xem trước liệt kê các trường chưa hỗ trợ bị bỏ qua, gồm bottom/rtMode, switch của dongle và các bộ chỉnh chưa xác minh cho A80RT. Các trường này giữ giá trị hiện tại, kể cả bit từ hồ sơ cũ khác giá trị đang đọc. Mở hồ sơ khi chưa có phiên chỉ tạo phiên ngoại tuyến từ dữ liệu đã lưu.
+
 Sau thay đổi hợp lệ, bản nháp được giữ cục bộ sau khoảng 350 ms; đợi thông báo **Đã giữ bản nháp để phục hồi sau tải lại** trước khi tải lại trang. Chọn thư viện model rồi **Khôi phục phiên gần nhất** để mở lại. Bản phục hồi mở ngoại tuyến; cần kết nối và đọc mới trước khi chuyển hồ sơ vào phiên thiết bị để áp dụng. Sự kiện macro còn ở trình nhập và chưa bấm **Lưu macro vào bản nháp** không thuộc bản phục hồi. Lỗi dung lượng/quyền lưu không xóa bản nháp đang mở hoặc bản lưu trước.
 
 JSON v1 cũ vẫn chỉ để xem, kể cả đủ 9 vùng; nhãn nguồn/firmware trong tệp không tạo quyền ghi USB. Xuất hồ sơ không gửi dữ liệu đi đâu. Xóa dữ liệu trang hoặc đổi trình duyệt/origin sẽ không còn thấy IndexedDB cũ; xuất JSON để có bản sao riêng. Chưa có đồng bộ đám mây của hãng, backend/tài khoản mới hay chuyển ngân hàng cấu hình trên phần cứng.
+
+Thư viện/chia sẻ đám mây, đồng bộ âm nhạc, công cụ phụ trợ và cập nhật firmware phụ thuộc dịch vụ hãng: [mở driver LEOBOG](https://leobog.driveall.cn/), chọn đúng model và làm theo hướng dẫn của hãng. Liên kết chỉ mở công cụ ngoài; không báo đã đồng bộ, hiệu chuẩn, reset hay flash trong ứng dụng.
 
 ## Đã đo được gì
 
@@ -31,7 +43,7 @@ Ngày 22/10/2026, công cụ USB gốc đọc đủ 9 nhóm (4688 byte) trên A8
 
 Các lệnh cấu hình 0x21–0x28 dùng cùng tuyến sendReportSuper/buildPkt_final/getStoreData trong mã nguồn hãng. Bản này cho phép các lệnh đã ánh xạ đó trên đúng giao diện và firmware có dây nêu trên, áp dụng chính sách header nghiêm ngặt và đọc lại các trường đã đổi. **Ngoài màu/control, các lệnh chưa được thử riêng trên phần cứng**; các gói ngắn đầu/cuối của settings32 và lighting16 cũng chưa đo riêng. Không mở opcode tùy ý hay lệnh bảo trì compact.
 
-Phép đo xác nhận RGB được lưu và đọc lại trong cùng kết nối; chưa xác nhận màu đèn nhìn thấy, giữ cấu hình sau mất điện hoặc toàn bộ luồng ghi của ứng dụng trình duyệt. Kiểm tra với thiết bị mô phỏng không thay thế các phép thử này.
+Ngày 23/10/2026, phép thử trên chính trang riêng tư đã triển khai trong trình duyệt đã đạt: đọc 9/9 nhóm trên A80RT U có dây firmware 1.37, đổi riêng RGB lưu của W từ #000000 sang #1b80ff, **Áp dụng** báo đọc lại khớp rồi khôi phục #000000 bằng một lần Áp dụng được xác minh nữa. Chế độ đèn toàn bàn phím giữ nguyên 11. Bằng chứng này xác nhận luồng trình duyệt cho màu W; không mở rộng thành kiểm thử các nhóm khác, màu đèn nhìn thấy hoặc lưu sau mất điện. Kiểm tra mô phỏng không thay thế bằng chứng USB.
 
 ## Chạy tại máy và kiểm thử
 
@@ -47,7 +59,7 @@ Mở localhost bằng Chrome/Edge, không mở qua file://. Chạy kiểm thử 
 npm test
 ```
 
-HTML chứa một import map cho **toàn bộ** module JavaScript, dùng chung token phiên bản `0.3.0-preview`; entry script và CSS dùng cùng token. Source imports giữ đường dẫn không query để browser có một registry/class và Node giữ cùng module identity. Mỗi lần phát hành thay module phải cập nhật phiên bản package, import map, entry/CSS và metadata cùng nhau; kiểm thử release graph kiểm tra đủ đường dẫn và các chu trình. Không dựa riêng vào `_headers` chưa xác minh trên Sites. Controller kiểm tra cache/CSP và triển khai lên Site hiện có.
+HTML chứa một import map cho **toàn bộ** module JavaScript, dùng chung token phiên bản `0.3.0`; entry script và CSS dùng cùng token. Source imports giữ đường dẫn không query để browser có một registry/class và Node giữ cùng module identity. Mỗi lần phát hành thay module phải cập nhật phiên bản package, import map, entry/CSS và metadata cùng nhau; kiểm thử release graph kiểm tra đủ đường dẫn và các chu trình. Không dựa riêng vào `_headers` chưa xác minh trên Sites. Controller kiểm tra cache/CSP và triển khai lên Site hiện có.
 
 ## Giao thức và giới hạn
 

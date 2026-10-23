@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "evidence": "tests/fixtures/source/a80rt-manufacturer.json",
-  "qualification": "Manufacturer source plus measured native A80RT U wired 0C45:80A1 FF68/61 report0/64 firmware[55,1] (1.37): nine blocks read, stored W RGB changed/read back/restored, all nine restored blocks equal. Colors0x24 and block control0 ACK headers measured. Other config commands source-inferred; browser write acceptance, visible illumination and power-cycle persistence untested. Dongle writes and maintenance remain closed.",
+  "qualification": "Manufacturer source plus measured native A80RT U wired 0C45:80A1 FF68/61 report0/64 firmware[55,1] (1.37): nine blocks read, stored W RGB changed/read back/restored, all nine restored blocks equal. Colors0x24 and block control0 ACK headers measured. Hosted browser acceptance PASSED23Oct2026:9/9 read, W storedRGB000000->1b80ff verified Apply then000000 verified restoration, globalmode11 unchanged. Other config commands source-inferred; visible illumination and power-cycle persistence untested. Dongle writes and maintenance remain closed.",
   "path": [
     "model-u/model-wired/model-dongle select getLBA80RT",
     "connection routes these devices to generic Device kS/yS",
@@ -215,7 +215,7 @@
         6
       ],
       "source": "model-u",
-      "note": "0 is raw unspecified, not default1; switches2,3 have3.3mm travel, others3.4mm"
+      "note": "Raw0 remains0; manufacturer display falls back to defaultValue1. Per-key axial.value is not catalog axial.id or device firmware AxialModel. Switch2,3 travel3.3mm, others3.4mm. Applicable edit selector wiredU only, hidden on dongle by timeValue. PlainA80RT selector applicability unverified. See docs/rt-source-evidence.md."
     },
     "whole": {
       "offset": 1,
@@ -587,7 +587,7 @@
         0,
         50
       ],
-      "unit": "raw manufacturer zone unit; millimetres not inferred",
+      "unit": "0.01mm; raw0..50 displayed0.00..0.50mm, step1; globalU wired/dongle only, plainA80RT applicability unverified; docs/rt-source-evidence.md",
       "source": [
         "settings",
         "model-u"
@@ -600,7 +600,7 @@
         0,
         50
       ],
-      "unit": "raw manufacturer zone unit; millimetres not inferred",
+      "unit": "0.01mm; raw0..50 displayed0.00..0.50mm, step1; globalU wired/dongle only, plainA80RT applicability unverified; docs/rt-source-evidence.md",
       "source": [
         "settings",
         "model-u"
@@ -881,7 +881,7 @@
   "limits": {
     "macroPhysicalCapacity": null,
     "writeAckShape": "Model/session-specific header policy; see writeTransport.ack. Static capabilities do not grant write qualification.",
-    "rtModeNames": "whole/bottom/rtMode bits from source, no invented mode enumeration",
+    "rtModeNames": "whole bit0=Full Distance Fast Trigger, editableU wired/dongle; bottom bit1=Bottom Optimization and rtMode bit2=Rampage Mode readable/preserved but not editable: applicableU controls absent or gated by missing isModel. PlainA80RT whole applicability unverified. See docs/rt-source-evidence.md.",
     "unknownFields": "Reject by field name; never guess offsets"
   },
   "writeTransport": {

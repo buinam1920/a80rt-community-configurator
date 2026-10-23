@@ -25,18 +25,17 @@ test('Change tracks final semantic values, deduplicates edits and omits reverted
   const bytes=new Uint8Array(1024);bytes[272]=1;bytes[274]=80;
   const result=patchBlock('rt',bytes,[
     {slot:34,field:'actuationMm',value:1.2},{slot:34,field:'actuationMm',value:3},
-    {slot:34,field:'whole',value:true},{slot:34,field:'bottom',value:true},
-    {slot:34,field:'whole',value:false},{slot:34,field:'rtMode',value:false},
+    {slot:34,field:'whole',value:true},
+    {slot:34,field:'whole',value:false},
     {slot:92,field:'whole',value:true},
   ],cap());
   assert.deepEqual(result.changes,[
-    {block:'rt',path:'records[34].bottom',before:false,after:true,byteOffsets:[273]},
     {block:'rt',path:'records[34].actuationMm',before:0.8,after:3,byteOffsets:[274,275]},
     {block:'rt',path:'records[92].whole',before:false,after:true,byteOffsets:[737]},
   ]);
   assert.deepEqual(patchBlock('rt',bytes,[
     {slot:34,field:'actuationMm',value:1.2},{slot:34,field:'actuationMm',value:0.8},
-    {slot:34,field:'bottom',value:true},{slot:34,field:'bottom',value:false},
+    {slot:34,field:'whole',value:true},{slot:34,field:'whole',value:false},
   ],cap()).changes,[]);
 });
 
@@ -137,10 +136,11 @@ test('RGB preserves marker and neighbors; key remap preserves fourth byte and Fn
 });
 
 test('switch travel limits apply to completed patch; no mutation on late validation failure',()=>{
+  const wired=identifyDevice({vendorId:0x0c45,productId:0x80a1,productName:'A80RT U'});
   const bytes=raw('rt'),before=bytes.slice();
-  assert.throws(()=>patchBlock('rt',bytes,[{slot:34,field:'switchId',value:2},{slot:34,field:'actuationMm',value:3.4}],cap()),/actuationMm/);
+  assert.throws(()=>patchBlock('rt',bytes,[{slot:34,field:'switchId',value:2},{slot:34,field:'actuationMm',value:3.4}],wired),/actuationMm/);
   assert.deepEqual(bytes,before);
-  assert.deepEqual(patchBlock('rt',bytes,[{slot:34,field:'switchId',value:2},{slot:34,field:'actuationMm',value:3.3}],cap()).bytes.slice(272,276),Uint8Array.of(2,168,74,1));
+  assert.deepEqual(patchBlock('rt',bytes,[{slot:34,field:'switchId',value:2},{slot:34,field:'actuationMm',value:3.3}],wired).bytes.slice(272,276),Uint8Array.of(2,168,74,1));
 });
 
 test('Fn layer handles keyboard modifiers, mouse wheel, media and verified function codes',()=>{
@@ -162,7 +162,7 @@ test('Fn layer handles keyboard modifiers, mouse wheel, media and verified funct
 
 test('unknown RT switch or invalid untouched distance does not block a known flag edit',()=>{
   const bytes=raw('rt');bytes[272]=240;bytes[274]=255;bytes[275]=255;
-  const result=patchBlock('rt',bytes,[{slot:34,field:'bottom',value:true}],cap());
+  const result=patchBlock('rt',bytes,[{slot:34,field:'whole',value:true}],cap());
   assert.deepEqual(diff(bytes,result.bytes),[273]);
   assert.equal(result.bytes[272],240);
   assert.throws(()=>patchBlock('rt',bytes,[{slot:34,field:'pressMm',value:0.1}],cap()),/switchId/);
@@ -174,9 +174,9 @@ test('byte whitelist holds for every physical RT slot and every possible reserve
     const bytes=new Uint8Array(1024);bytes[slot*8]=1;
     for(let flags=0;flags<256;flags++){
       bytes[slot*8+1]=flags;
-      const result=patchBlock('rt',bytes,[{slot,field:'rtMode',value:!(flags&4)}],capability);
+      const result=patchBlock('rt',bytes,[{slot,field:'whole',value:!(flags&1)}],capability);
       assert.deepEqual(diff(bytes,result.bytes),[slot*8+1]);
-      assert.equal(result.bytes[slot*8+1],flags^4);
+      assert.equal(result.bytes[slot*8+1],flags^1);
       assert.equal(bytes[slot*8+1],flags);
     }
   }

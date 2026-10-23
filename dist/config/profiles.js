@@ -37,7 +37,7 @@ export function parseProfile(json,capability){
   const blocks={};for(const [id,bytes]of Object.entries(input.blocks)){
    if(!capability?.blocks[id]||!Array.isArray(bytes)||bytes.length!==capability.blocks[id].length||Array.from(bytes).some(v=>!Number.isInteger(v)||v<0||v>255))fail('Byte bản cũ không hợp lệ.');blocks[id]=bytes.slice();
   }
-  return {schema:input.schema,readOnly:true,source:input.source==='demo'?'sample':'profile',device:clone(input.device),createdAt:input.createdAt,blocks};
+  return {schema:input.schema,readOnly:true,source:['demo','sample'].includes(input.source)?'sample':'profile',device:clone(input.device),createdAt:input.createdAt,blocks};
  }
  return normalized(input,capability);
 }
@@ -63,7 +63,7 @@ function semanticGroups(profile,session){
   const before=decodeBlock(id,current[id],cap).records,after=decodeBlock(id,desired[id],cap).records;
   for(const slot of cap.slots){
    if(id==='fn'&&cap.limits.fnLockedSlots.includes(slot))continue;
-   if(id==='rt'){for(const field of Object.keys(cap.fields.rt))if(before[slot][field]!==after[slot][field])add(id,{slot,field,value:after[slot][field]});}
+   if(id==='rt'){for(const [field,enabled]of Object.entries(cap.fields.rt))if(enabled&&before[slot][field]!==after[slot][field])add(id,{slot,field,value:after[slot][field]});}
    else if(id==='colors'){const rgb=record=>Object.fromEntries(['red','green','blue'].map(field=>[field,record[field]]));if(!same(rgb(before[slot]),rgb(after[slot])))add(id,{slot,field:'rgb',value:rgb(after[slot])});}
    else{const a=bindingValue(before[slot].binding),b=bindingValue(after[slot].binding);if(['unknown','combination'].includes(b.type))continue;if(!same(a,b))add(id,{slot,field:'binding',value:b});}
   }
@@ -88,6 +88,17 @@ function semanticGroups(profile,session){
 export function previewProfile(profile,session){
  const groups=semanticGroups(profile,session),shadow=new ConfigSession({...session.snapshot,blocks:session.draft,provenance:{source:'profile'}},capabilityFor(session.snapshot.identity));
  return shadow.transaction(groups);
+}
+export function profileSkippedFields(profile,session){
+ const {cap,blocks:desired}=full(profile,capabilityFor(session.snapshot.identity)),current=session.draft,skipped=[];
+ for(const id of ['settings','lighting','rt']){
+  const before=decodeBlock(id,current[id],cap),after=decodeBlock(id,desired[id],cap);
+  for(const [field,enabled]of Object.entries(cap.fields[id]))if(!enabled){
+   if(id==='rt'){for(const slot of cap.slots)if(before.records[slot][field]!==after.records[slot][field])skipped.push({block:id,path:`records[${slot}].${field}`});}
+   else if(before.fields[field]!==after.fields[field])skipped.push({block:id,path:`fields.${field}`});
+  }
+ }
+ return skipped;
 }
 export function loadProfile(profile,session){return session.transaction(semanticGroups(profile,session));}
 

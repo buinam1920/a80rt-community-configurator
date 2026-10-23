@@ -79,6 +79,7 @@ function slotOffset(edit,stride,capability) {
 
 function patchRT(bytes,edit,capability) {
   const {field,value} = edit, offset = slotOffset(edit,8,capability);
+  if (capability.fields.rt[field]!==true) fail(field,'unsupported for this model in retained manufacturer UI');
   if (field === 'switchId') bytes[offset] = member(value,capability.limits.switchIds,field);
   else if (own(FLAGS,field)) {
     if (typeof value !== 'boolean') fail(field,'expected boolean');

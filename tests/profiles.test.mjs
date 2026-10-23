@@ -4,7 +4,7 @@ import {identifyDevice,readPlan} from '../dist/device/capabilities.js';
 import {ConfigSession} from '../dist/config/session.js';
 import {patchMacros,decodeMacros} from '../dist/config/macros.js';
 const api=await import('../dist/config/profiles.js').catch(()=>({}));
-const cap=identifyDevice({vendorId:0x0c45,productId:0x80a2,productName:'A80RT'});
+const cap=identifyDevice({vendorId:0x0c45,productId:0x80a1,productName:'A80RT U'});
 function session(){
  const blocks=Object.fromEntries(readPlan(cap).map(({id,length})=>[id,new Uint8Array(length)]));
  for(const slot of cap.slots){blocks.rt.set([1,128,100,0,20,0,30,0],slot*8);blocks.keymap.set([2,0,26,91],slot*4);}
@@ -20,9 +20,9 @@ test('profile round trip keeps exact identity, full bytes and truthful sample or
  assert.deepEqual(out.blocks,JSON.parse(json(p.blocks)));assert.match(out.name,/Cấu hình/);
 });
 test('rejects wrong model, identity field forgery, unknown schema, missing spans and every nonbyte',()=>{
- const p=profile();const other=identifyDevice({vendorId:0x0c45,productId:0x80a1,productName:'A80RT U'});
+ const p=profile();const other=identifyDevice({vendorId:0x0c45,productId:0x80a2,productName:'A80RT'});
  assert.throws(()=>api.parseProfile(json(p),other),/identity|model/i);
- for(const mutate of [p=>p.identity.model='a80rt-u',p=>p.identity.transport='dongle',p=>p.schema='future',p=>delete p.blocks.rt,p=>p.blocks.unknown=[0],p=>p.blocks.colors.pop(),p=>p.blocks.colors[0]=256,p=>p.blocks.colors[0]=-1,p=>p.blocks.colors[0]=0.5,p=>p.blocks.colors[0]=null]){const bad=structuredClone(p);mutate(bad);assert.throws(()=>api.parseProfile(json(bad),cap));}
+ for(const mutate of [p=>p.identity.model='a80rt',p=>p.identity.transport='dongle',p=>p.schema='future',p=>delete p.blocks.rt,p=>p.blocks.unknown=[0],p=>p.blocks.colors.pop(),p=>p.blocks.colors[0]=256,p=>p.blocks.colors[0]=-1,p=>p.blocks.colors[0]=0.5,p=>p.blocks.colors[0]=null]){const bad=structuredClone(p);mutate(bad);assert.throws(()=>api.parseProfile(json(bad),cap));}
 });
 test('rejects malformed macro pointer and broken macro/advanced references',()=>{
  for(const mutate of [p=>p.blocks.macro[0]=1,p=>p.blocks.keymap.splice(136,4,6,0,0,1),p=>p.blocks.keymap.splice(136,4,8,1,0,0),p=>p.blocks.keymap.splice(136,4,12,0,26,4)]){const p=profile();mutate(p);assert.throws(()=>api.parseProfile(json(p),cap),/macro|reference|pair/i);}
@@ -33,8 +33,8 @@ test('v1 opens only as view-only data and cannot load or save as full profile',a
 });
 test('preview and load use semantic atomic patches retaining current opaque bytes and locked Fn',()=>{
  const target=session(),p=profile();p.blocks.settings[0]=19;p.blocks.colors.splice(136,4,2,3,4,5);p.blocks.rt[273]=7;p.blocks.fn.splice(4,4,13,0,0,3);p.blocks.keymap.splice(136,4,2,0,4,199);
- const before=target.draft,preview=api.previewProfile(p,target);assert.deepEqual(target.draft,before);assert.equal(preview.length,5);
- const changes=api.loadProfile(p,target);assert.equal(changes.length,5);assert.deepEqual(target.draft.colors.slice(136,140),Uint8Array.of(77,3,4,5));assert.equal(target.draft.settings[0],231);assert.equal(target.draft.rt[273],135);assert.equal(target.draft.keymap[139],91);assert.deepEqual(target.draft.fn,before.fn);assert.deepEqual(target.draft.device,before.device);
+ const before=target.draft,preview=api.previewProfile(p,target);assert.deepEqual(target.draft,before);assert.equal(preview.length,3);
+ const changes=api.loadProfile(p,target);assert.equal(changes.length,3);assert.deepEqual(target.draft.colors.slice(136,140),Uint8Array.of(77,3,4,5));assert.equal(target.draft.settings[0],231);assert.equal(target.draft.rt[273],129);assert.equal(target.draft.keymap[139],91);assert.deepEqual(target.draft.fn,before.fn);assert.deepEqual(target.draft.device,before.device);
 });
 test('invalid supported field rejects whole transaction and preserves an existing draft',()=>{
  const target=session();target.edit('colors',[{slot:49,field:'rgb',value:{red:8,green:9,blue:10}}]);const before=target.draft,diff=target.diff(),p=profile();p.blocks.colors[137]=7;p.blocks.lighting[9]=255;
@@ -60,7 +60,7 @@ test('memory storage isolates models, updates named profiles, duplicates and del
  assert.equal((await api.listProfiles(cap.identity,storage))[0].blocks.colors[137],0);
  const copy=api.duplicateProfile({...p,id},'Bản sao');const copyId=await api.saveProfile(copy,storage);assert.notEqual(copyId,id);assert.equal((await api.listProfiles(cap.identity,storage)).length,2);
  await api.saveProfile({...p,id,name:'Tên mới'},storage);assert.equal((await api.listProfiles(cap.identity,storage)).find(p=>p.id===id).name,'Tên mới');
- const other=identifyDevice({vendorId:0x0c45,productId:0x80a1,productName:'A80RT U'});assert.deepEqual(await api.listProfiles(other.identity,storage),[]);await api.deleteProfile(id,cap.identity,storage);assert.equal((await api.listProfiles(cap.identity,storage)).length,1);
+ const other=identifyDevice({vendorId:0x0c45,productId:0x80a2,productName:'A80RT'});assert.deepEqual(await api.listProfiles(other.identity,storage),[]);await api.deleteProfile(id,cap.identity,storage);assert.equal((await api.listProfiles(cap.identity,storage)).length,1);
 });
 test('quota failure preserves previous saved profile, recovery and current session draft',async()=>{
  const storage=api.createMemoryStorage({quotaBytes:25000}),s=session(),p=profile(s),id=await api.saveProfile(p,storage);await api.saveRecovery(p,storage);const before=await api.readRecovery(cap.identity,storage);

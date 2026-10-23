@@ -29,7 +29,7 @@ async function setup({qualified=true,cap=wired,size=64}={}){const device=new Dev
 
 test('dongle hides polling/manual and wired hides idle; OS/wake stay unavailable',()=>{
  const {settingsView}=api();const d=settingsView(dongle,snapshot(dongle)),w=settingsView(wired,snapshot());
- assert.deepEqual(d.fields.map(f=>f.id),['sleep','stability','autoCalibration']);assert.deepEqual(w.fields.map(f=>f.id),['polling','stability','autoCalibration']);assert.equal(d.actions.manualCalibration.supported,false);assert.equal(w.actions.manualCalibration.supported,true);assert.deepEqual(w.fields[0].options.map(o=>o.value),[3,5,6]);
+ assert.deepEqual(d.fields.map(f=>f.id),['sleep','stability','autoCalibration','topDeadZone','bottomDeadZone']);assert.deepEqual(w.fields.map(f=>f.id),['polling','stability','autoCalibration']);assert.equal(d.actions.manualCalibration.supported,false);assert.equal(w.actions.manualCalibration.supported,true);assert.deepEqual(w.fields[0].options.map(o=>o.value),[3,5,6]);
 });
 test('settings patch owns only the requested offsets and rejects unknown OS/wake encodings',()=>{
  const raw=Uint8Array.from({length:32},(_,i)=>170+i),before=raw.slice();

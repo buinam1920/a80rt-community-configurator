@@ -4,7 +4,7 @@ import {identifyDevice,readPlan} from '../dist/device/capabilities.js';
 import {ConfigSession} from '../dist/config/session.js';
 import {createCoreEditorModel} from '../dist/ui/core-editors.js';
 
-const cap=identifyDevice({vendorId:0x0c45,productId:0xfefc,productName:'A80RT U Dongle'});
+const cap=identifyDevice({vendorId:0x0c45,productId:0x80a1,productName:'A80RT U'});
 function sample(){
   const blocks=Object.fromEntries(readPlan(cap).map(({id,length})=>[id,new Uint8Array(length)]));
   for(const slot of cap.slots){blocks.rt.set([1,0,100,0,20,0,30,0],slot*8);blocks.keymap.set([2,0,26,91],slot*4);}

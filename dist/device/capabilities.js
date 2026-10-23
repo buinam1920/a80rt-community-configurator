@@ -18,8 +18,9 @@ const freeze = object => {
 
 function createCapability(model) {
   const dongle = model[0] === 0xfefc;
+  const uModel = model[0] === 0x80a1 || dongle;
   const identity = {vendorId:0x0c45,productId:model[0],productName:model[1],transport:dongle ? 'dongle' : 'wired',model:model[2]};
-  const settings = {polling:!dongle,sleep:dongle,wake:false,stability:true,autoCalibration:true,topDeadZone:true,bottomDeadZone:true,responseTime:false,osMode:false,tftTime:false};
+  const settings = {polling:!dongle,sleep:dongle,wake:false,stability:true,autoCalibration:true,topDeadZone:uModel,bottomDeadZone:uModel,responseTime:false,osMode:false,tftTime:false};
   const advanced = ['rs','socd','dks','mt','tgl'];
   const capability = freeze({
     identity,
@@ -35,7 +36,7 @@ function createCapability(model) {
     // Booleans describe local field editing, not successful device writes.
     fields:{
       device:{version:false,battery:false,axialModel:false},settings,
-      rt:{switchId:true,whole:true,bottom:true,rtMode:true,actuationMm:true,pressMm:true,releaseMm:true},
+      rt:{switchId:uModel&&!dongle,whole:uModel,bottom:false,rtMode:false,actuationMm:true,pressMm:true,releaseMm:true},
       lighting:{mode:true,red:true,green:true,blue:true,secondaryRed:true,secondaryGreen:true,secondaryBlue:true,colorMode:true,brightness:true,speed:true,direction:true,gearMode:false},
       colors:{rgb:true},keymap:{binding:true},fn:{binding:true},macro:{macros:true},dks:{pattern:true},
     },
@@ -46,6 +47,7 @@ function createCapability(model) {
       macroReadSpan:1024,macroPhysicalCapacity:null,macroPointerEntries:100,macroPointerBytes:400,
       macroSourceUiBudget:512,writeAckShape:null,
       switchIds:[0,1,2,3,4,5,6],switchTravelMm:{0:3.4,1:3.4,2:3.3,3:3.3,4:3.4,5:3.4,6:3.4},
+      switchLabels:{0:'mặc định theo nguồn (Shape Meaning Switch)',1:'Shape Meaning Switch',2:'Magnetic Jade Pro',3:'Magneto Shaft',4:'White Jade Scroll',5:'Dream Blue Axis',6:'Ash wood shaft'},
       distanceStepMm:0.01,pollingValues:[3,5,6],lightingModes:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,128],
       functionCodes:Array.from({length:22},(_,i)=>i+1),
       fnLockedSlots:Array.from({length:12},(_,i)=>i+1),

@@ -1,1 +1,1 @@
-{"name":"a80rt-reader","private":true,"version":"0.3.0-preview","type":"module","scripts":{"test":"node --test tests/*.test.mjs"}}
+{"name":"a80rt-reader","private":true,"version":"0.3.0","type":"module","scripts":{"test":"node --test tests/*.test.mjs"}}

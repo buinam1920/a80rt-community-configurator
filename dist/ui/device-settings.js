@@ -10,6 +10,8 @@ const FIELDS=[
  {id:'sleep',label:'Tắt đèn khi không sử dụng (phút)',min:0,max:30,hint:'0: luôn bật đèn · 1–30 phút. Đây là thời gian tắt đèn, chưa xác minh chế độ ngủ sâu.'},
  {id:'stability',label:'Ổn định tín hiệu',options:[{value:0,label:'Tắt'},{value:1,label:'Bật'}]},
  {id:'autoCalibration',label:'Hiệu chuẩn thích ứng (Beta)',options:[{value:0,label:'Tắt'},{value:1,label:'Bật'}],hint:'Hiệu chuẩn động trong lúc sử dụng; khác với phiên hiệu chuẩn thủ công.'},
+ {id:'topDeadZone',label:'Vùng chết phía trên · toàn bàn phím (mm)',min:0,max:0.5,step:0.01,scale:100,hint:'Top Dead Zone · 0,00–0,50 mm, bước 0,01 mm. Không phụ thuộc vùng phím đang chọn.'},
+ {id:'bottomDeadZone',label:'Vùng chết phía dưới · toàn bàn phím (mm)',min:0,max:0.5,step:0.01,scale:100,hint:'Bottom Dead Zone · 0,00–0,50 mm. Số 0 được giữ nguyên; không suy ra trạng thái bật/tắt riêng.'},
 ];
 
 export function settingsView(capability,snapshot){
@@ -102,11 +104,12 @@ export function mountDeviceSettings(root,context){
  for(const field of view().fields){
    const wrapper=make('div',undefined,'editor-field'),label=make('label',field.label),input=element(field.options?'select':'input',`settings-${field.id}`);label.htmlFor=input.id;wrapper.append(label,input);grid.append(wrapper);inputs.set(field.id,input);
    if(field.options)for(const option of field.options){const el=make('option',option.label);el.value=String(option.value);input.append(el);}
-   else{input.type='number';input.min=String(field.min);input.max=String(field.max);input.step='1';}
+   else{input.type='number';input.min=String(field.min);input.max=String(field.max);input.step=String(field.step??1);}
    if(field.hint)wrapper.append(make('small',field.hint,'editor-hint'));
-   listen(input,'change',()=>{dirty.add(field.id);try{if(!editable())throw new Error('Đọc lại snapshot đầy đủ trước khi sửa thiết lập.');const value=input.value.trim()===''?NaN:Number(input.value);session.edit('settings',[{field:field.id,value}]);dirty.delete(field.id);context.onEdit?.();show('Đã thêm thiết lập vào bản nháp. Bấm Áp dụng để gửi và đọc lại xác minh.');}catch(error){show(`Chưa thêm vào bản nháp: ${error.message}`);}});
+   listen(input,'change',()=>{dirty.add(field.id);try{if(!editable())throw new Error('Đọc lại snapshot đầy đủ trước khi sửa thiết lập.');const scaled=input.value.trim()===''?NaN:Number(input.value)*(field.scale??1);const value=Math.abs(scaled-Math.round(scaled))<1e-8?Math.round(scaled):scaled;session.edit('settings',[{field:field.id,value}]);dirty.delete(field.id);context.onEdit?.();show('Đã thêm thiết lập vào bản nháp. Bấm Áp dụng để gửi và đọc lại xác minh.');}catch(error){show(`Chưa thêm vào bản nháp: ${error.message}`);}});
  }
  general.append(make('p','Các trường hệ điều hành và cách đánh thức chưa có mã giá trị/model được xác minh; dữ liệu gốc được giữ nguyên.','editor-hint'));
+ if(!capability.settings.topDeadZone)general.append(make('p','Vùng chết toàn bàn phím: chưa xác minh phạm vi áp dụng cho A80RT trong nguồn đã lưu; giữ nguyên dữ liệu gốc.','editor-hint'));
  const maintenance=panels.get('maintenance'),maintenanceReason=element('p','settings-maintenance-reason',undefined,'editor-hint');maintenance.append(maintenanceReason);
  maintenance.append(make('h3','Hiệu chuẩn thủ công'),make('p',capability.maintenance.manualCalibration?'Giữ kết nối trong suốt phiên. Kết thúc và hủy đều gửi thao tác kết thúc/lưu; kết quả đã hiệu chuẩn có thể được lưu và không được hoàn tác.':'Driver hãng ẩn hiệu chuẩn thủ công cho model đầu thu này. Dùng hướng dẫn chính thức đúng model.','editor-hint'));
  const calibrationActions=make('div',undefined,'actions');maintenance.append(calibrationActions);
@@ -130,7 +133,7 @@ export function mountDeviceSettings(root,context){
    for(const field of current.fields){const input=inputs.get(field.id);input.disabled=!canEdit;if(!dirty.has(field.id)){
      const value=session?.draft?.settings?decodeBlock('settings',session.draft.settings,capability).fields[field.id]:field.value;
      if(field.options&&value!==null&&!field.options.some(option=>option.value===value)&&!input._unknownValue){const option=make('option',`Giá trị gốc chưa nhận diện (${value})`);option.value=String(value);input.append(option);input._unknownValue=true;}
-     input.value=value===null?'':String(value);
+     input.value=value===null?'':String(value/(field.scale??1));
    }}
    for(const [id,tab]of tabs){tab.setAttribute('aria-selected',String(active===id));panels.get(id).hidden=active!==id;}
    const live=!!transport&&session?.snapshot.provenance.source==='device',externalBusy=!!context.isBusy?.(),gate=transport?.getMaintenanceState('beginCalibration'),resetGate=transport?.getMaintenanceState('reset');

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {identifyDevice,readPlan} from '../dist/device/capabilities.js';
 const api=await import('../dist/config/advanced.js').catch(()=>({}));
-const cap=identifyDevice({vendorId:0x0c45,productId:0xfefc,productName:'A80RT U Dongle'});
+const cap=identifyDevice({vendorId:0x0c45,productId:0x80a1,productName:'A80RT U'});
 const blocks=()=>Object.fromEntries(readPlan(cap).map(({id,length})=>[id,new Uint8Array(length)]));
 const pattern={thresholds:[16,30,30,16],keys:[4,5,6,7],actions:[1,32,4,8]};
 test('RS and SOCD assign paired HID usages to physical slots and reject duplicate positions',()=>{

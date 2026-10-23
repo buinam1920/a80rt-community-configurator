@@ -91,17 +91,22 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
   };
   const option=(select,value,label)=>{const el=make('option',label);el.value=String(value);select.append(el);};
   const rtPanel=panels.get('rt');rtPanel.append(make('p','Chỉ trường bạn sửa được đổi cho vùng chọn. Giá trị 0 đọc được được giữ nguyên; không thay bằng mặc định.','editor-hint'));
-  const switchInput=field(rtPanel,'switchId','Switch (ID)','select');option(switchInput,'','—');
-  for(const id of capability?.limits.switchIds??[])option(switchInput,id,id===0?'0 · chưa xác định':`${id} · hành trình ${capability.limits.switchTravelMm[id]} mm`);
-  listen(switchInput,'change',()=>{if(switchInput.value!=='')commit('rt','switchId',Number(switchInput.value));});
+  if(capability?.fields.rt.switchId){
+    const switchInput=field(rtPanel,'switchId','Loại switch · ID từng phím','select');option(switchInput,'','—');
+    for(const id of capability.limits.switchIds)option(switchInput,id,`${id} · ${capability.limits.switchLabels[id]} · ${capability.limits.switchTravelMm[id]} mm`);
+    listen(switchInput,'change',()=>{if(switchInput.value!=='')commit('rt','switchId',Number(switchInput.value));});
+    rtPanel.append(make('p','Tên switch giữ theo bản dịch hãng. Đổi loại switch cần hiệu chuẩn các phím bằng công cụ hãng; chọn ID không xác nhận tương thích hay đã hiệu chuẩn.','editor-hint'));
+  }else rtPanel.append(make('p',capability?.transport==='dongle'?'Loại switch: nguồn hãng ẩn bộ chọn trên đầu thu. Giữ nguyên ID đọc được.':'Loại switch và RT toàn hành trình: chưa xác minh phạm vi áp dụng cho A80RT trong nguồn đã lưu. Giữ nguyên ID và cờ gốc.','editor-hint'));
   for(const [key,label]of [['actuationMm','Điểm nhận (mm)'],['pressMm','Ngưỡng nhấn RT (mm)'],['releaseMm','Ngưỡng nhả RT (mm)']]){
     const input=field(rtPanel,key,label);input.step='0.01';input.min=key==='actuationMm'?'0.01':'0';
     const range=make('input');range.type='range';range.setAttribute('aria-label',`${label} · thanh trượt`);range.step=input.step;range.min=input.min;controls.get(key).wrap.append(range);controls.get(key).range=range;
     listen(input,'change',()=>commit('rt',key,input.value.trim()===''?NaN:Number(input.value)));listen(range,'input',()=>commit('rt',key,Number(range.value)));
   }
-  for(const [key,label]of [['whole','whole · bit 0'],['bottom','bottom · bit 1'],['rtMode','rtMode · bit 2']]){
+  for(const [key,label]of [['whole','RT trên toàn hành trình']].filter(([key])=>capability?.fields.rt[key])){
     const input=field(rtPanel,key,label,'checkbox');listen(input,'change',()=>commit('rt',key,input.checked));
   }
+  if(capability?.fields.rt.whole)rtPanel.append(make('p','Theo hãng: bật để RT duy trì hoạt động; tắt để RT có hiệu lực sau khi phím đạt điểm nhận. Chi tiết: Full Distance Fast Trigger · whole, bit 0. Hành vi này chưa được đo riêng trên phần cứng.','editor-hint'));
+  rtPanel.append(make('p','Bottom Optimization (bottom, bit 1) và Rampage Mode (rtMode, bit 2) chỉ được xem trong dữ liệu gốc: nguồn chưa chứng minh bộ chỉnh cho model này. Các bit được giữ nguyên. Vùng chết toàn bàn phím nằm trong Thiết lập & bảo trì.','editor-hint'));
   const bindingPanel=panels.get('binding'),layer=field(bindingPanel,'layer','Lớp chỉnh sửa','select');option(layer,'base','Mặc định');option(layer,'fn','Fn');
   listen(layer,'change',()=>{model.setLayer(layer.value);onLayerChange(layer.value);refresh();});
   const binding=field(bindingPanel,'binding','Gán cho các phím đã chọn','select'),bindingNote=make('p',null,'editor-hint');bindingPanel.append(bindingNote);
@@ -129,10 +134,13 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
     reason.textContent=view.reason;
     for(const [id,tab]of tabs){tab.setAttribute('aria-selected',String(active===id));tab.tabIndex=active===id?0:-1;panels.get(id).hidden=active!==id;}
     for(const {input,range}of controls.values()){input.disabled=!view.editable;if(range)range.disabled=!view.editable;}
-    for(const key of RT_FIELDS){const {input,range}=controls.get(key),data=view.rt[key];
+    for(const key of RT_FIELDS){if(!controls.has(key))continue;const {input,range}=controls.get(key),data=view.rt[key];
       if(input.type==='checkbox'){input.checked=data.value===true;input.indeterminate=data.mixed;input.setAttribute('aria-checked',data.mixed?'mixed':String(input.checked));}
       else{input.value=data.value===undefined?'':String(data.value);input.placeholder=data.mixed?'Giá trị khác nhau':'Chưa có dữ liệu';}
-      if(key==='switchId')input.options[0].textContent=data.mixed?'Giá trị khác nhau':'—';
+      if(key==='switchId'){
+        if(data.value!==undefined&&!Array.from(input.options).some(option=>option.value===String(data.value)))option(input,data.value,`ID gốc chưa nhận diện (${data.value}) · hành trình chưa biết`);
+        input.value=data.value===undefined?'':String(data.value);input.options[0].textContent=data.mixed?'Giá trị khác nhau':'—';
+      }
       if(range){input.max=range.max=String(view.limits.maxMm??3.4);range.disabled=!view.editable||data.mixed||data.value===undefined||data.value<Number(input.min)||data.value>Number(input.max);range.hidden=data.mixed||data.value===undefined;if(!range.disabled)range.value=String(data.value);}
     }
     layer.disabled=false;layer.value=view.layer;binding.disabled=!view.editable||view.bindingLocked;

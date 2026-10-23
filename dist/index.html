@@ -17,6 +17,7 @@
     "./config/codecs.js":"./config/codecs.js?v=0.3.0-preview",
     "./config/macros.js":"./config/macros.js?v=0.3.0-preview",
     "./config/advanced.js":"./config/advanced.js?v=0.3.0-preview",
+    "./config/profiles.js":"./config/profiles.js?v=0.3.0-preview",
     "./ui/core-editors.js":"./ui/core-editors.js?v=0.3.0-preview",
     "./ui/advanced-editors.js":"./ui/advanced-editors.js?v=0.3.0-preview",
     "./ui/device-settings.js":"./ui/device-settings.js?v=0.3.0-preview"
@@ -35,7 +36,7 @@
   <main>
     <header class="topbar"><span>Workspace <span class="slash">/</span> A80RT Configurator</span><span class="build-tag">0.3.0-preview</span></header>
     <section class="page-heading"><div><div class="eyebrow accent">LEOBOG · 82 PHÍM</div><h1>Cấu hình bàn phím<span>.</span></h1><p>Đọc cấu hình, chọn phím và chỉnh bản nháp trước khi áp dụng.</p></div><span id="connection-pill" class="pill"><i></i> Chưa kết nối</span></section>
-    <p class="small-note">Bản xem trước 0.3 · Ghi cấu hình cho A80RT U có dây, firmware 1.37 sau khi đọc đủ dữ liệu. Hồ sơ cấu hình sẽ có ở bản tiếp theo.</p>
+    <p class="small-note">Bản xem trước 0.3 · Ghi cấu hình cho A80RT U có dây, firmware 1.37 sau khi đọc đủ dữ liệu. Hồ sơ được lưu cục bộ trong trình duyệt.</p>
     <div id="browser-notice" class="notice" hidden></div>
     <div id="sample-notice" class="notice sample-notice" hidden><span><strong>Đang xem dữ liệu mẫu.</strong> Các thông số này được tạo để thử giao diện.</span><button id="exit-sample" class="text-button">Thoát dữ liệu mẫu ×</button></div>
     <section class="connect-strip"><div class="step-symbol">01</div><div class="connect-copy"><strong id="next-title">Bắt đầu với bàn phím của bạn</strong><p id="next-copy">Cắm cáp USB hoặc đầu thu 2.4 GHz, bật bàn phím và đóng tab driver hãng.</p></div><div class="actions"><button id="sample-button" class="button quiet">Xem dữ liệu mẫu</button><button id="connect-button" class="button primary">Kết nối bàn phím <span>↗</span></button><button id="disconnect-button" class="button quiet" hidden>Ngắt kết nối</button></div></section>
@@ -48,6 +49,20 @@
     <section id="core-editors" class="panel core-editors" aria-label="Chỉnh cấu hình"></section>
     <section id="advanced-editors" class="panel core-editors" aria-label="Macro và phím nâng cao"></section>
     <section id="device-settings" class="panel core-editors" aria-label="Thiết lập và bảo trì thiết bị"></section>
+    <section id="profiles-panel" class="panel core-editors" aria-label="Hồ sơ cấu hình cục bộ">
+      <div class="panel-heading"><div><h2>Hồ sơ cấu hình</h2><p>Lưu trong trình duyệt này theo đúng model. Chọn hồ sơ để xem trước rồi đưa vào bản nháp.</p></div><span class="build-tag">CỤC BỘ</span></div>
+      <div class="editor-grid">
+        <div class="editor-field"><label for="profile-model">Thư viện model</label><select id="profile-model"><option value="a80rt">A80RT</option><option value="a80rt-u">A80RT U</option><option value="a80rt-u-dongle">A80RT U Dongle</option></select></div>
+        <div class="editor-field"><label for="profile-list">Hồ sơ đã lưu</label><select id="profile-list"><option value="">Chưa có hồ sơ</option></select></div>
+        <div class="editor-field"><label for="profile-name">Tên hồ sơ</label><input id="profile-name" maxlength="120" value="Cấu hình của tôi"></div>
+      </div>
+      <div class="actions profile-actions"><button id="profile-save" class="button quiet small">Lưu bản nháp thành hồ sơ</button><button id="profile-rename" class="button quiet small">Đổi tên đã chọn</button><button id="profile-duplicate" class="button quiet small">Nhân bản đã chọn</button><button id="profile-delete" class="button quiet small">Xóa đã chọn</button></div>
+      <div class="actions profile-actions"><button id="profile-open" class="button quiet small">Xem trước đã chọn</button><button id="profile-import" class="button quiet small">Nhập hồ sơ JSON</button><button id="profile-export" class="button quiet small">Xuất hồ sơ JSON</button><button id="profile-recover" class="button quiet small">Khôi phục phiên gần nhất</button><input id="profile-file" type="file" accept=".json,application/json" hidden></div>
+      <p id="profile-status" class="editor-hint" role="status" aria-live="polite">Chưa có hồ sơ được chọn. Dữ liệu mẫu, bản đã lưu và thiết bị có nhãn riêng.</p>
+      <pre id="profile-preview" class="profile-preview" hidden></pre>
+      <div class="actions"><button id="profile-confirm" class="button primary small" disabled>Đưa vào bản nháp</button><button id="profile-cancel" class="button quiet small" disabled>Đóng xem trước</button></div>
+      <p class="small-note">Tự giữ bản nháp đã sửa để phục hồi sau tải lại. Macro chưa bấm lưu vào bản nháp vẫn ở trình nhập hiện tại. JSON cũ v1 chỉ để xem; hồ sơ mở lại không cấp quyền ghi USB. Chưa có đồng bộ đám mây hoặc chuyển ngân hàng cấu hình trên bàn phím.</p>
+    </section>
     <section class="panel draft-bar" aria-label="Bản nháp"><div><strong id="draft-count">0 thay đổi trong bản nháp</strong><p id="apply-reason"></p></div><div class="actions"><button id="revert-button" class="button quiet" disabled>Hoàn tác bản nháp</button><button id="apply-button" class="button primary" disabled>Áp dụng</button></div></section>
     <section class="panel data-panel"><div class="panel-heading"><div><h2>Dữ liệu & chẩn đoán</h2><p>Lưu bản đọc để đối chiếu hoặc tiếp tục kiểm tra giao thức.</p></div><div class="actions"><button id="import-button" class="button quiet small">Mở bản đã lưu</button><button id="export-button" class="button quiet small" disabled>Xuất JSON ↗</button><input id="import-file" type="file" accept=".json,application/json" hidden></div></div><div id="block-list" class="block-list"></div><details id="diagnostics"><summary><span>Nhật ký giao tiếp</span><span id="packet-count" class="mono muted">0 gói</span></summary><pre id="log">Nhật ký xuất hiện khi bắt đầu đọc cấu hình.</pre></details></section>
     <details class="raw-details"><summary>Phạm vi đã kiểm tra</summary><p>Đã đọc đủ 9 nhóm trên A80RT U có dây, firmware 1.37; đã thử thay đổi màu lưu của phím W, đọc lại và khôi phục bằng công cụ USB gốc. Thử nghiệm này chưa xác nhận màu đèn nhìn thấy, khả năng giữ cấu hình sau khi mất điện hoặc toàn bộ luồng ghi trong trình duyệt.</p><p>Các mục RT, gán phím, Fn, macro, nâng cao và thiết lập dựa trên mã nguồn driver hãng, dùng cùng họ gói cấu hình và được đọc lại sau khi gửi; chưa được thử riêng trên phần cứng. Đầu thu, model và firmware khác chưa mở ghi. Hiệu chuẩn, khôi phục và flash trực tiếp vẫn bị khóa.</p></details>

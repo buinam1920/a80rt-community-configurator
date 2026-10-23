@@ -5,6 +5,7 @@ import {ConfigSession} from './config/session.js';
 import {mountCoreEditors} from './ui/core-editors.js';
 import {mountAdvancedEditors} from './ui/advanced-editors.js';
 import {mountDeviceSettings} from './ui/device-settings.js';
+import {createProfile,parseProfile,exportProfile,restoreProfile,previewProfile,loadProfile,createIndexedDBStorage,saveProfile,listProfiles,duplicateProfile,deleteProfile,saveRecovery,readRecovery} from './config/profiles.js';
 const SAMPLE_CAPABILITY=identifyDevice({vendorId:VENDOR,productId:0x80a2,productName:'A80RT'});
 const BLOCK_NAMES={device:'Thông tin thiết bị',settings:'Thiết lập chung',keymap:'Gán phím',lighting:'Thiết lập đèn',colors:'Màu từng phím',macro:'Macro',fn:'Lớp Fn',rt:'Rapid Trigger',dks:'DKS'};
 const FULL_BLOCKS=readPlan(SAMPLE_CAPABILITY).map(block=>({...block,name:BLOCK_NAMES[block.id]}));
@@ -12,6 +13,8 @@ let editors=null,mountedSession=undefined,mountedCapability=undefined;
 const $=id=>document.getElementById(id);
 const state={reader:null,snapshot:null,selected:34,selectedSlots:[34],multi:false,session:null,capability:null,applying:false,maintaining:false,applyAbort:null,layer:'base',reading:false,connecting:false,activeBlock:null,progress:0,totalPackets:0};
 const buttons=new Map();
+const profileStorage=createIndexedDBStorage();
+let profileItems=[],profileRecovery=null,profilePending=null,profileBusy=false,profileLibrary=null,profileRefresh=0,recoveryTimer,recoveryQueue=Promise.resolve();
 const supported=!!navigator.hid&&window.isSecureContext;
 let runtimeHidBlocked=false;
 const time=value=>new Date(value).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
@@ -114,7 +117,7 @@ function render(){
   setText('keyboard-caption',source==='empty'||(!hasData&&source==='device')?'Chưa đọc dữ liệu từ bàn phím':source==='demo'?'Mẫu minh họa · không phải dữ liệu thiết bị':state.reading?'Đang nhận cấu hình…':`${describeSource()} · ${state.snapshot.complete?'đã đọc đủ':'còn thiếu nhóm dữ liệu'}`);
   setText('read-label',state.reading?`Đang đọc · ${FULL_BLOCKS.find(b=>b.id===state.activeBlock)?.name??'cấu hình'}`:'Đọc cấu hình hiện tại');
   setText('read-detail',state.reading?`${Math.round(state.progress)}% · có thể dừng bất cứ lúc nào`:'9 nhóm cấu hình · xử lý trong trình duyệt');
-  renderBlocks();renderSelection();renderLog();renderEditors();renderDraft();
+  renderBlocks();renderSelection();renderLog();renderEditors();renderDraft();renderProfiles();
 }
 function addPacket(direction,bytes){
   const snapshot=state.snapshot;if(!snapshot||snapshot.source!=='device')return;
@@ -181,11 +184,11 @@ function renderEditors(){
   const capability=state.capability??SAMPLE_CAPABILITY;
   if(mountedSession===state.session&&mountedCapability===capability)return;
   editors?.destroy();mountedSession=state.session;mountedCapability=capability;
-  const context={session:state.session,capability,selectedSlots:state.selectedSlots,isBusy:()=>state.reading||state.connecting||state.applying||state.maintaining||!!state.session?.invalidated,onNavigate:()=>editors?.cancelCalibration(),onEdit:()=>{renderSelection();renderDraft();}};
+  const context={session:state.session,capability,selectedSlots:state.selectedSlots,isBusy:()=>state.reading||state.connecting||state.applying||state.maintaining||!!state.session?.invalidated,onNavigate:()=>editors?.cancelCalibration(),onEdit:()=>{clearProfilePreview();renderSelection();renderDraft();scheduleRecovery();}};
   const core=mountCoreEditors($('core-editors'),{...context,onLayerChange:layer=>{state.layer=layer;renderSelection();}});
   const advanced=mountAdvancedEditors($('advanced-editors'),context);
   const settings=mountDeviceSettings($('device-settings'),{...context,modelConfirmed:!!state.capability,transport:state.capability?state.reader?.transport:undefined,onNavigate:()=>advanced.stopRecording(),onInvalidate:()=>{if(state.session===context.session&&state.snapshot)state.snapshot.complete=false;},onReload:()=>read(),onBusyChange:value=>{if(mountedSession!==context.session)return;state.maintaining=value;if(value)advanced.stopRecording();render();editors?.refresh();}});
-  editors={setSelection(slots){core.setSelection(slots);advanced.setSelection(slots);},setLayer(layer){core.setLayer(layer);advanced.setLayer(layer);},refresh(){core.refresh();advanced.refresh();settings.refresh();},cancelCalibration:()=>settings.cancelCalibration(),destroy(){core.destroy();advanced.destroy();settings.destroy();}};
+  editors={setSelection(slots){core.setSelection(slots);advanced.setSelection(slots);},setLayer(layer){core.setLayer(layer);advanced.setLayer(layer);},refresh(){core.refresh();advanced.refresh();settings.refresh();},stopRecording:()=>advanced.stopRecording(),cancelCalibration:()=>settings.cancelCalibration(),destroy(){core.destroy();advanced.destroy();settings.destroy();}};
   editors.setLayer(state.layer);
 }
 function draftReason(){
@@ -222,6 +225,60 @@ function exportData(){
   const blob=new Blob([JSON.stringify(snapshot,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');
   link.href=url;link.download=`a80rt-${mode()==='demo'?'DEMO':mode()==='import'?'saved':'read'}-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
+function profileStatus(text,error=false){setText('profile-status',text);$('profile-status').classList.toggle('error',error);}
+function libraryCapability(){return [SAMPLE_CAPABILITY,identifyDevice({vendorId:VENDOR,productId:0x80a1,productName:'A80RT U'}),identifyDevice({vendorId:VENDOR,productId:0xfefc,productName:'A80RT U Dongle'})].find(cap=>cap.model===$('profile-model').value)??SAMPLE_CAPABILITY;}
+function selectedProfile(){return profileItems.find(p=>p.id===$('profile-list').value);}
+function profileBlocked(){return profileBusy||state.reading||state.connecting||state.applying||state.maintaining||!!state.session?.invalidated;}
+function clearProfilePreview(){profilePending=null;$('profile-preview').hidden=true;renderProfiles();}
+function renderProfiles(){
+ const busy=profileBlocked(),selected=selectedProfile();
+ if(profilePending?.session!==state.session){profilePending=null;$('profile-preview').hidden=true;}
+ for(const id of ['profile-model','profile-list','profile-name','profile-import'])$(id).disabled=busy;
+ for(const id of ['profile-rename','profile-duplicate','profile-delete','profile-open'])$(id).disabled=busy||!selected;
+ $('profile-save').disabled=busy||!state.session;$('profile-export').disabled=busy||(!state.session&&!selected&&!profilePending);
+ $('profile-recover').disabled=busy||!profileRecovery;$('profile-confirm').disabled=busy||!profilePending||profilePending.profile.readOnly===true;$('profile-cancel').disabled=busy||!profilePending;
+ const model=state.capability?.model;
+ if(model&&profileLibrary!==model){profileLibrary=model;$('profile-model').value=model;void refreshProfiles();}
+}
+async function refreshProfiles(selectId){
+ const request=++profileRefresh,cap=libraryCapability();
+ try{
+  const [items,recovery]=await Promise.all([listProfiles(cap.identity,profileStorage),readRecovery(cap.identity,profileStorage)]);
+  if(request!==profileRefresh)return;profileItems=items;profileRecovery=recovery;
+  const select=$('profile-list'),previous=selectId??select.value;select.replaceChildren();
+  const option=document.createElement('option');option.value='';option.textContent=items.length?'Chọn hồ sơ…':'Chưa có hồ sơ';select.append(option);
+  for(const p of items){const option=document.createElement('option');option.value=p.id;option.textContent=`${p.name} · ${p.source==='sample'?'Mẫu':p.source==='device'?'Bản lưu từ thiết bị':'Đã lưu'}`;select.append(option);}
+  select.value=items.some(p=>p.id===previous)?previous:'';renderProfiles();
+ }catch(error){if(request===profileRefresh){profileStatus(`Không đọc được kho cục bộ: ${error.message}`,true);renderProfiles();}}
+}
+async function profileAction(action){
+ if(profileBlocked())return;editors?.stopRecording();profileBusy=true;renderProfiles();
+ try{await action();}catch(error){profileStatus(`Chưa hoàn tất: ${error.message}`,true);}finally{profileBusy=false;renderProfiles();}
+}
+function stageProfile(profile){
+ const session=state.session,changes=profile.readOnly?[]:session?previewProfile(profile,session):[];
+ profilePending={profile,session,draft:session?JSON.stringify(session.draft):null};
+ $('profile-preview').textContent=profile.readOnly?'JSON v1 · chỉ xem, không tạo hồ sơ đầy đủ.\n'+JSON.stringify(profile.blocks,null,2):session?`${profile.name} · ${profile.source==='sample'?'Dữ liệu mẫu':'Bản đã lưu'} · ${changes.length} thay đổi so với bản nháp hiện tại\n`+changes.map(change=>`${change.block} · ${change.path}: ${JSON.stringify(change.before)} → ${JSON.stringify(change.after)}`).join('\n'):`${profile.name} · Bản đã lưu · ${profile.identity.productName}\nMở 9 vùng cấu hình trong phiên ngoại tuyến. Không có quyền ghi thiết bị.`;
+ $('profile-preview').hidden=false;profileStatus(profile.readOnly?'Bản cũ chỉ để xem.':session?'Đã xem trước. Xác nhận để đưa các trường được hỗ trợ vào bản nháp.':'Xác nhận để mở hồ sơ ngoại tuyến.');renderProfiles();
+}
+function installOfflineProfile(profile){
+ state.session=restoreProfile(profile);state.capability=identifyDevice(profile.identity);
+ state.snapshot={schema:'a80rt-reader/v1',source:'import',createdAt:new Date().toISOString(),complete:true,device:{...profile.identity},blocks:state.session.draft,packets:[],totalPackets:0};render();
+}
+function scheduleRecovery(){
+ clearTimeout(recoveryTimer);const session=state.session;if(!session||session.invalidated)return;
+ if(!globalThis.indexedDB){profileStatus('Chưa lưu phục hồi: trình duyệt không hỗ trợ IndexedDB. Bản nháp vẫn còn.',true);return;}
+ recoveryTimer=setTimeout(()=>{
+  if(state.session!==session||session.invalidated||session.applying)return;
+  let profile;try{profile=createProfile(session,$('profile-name').value||'Phiên gần nhất');}catch(error){profileStatus(`Chưa lưu phục hồi: ${error.message}`,true);return;}
+  recoveryQueue=recoveryQueue.catch(()=>{}).then(()=>saveRecovery(profile,profileStorage)).then(()=>{if(state.session===session){profileRecovery=profile;profileStatus('Đã giữ bản nháp để phục hồi sau tải lại.');renderProfiles();}}).catch(error=>{if(state.session===session)profileStatus(`Chưa lưu phục hồi; bản nháp vẫn còn: ${error.message}`,true);});
+ },350);
+}
+function downloadProfile(profile){const blob=new Blob([exportProfile(profile)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`${profile.identity?.model??'a80rt'}-profile.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+async function importConfigurationProfile(event){
+ const file=event.target.files[0];event.target.value='';if(!file)return;
+ await profileAction(async()=>{clearProfilePreview();if(file.size>2*1024*1024)throw new Error('Tệp lớn hơn giới hạn 2 MB.');const text=await file.text(),input=JSON.parse(text),cap=state.capability??(input.schema==='a80rt-profile/v2'?identifyDevice(input.identity):libraryCapability());const profile=parseProfile(text,cap);stageProfile(profile);});
+}
 async function importData(event){
   const file=event.target.files[0];event.target.value='';if(!file||state.reader||state.reading)return;
   try{
@@ -249,7 +306,7 @@ $('cancel-button').addEventListener('click',()=>state.reader?.cancel());
 $('selection-multi').addEventListener('change',event=>{state.multi=event.target.checked;});
 $('select-all').addEventListener('click',()=>{state.selectedSlots=KEYS.map(key=>key.slot);renderSelection();editors?.setSelection(state.selectedSlots);});
 $('clear-selection').addEventListener('click',()=>{state.selectedSlots=[];renderSelection();editors?.setSelection([]);});
-$('revert-button').addEventListener('click',()=>{state.session?.revert();editors?.refresh();clearMessage();renderSelection();renderDraft();});
+$('revert-button').addEventListener('click',()=>{state.session?.revert();clearProfilePreview();editors?.refresh();clearMessage();renderSelection();renderDraft();scheduleRecovery();});
 $('apply-button').addEventListener('click',applyDraft);
 $('sample-button').addEventListener('click',sample);
 $('exit-sample').addEventListener('click',()=>{state.snapshot=null;state.session=null;state.capability=null;clearMessage();render();});
@@ -259,5 +316,25 @@ $('import-file').addEventListener('change',importData);
 $('layer-base').addEventListener('click',()=>{state.layer='base';renderSelection();});
 $('layer-fn').addEventListener('click',()=>{state.layer='fn';renderSelection();});
 $('diagnostics').addEventListener('toggle',renderLog);
+$('profiles-panel').addEventListener('focusin',()=>editors?.stopRecording());
+$('profiles-panel').addEventListener('pointerdown',()=>editors?.stopRecording());
+$('profile-model').addEventListener('change',()=>{profileLibrary=state.capability?.model??$('profile-model').value;clearProfilePreview();void refreshProfiles();});
+$('profile-list').addEventListener('change',()=>{clearProfilePreview();const p=selectedProfile();if(p)$('profile-name').value=p.name;renderProfiles();});
+$('profile-import').addEventListener('click',()=>{editors?.stopRecording();$('profile-file').click();});
+$('profile-file').addEventListener('change',importConfigurationProfile);
+$('profile-save').addEventListener('click',()=>profileAction(async()=>{const p=createProfile(state.session,$('profile-name').value),id=await saveProfile(p,profileStorage);await refreshProfiles(id);profileStatus('Đã lưu hồ sơ cục bộ.');}));
+$('profile-rename').addEventListener('click',()=>profileAction(async()=>{const p=selectedProfile();if(!p)return;const id=await saveProfile({...p,name:$('profile-name').value},profileStorage);await refreshProfiles(id);profileStatus('Đã đổi tên hồ sơ.');}));
+$('profile-duplicate').addEventListener('click',()=>profileAction(async()=>{const p=selectedProfile();if(!p)return;const id=await saveProfile(duplicateProfile(p,`${$('profile-name').value} · bản sao`),profileStorage);await refreshProfiles(id);profileStatus('Đã nhân bản hồ sơ.');}));
+$('profile-delete').addEventListener('click',()=>profileAction(async()=>{const p=selectedProfile();if(!p)return;await deleteProfile(p.id,p.identity,profileStorage);clearProfilePreview();await refreshProfiles();profileStatus('Đã xóa hồ sơ khỏi trình duyệt. Bản nháp hiện tại vẫn còn.');}));
+$('profile-open').addEventListener('click',()=>profileAction(()=>{const p=selectedProfile();if(p)stageProfile(p);}));
+$('profile-recover').addEventListener('click',()=>profileAction(()=>{if(profileRecovery)stageProfile(profileRecovery);}));
+$('profile-export').addEventListener('click',()=>profileAction(()=>downloadProfile(profilePending?.profile??selectedProfile()??createProfile(state.session,$('profile-name').value))));
+$('profile-cancel').addEventListener('click',()=>{clearProfilePreview();profileStatus('Đã đóng xem trước; bản nháp được giữ nguyên.');});
+$('profile-confirm').addEventListener('click',()=>profileAction(()=>{
+ const pending=profilePending;if(!pending||pending.profile.readOnly)return;
+ if(pending.session!==state.session||pending.draft!==(state.session?JSON.stringify(state.session.draft):null))throw new Error('Bản nháp đã đổi; hãy xem trước lại.');
+ if(state.session)loadProfile(pending.profile,state.session);else{if(state.reader)throw new Error('Đọc đủ cấu hình thiết bị trước khi đưa hồ sơ vào bản nháp.');installOfflineProfile(pending.profile);}
+ clearProfilePreview();editors?.refresh();renderSelection();renderDraft();scheduleRecovery();profileStatus('Đã đưa vào bản nháp cục bộ. Chưa gửi thiết bị.');
+}));
 navigator.hid?.addEventListener('disconnect',async event=>{if(event.device===state.reader?.device){const reader=state.reader;state.reader=null;state.reading=false;state.activeBlock=null;state.applyAbort?.abort();render();message('Bàn phím đã ngắt kết nối. Kiểm tra cáp USB rồi kết nối lại.',true);await editors?.cancelCalibration();await reader.close().catch(()=>{});}});
-makeKeyboard();checkBrowser();render();
+makeKeyboard();checkBrowser();render();void refreshProfiles();

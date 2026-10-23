@@ -1,6 +1,6 @@
 # A80RT Configurator — 0.3.0-preview
 
-Ứng dụng WebHID cục bộ để đọc đủ 9 nhóm cấu hình LEOBOG A80RT / A80RT U, chỉnh bản nháp RT, gán phím, Fn, đèn, màu từng phím, macro, phím nâng cao và thiết lập chung. Dữ liệu thiết bị được xử lý trong trình duyệt. Đây là bản xem trước sử dụng được cho cấu hình có dây được hỗ trợ; hồ sơ cấu hình (profiles) và kiểm tra toàn bộ phạm vi vẫn đang thực hiện.
+Ứng dụng WebHID cục bộ để đọc đủ 9 nhóm cấu hình LEOBOG A80RT / A80RT U, chỉnh bản nháp RT, gán phím, Fn, đèn, màu từng phím, macro, phím nâng cao và thiết lập chung. Dữ liệu thiết bị và hồ sơ cấu hình được xử lý trong trình duyệt. Đây là bản xem trước sử dụng được cho cấu hình có dây được hỗ trợ; kiểm tra toàn bộ phạm vi vẫn đang thực hiện.
 
 ## Sử dụng
 
@@ -12,6 +12,16 @@
 6. Xuất JSON để lưu bản đang xem hoặc bản nháp. Tệp có thể chứa cấu hình cá nhân và macro; tự chọn nơi lưu/chia sẻ. Nhật ký giữ tối đa 500 gói cấu hình, không ghi nội dung gõ phím thông thường.
 
 Các mục hiệu chuẩn và khôi phục vẫn bị khóa do chưa đo được ACK bảo trì. Firmware chỉ mở web hãng, không flash trong ứng dụng; chọn đúng model khi dùng công cụ ngoài.
+
+## Hồ sơ cục bộ và phục hồi
+
+Trong **Hồ sơ cấu hình**, đặt tên rồi **Lưu bản nháp thành hồ sơ**. Hồ sơ được lưu trong IndexedDB của trình duyệt và phân theo đủ danh tính model, cổng kết nối, VID/PID và tên sản phẩm. Chọn hồ sơ để đổi tên, nhân bản, xóa hoặc xuất JSON v2. Mỗi lần lưu bản nháp tạo một hồ sơ mới. Đổi thư viện model để xem hồ sơ của model khác.
+
+**Xem trước đã chọn**, **Nhập hồ sơ JSON** và **Khôi phục phiên gần nhất** luôn mở bản xem trước. Bấm **Đưa vào bản nháp** để xác nhận. Khi đã có phiên chỉnh sửa, chỉ các trường được hỗ trợ được chuyển trong một giao dịch nguyên tử; byte chưa giải mã, marker màu, bit dành riêng, thông tin thiết bị và Fn F1–F12 giữ theo bản nháp hiện tại. Liên kết macro/DKS/RS/SOCD được kiểm tra; lỗi giữ nguyên toàn bộ bản nháp. Hồ sơ khác model, thiếu một trong 9 vùng, byte sai hoặc con trỏ macro lỗi bị từ chối.
+
+Sau thay đổi hợp lệ, bản nháp được giữ cục bộ sau khoảng 350 ms; đợi thông báo **Đã giữ bản nháp để phục hồi sau tải lại** trước khi tải lại trang. Chọn thư viện model rồi **Khôi phục phiên gần nhất** để mở lại. Bản phục hồi mở ngoại tuyến; cần kết nối và đọc mới trước khi chuyển hồ sơ vào phiên thiết bị để áp dụng. Sự kiện macro còn ở trình nhập và chưa bấm **Lưu macro vào bản nháp** không thuộc bản phục hồi. Lỗi dung lượng/quyền lưu không xóa bản nháp đang mở hoặc bản lưu trước.
+
+JSON v1 cũ vẫn chỉ để xem, kể cả đủ 9 vùng; nhãn nguồn/firmware trong tệp không tạo quyền ghi USB. Xuất hồ sơ không gửi dữ liệu đi đâu. Xóa dữ liệu trang hoặc đổi trình duyệt/origin sẽ không còn thấy IndexedDB cũ; xuất JSON để có bản sao riêng. Chưa có đồng bộ đám mây của hãng, backend/tài khoản mới hay chuyển ngân hàng cấu hình trên phần cứng.
 
 ## Đã đo được gì
 

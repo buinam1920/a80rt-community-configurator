@@ -2,22 +2,40 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Kết nối và đọc cấu hình LEOBOG A80RT qua WebHID, trực tiếp trên trình duyệt.">
-  <meta name="theme-color" content="#111519"><title>A80RT Reader</title>
+  <meta name="description" content="Đọc, chỉnh bản nháp và áp dụng cấu hình A80RT U có dây được hỗ trợ qua WebHID, trực tiếp trên trình duyệt.">
+  <meta name="theme-color" content="#111519"><title>A80RT Configurator · 0.3.0-preview</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23c3f56b'/%3E%3Cpath d='M16 43L29 19h7l13 24h-8l-3-6H27l-3 6zm14-12h5l-2-5z' fill='%23111519'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./styles.css?v=0.2.0"><script type="module" src="./app.js?v=0.2.0"></script>
+  <link rel="stylesheet" href="./styles.css?v=0.3.0-preview">
+  <script type="importmap">
+  {"imports":{
+    "./app.js":"./app.js?v=0.3.0-preview",
+    "./layout.js":"./layout.js?v=0.3.0-preview",
+    "./protocol.js":"./protocol.js?v=0.3.0-preview",
+    "./device/capabilities.js":"./device/capabilities.js?v=0.3.0-preview",
+    "./device/transport.js":"./device/transport.js?v=0.3.0-preview",
+    "./config/session.js":"./config/session.js?v=0.3.0-preview",
+    "./config/codecs.js":"./config/codecs.js?v=0.3.0-preview",
+    "./config/macros.js":"./config/macros.js?v=0.3.0-preview",
+    "./config/advanced.js":"./config/advanced.js?v=0.3.0-preview",
+    "./ui/core-editors.js":"./ui/core-editors.js?v=0.3.0-preview",
+    "./ui/advanced-editors.js":"./ui/advanced-editors.js?v=0.3.0-preview",
+    "./ui/device-settings.js":"./ui/device-settings.js?v=0.3.0-preview"
+  }}
+  </script>
+  <script type="module" src="./app.js?v=0.3.0-preview"></script>
 </head>
 <body>
   <aside class="sidebar">
-    <a class="brand" href="./" aria-label="A80RT Reader"><span class="brand-icon">A<span>↗</span></span><span>A80RT<span class="brand-sub">READER / 0.2</span></span></a>
+    <a class="brand" href="./" aria-label="A80RT Configurator"><span class="brand-icon">A<span>↗</span></span><span>A80RT<span class="brand-sub">CONFIG / 0.3 PREVIEW</span></span></a>
     <div class="sidebar-section">KHÔNG GIAN LÀM VIỆC</div>
     <div class="nav-current"><span>▦</span> Cấu hình bàn phím <span class="nav-dot"></span></div>
     <div class="side-device"><div class="eyebrow">THIẾT BỊ</div><strong id="device-name">Chưa kết nối</strong><div id="device-sub">LEOBOG A80RT / A80RT U</div><div class="device-visual" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><dl id="device-meta"><dt>Kết nối</dt><dd>USB / 2.4 GHz</dd><dt>Trạng thái</dt><dd>Đang chờ</dd></dl></div>
     <div class="side-bottom"><span class="readonly-dot"></span> CẤU HÌNH TRONG TRÌNH DUYỆT<p>Dữ liệu thiết bị được xử lý trong trình duyệt của bạn.</p><a href="https://leobog.driveall.cn/" target="_blank" rel="noopener noreferrer">Web driver hãng ↗</a></div>
   </aside>
   <main>
-    <header class="topbar"><span>Workspace <span class="slash">/</span> A80RT Reader</span><span class="build-tag">BẢN THỬ NGHIỆM</span></header>
+    <header class="topbar"><span>Workspace <span class="slash">/</span> A80RT Configurator</span><span class="build-tag">0.3.0-preview</span></header>
     <section class="page-heading"><div><div class="eyebrow accent">LEOBOG · 82 PHÍM</div><h1>Cấu hình bàn phím<span>.</span></h1><p>Đọc cấu hình, chọn phím và chỉnh bản nháp trước khi áp dụng.</p></div><span id="connection-pill" class="pill"><i></i> Chưa kết nối</span></section>
+    <p class="small-note">Bản xem trước 0.3 · Ghi cấu hình cho A80RT U có dây, firmware 1.37 sau khi đọc đủ dữ liệu. Hồ sơ cấu hình sẽ có ở bản tiếp theo.</p>
     <div id="browser-notice" class="notice" hidden></div>
     <div id="sample-notice" class="notice sample-notice" hidden><span><strong>Đang xem dữ liệu mẫu.</strong> Các thông số này được tạo để thử giao diện.</span><button id="exit-sample" class="text-button">Thoát dữ liệu mẫu ×</button></div>
     <section class="connect-strip"><div class="step-symbol">01</div><div class="connect-copy"><strong id="next-title">Bắt đầu với bàn phím của bạn</strong><p id="next-copy">Cắm cáp USB hoặc đầu thu 2.4 GHz, bật bàn phím và đóng tab driver hãng.</p></div><div class="actions"><button id="sample-button" class="button quiet">Xem dữ liệu mẫu</button><button id="connect-button" class="button primary">Kết nối bàn phím <span>↗</span></button><button id="disconnect-button" class="button quiet" hidden>Ngắt kết nối</button></div></section>
@@ -32,7 +50,8 @@
     <section id="device-settings" class="panel core-editors" aria-label="Thiết lập và bảo trì thiết bị"></section>
     <section class="panel draft-bar" aria-label="Bản nháp"><div><strong id="draft-count">0 thay đổi trong bản nháp</strong><p id="apply-reason"></p></div><div class="actions"><button id="revert-button" class="button quiet" disabled>Hoàn tác bản nháp</button><button id="apply-button" class="button primary" disabled>Áp dụng</button></div></section>
     <section class="panel data-panel"><div class="panel-heading"><div><h2>Dữ liệu & chẩn đoán</h2><p>Lưu bản đọc để đối chiếu hoặc tiếp tục kiểm tra giao thức.</p></div><div class="actions"><button id="import-button" class="button quiet small">Mở bản đã lưu</button><button id="export-button" class="button quiet small" disabled>Xuất JSON ↗</button><input id="import-file" type="file" accept=".json,application/json" hidden></div></div><div id="block-list" class="block-list"></div><details id="diagnostics"><summary><span>Nhật ký giao tiếp</span><span id="packet-count" class="mono muted">0 gói</span></summary><pre id="log">Nhật ký xuất hiện khi bắt đầu đọc cấu hình.</pre></details></section>
-    <footer><span>A80RT READER <span class="muted">/</span> COMMUNITY EXPERIMENT</span><span>Bản nháp cục bộ · Áp dụng có xác minh</span></footer>
+    <details class="raw-details"><summary>Phạm vi đã kiểm tra</summary><p>Đã đọc đủ 9 nhóm trên A80RT U có dây, firmware 1.37; đã thử thay đổi màu lưu của phím W, đọc lại và khôi phục bằng công cụ USB gốc. Thử nghiệm này chưa xác nhận màu đèn nhìn thấy, khả năng giữ cấu hình sau khi mất điện hoặc toàn bộ luồng ghi trong trình duyệt.</p><p>Các mục RT, gán phím, Fn, macro, nâng cao và thiết lập dựa trên mã nguồn driver hãng, dùng cùng họ gói cấu hình và được đọc lại sau khi gửi; chưa được thử riêng trên phần cứng. Đầu thu, model và firmware khác chưa mở ghi. Hiệu chuẩn, khôi phục và flash trực tiếp vẫn bị khóa.</p></details>
+    <footer><span>A80RT CONFIG <span class="muted">/</span> 0.3.0-preview</span><span>Bản nháp cục bộ · Áp dụng có xác minh</span></footer>
   </main>
 </body>
 </html>

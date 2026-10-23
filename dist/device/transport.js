@@ -4,9 +4,30 @@ import {identifyDevice} from './capabilities.js';
 const stopped=()=>new DOMException('Đã dừng đọc.','AbortError');
 const running=()=>new Error('Một giao dịch đang chạy.');
 
-// Reads retry once. Writes never retry and require an internal measured ACK
-// policy; there is currently no qualified production policy.
+// Measured on native A80RT U wired 1.37: colors0x24 and block control0.
+// Other mapped config commands use the same source frame family, but have not
+// been individually hardware tested. ACK payload is deliberately not interpreted.
+const WIRED_CONFIG_POLICY=Object.freeze({
+  evidence:'Native wired A80RT U 1.37 color/control roundtrip, 2026-10-22; other mapped config commands source-inferred.',
+  parseAck(bytes,{command,offset,length,last}){
+    if(bytes[0]!==0x55||bytes[1]!==command)return null;
+    if(bytes.length<5)throw new Error('Malformed matching write ACK header.');
+    if((bytes[3]|bytes[4]<<8)!==offset)return null;
+    if(bytes.length!==64||bytes[2]!==length||bytes[5]!==0||bytes[6]!==last||bytes[7]!==0)throw new Error('Malformed matching write ACK count, flags or report length; no retry was sent.');
+    return {acknowledged:true};
+  },
+});
+function measuredWiredInterface(device,selected){
+  if(device.vendorId!==0x0c45||device.productId!==0x80a1||device.productName?.trim().replace(/\s+/g,' ').toLowerCase()!=='a80rt u')return false;
+  if(selected.usagePage!==0xff68||selected.usage!==0x61||selected.reportId!==0||selected.packetSize!==64)return false;
+  const report64=reports=>(reports??[]).some(report=>report.reportId===0&&(report.items??[]).reduce((sum,item)=>sum+item.reportSize*item.reportCount,0)===512);
+  const matches=collection=>(collection.usagePage===0xff68&&collection.usage===0x61&&report64(collection.inputReports)&&report64(collection.outputReports))||(collection.children??[]).some(matches);
+  return (device.collections??[]).some(matches);
+}
+
+// Reads retry once. Writes never retry and require current-session attestation.
 export class A80Transport {
+  #versionReadSession=null;
   constructor(device,{onTrace=()=>{},timeoutMs=3000}={}) {
     if(!Number.isFinite(timeoutMs)||timeoutMs<=0)throw new Error('Thời gian chờ không hợp lệ.');
     this.device=device;this.interface=selectInterface(device);this.onTrace=onTrace;this.timeoutMs=timeoutMs;
@@ -62,7 +83,7 @@ export class A80Transport {
     this._opening=(async()=>{
       if(!this.device.opened)await this.device.open();
       if(sessionId!==this._sessionId)throw stopped();
-      this._hasResponse=false;this._linkLost=false;
+      this._hasResponse=false;this._linkLost=false;this.#versionReadSession=null;
       this._listener=event=>{
         if(sessionId!==this._sessionId||!this._opened||event.reportId!==this.interface.reportId)return;
         const bytes=new Uint8Array(event.data.buffer,event.data.byteOffset,event.data.byteLength).slice();
@@ -70,7 +91,7 @@ export class A80Transport {
         // Native probe retained only55 FC04 0000. Source routes FC/4 to
         // link loss; the USB receiver can remain enumerated and opened.
         if(bytes.length>=5&&bytes[0]===0x55&&bytes[1]===0xfc&&bytes[2]===4){
-          this._linkLost=true;this._opened=false;this._hasResponse=false;++this._sessionId;
+          this._linkLost=true;this._opened=false;this._hasResponse=false;this.#versionReadSession=null;++this._sessionId;
           this.device.removeEventListener('inputreport',this._listener);this._listener=null;
           this._pending?.finish(new Error('Đầu thu báo mất liên kết với bàn phím. Đánh thức bàn phím ở chế độ 2.4 GHz rồi kết nối và đọc lại.'));
           this._notifySessionEnd();
@@ -80,7 +101,13 @@ export class A80Transport {
         if(!pending||pending.sessionId!==sessionId)return;
         try{
           const reply=pending.parse ? pending.parse(bytes) : parseReply(bytes,pending.command,pending.offset,pending.length);
-          if(reply){this._hasResponse=true;pending.finish(null,reply);}
+          if(reply){
+            // Only a genuine, complete information response through this live
+            // listener can attest firmware. Imported snapshots cannot mint it.
+            if(!pending.parse&&pending.command===0x10&&pending.offset===0&&pending.length===32&&bytes.length===64&&reply.length===32&&bytes[5]===0&&bytes[6]===1&&bytes[7]===0)
+              this.#versionReadSession=reply[8]===55&&reply[9]===1?sessionId:null;
+            this._hasResponse=true;pending.finish(null,reply);
+          }
         }catch(error){pending.finish(error);}
       };
       this.device.addEventListener('inputreport',this._listener);this._opened=true;this._trace('opened');
@@ -89,7 +116,7 @@ export class A80Transport {
   }
   async close(){
     if(this._closing)return this._closing;
-    ++this._sessionId;this._opened=false;this._hasResponse=false;
+    ++this._sessionId;this._opened=false;this._hasResponse=false;this.#versionReadSession=null;
     if(this._listener)this.device.removeEventListener('inputreport',this._listener);
     this._listener=null;this._pending?.finish(stopped());this._tail=Promise.resolve();
     this._notifySessionEnd();
@@ -102,6 +129,7 @@ export class A80Transport {
   }
   readBlock(command,length,options={}){return this._readBlock(command,length,options);}
   _readBlock(command,length,{signal}={},owner){
+    if(command===0x10)this.#versionReadSession=null;
     // Validate before queueing; never issue write, reset, or guessed wake opcodes.
     if(!Number.isInteger(length)||length<1||length>65536)return Promise.reject(new Error('Phạm vi đọc không hợp lệ.'));
     try{buildReadPacket(command,0,Math.min(length,this.interface.packetSize-8),this.interface.packetSize);}
@@ -127,9 +155,9 @@ export class A80Transport {
       result.then(resolve,reject).finally(()=>signal.removeEventListener('abort',cancel));
     });
   }
-  // Add a model-specific measured policy here only after preserving capture
-  // evidence and tests. Synthetic test subclasses do not qualify hardware.
-  _getWriteQualification(){return null;}
+  _getWriteQualification(){
+    return this.getState().opened&&this.#versionReadSession===this._sessionId&&measuredWiredInterface(this.device,this.interface)?WIRED_CONFIG_POLICY:null;
+  }
   // Source100/101/15 framing is known, but NO real maintenance ACK is measured.
   // This is independent from the ordinary config write qualification boundary.
   _getMaintenanceQualification(){return null;}
@@ -159,7 +187,7 @@ export class A80Transport {
   }
   getWriteState(){
     const policy=this._getWriteQualification(),qualified=!!policy&&typeof policy.parseAck==='function'&&typeof policy.evidence==='string';
-    return {qualified,ready:qualified&&this.getState().opened&&this._hasResponse,evidence:qualified?policy.evidence:null};
+    return {qualified,ready:qualified&&this.getState().opened&&this._hasResponse,evidence:qualified?policy.evidence:null,reason:qualified?null:'Cần A80RT U có dây, giao diện 64 byte và đọc mới firmware 1.37 trong kết nối hiện tại.'};
   }
   writeBlock(command,bytes,options={}){return this._writeBlock(command,bytes,options);}
   _writeBlock(command,bytes,{signal}={},owner){
@@ -197,6 +225,7 @@ export class A80Transport {
         for(let offset=0;offset<data.length;offset+=capacity){
           if(signal?.aborted||sessionId!==this._sessionId)throw stopped();
           if(!this.getState().opened)throw new Error('Thiết bị chưa mở kết nối.');
+          if(!this.getWriteState().qualified)throw new Error('Write ACK qualification expired; read the device again.');
           const count=Math.min(capacity,data.length-offset),last=offset+count===data.length;
           // Config counts own only captured bytes, never source-wrapper padding.
           // Control0 separately mirrors sendReportSuper's first-chunk count.
@@ -229,7 +258,7 @@ export class A80Transport {
         error?reject(error):resolve(value);
       };
       const cancel=()=>finish(stopped());
-      const pending={command,offset,length,sessionId,finish,parse:bytes=>policy.parseAck(bytes,{command,offset,length})};
+      const pending={command,offset,length,sessionId,finish,parse:bytes=>policy.parseAck(bytes,{command,offset,length,last:packet[6]})};
       this._pending=pending;signal?.addEventListener('abort',cancel,{once:true});
       timer=setTimeout(()=>finish(new Error(`Write ACK timeout for ${hex(command)} at ${offset}; no retry was sent.`)),this.timeoutMs);
       Promise.resolve().then(()=>{
@@ -251,6 +280,7 @@ export class A80Transport {
     return this._exchange(command,offset,length,last,signal,sessionId);
   }
   _exchange(command,offset,length,last,signal,sessionId=this._sessionId,owner){
+    if(command===0x10)this.#versionReadSession=null;
     try{this._assertOwner(owner);}catch(error){return Promise.reject(error);}
     if(signal?.aborted||sessionId!==this._sessionId)return Promise.reject(stopped());
     if(!this.getState().opened)return Promise.reject(new Error('Thiết bị chưa mở kết nối.'));

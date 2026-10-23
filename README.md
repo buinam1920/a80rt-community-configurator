@@ -1,48 +1,51 @@
-# A80RT Reader — bản thử 0.2
+# A80RT Configurator — 0.3.0-preview
 
-Ứng dụng WebHID đọc cấu hình LEOBOG A80RT / A80RT U, có sơ đồ 82 phím, dữ liệu mẫu và xuất / mở JSON. Các thao tác USB chạy trong trình duyệt. Không có máy chủ thu thập dữ liệu thiết bị.
+Ứng dụng WebHID cục bộ để đọc đủ 9 nhóm cấu hình LEOBOG A80RT / A80RT U, chỉnh bản nháp RT, gán phím, Fn, đèn, màu từng phím, macro, phím nâng cao và thiết lập chung. Dữ liệu thiết bị được xử lý trong trình duyệt. Đây là bản xem trước sử dụng được cho cấu hình có dây được hỗ trợ; hồ sơ cấu hình (profiles) và kiểm tra toàn bộ phạm vi vẫn đang thực hiện.
 
 ## Sử dụng
 
-1. Mở trang trực tiếp trong Chrome hoặc Edge trên máy tính. Nếu khung xem không cho phép USB, mở URL của trang trong tab trình duyệt riêng.
-2. Cắm bàn phím bằng cáp USB, hoặc cắm đầu thu và bật bàn phím ở chế độ 2.4 GHz. Đóng tab driver hãng.
-3. Chọn **Kết nối bàn phím**, chọn A80RT / A80RT U nếu dùng cáp, hoặc **A80RT U Dongle** nếu dùng đầu thu 2.4 GHz.
-4. Chọn **Đọc cấu hình**. Chọn phím để xem điểm nhận và dữ liệu gốc.
-5. Xuất JSON nếu cần đối chiếu. Có thể xuất mô tả thiết bị ngay sau khi chọn, kể cả khi chưa đọc được cấu hình. Tệp gồm mô tả giao diện, các nhóm cấu hình đã nhận đủ và tối đa 500 gói tin gần nhất. Không ghi lại nội dung gõ phím thông thường.
+1. Mở trang trực tiếp trong Chrome hoặc Edge trên máy tính. Nếu khung xem không cho phép USB, mở URL của trang trong tab trình duyệt riêng. Đóng tab driver hãng.
+2. Chọn **Kết nối bàn phím**, rồi **Đọc cấu hình**. Chỉ sau khi đọc đủ 9 nhóm mới chỉnh được bản nháp. Không thay dữ liệu thiếu bằng cấu hình mặc định.
+3. Chọn phím và chỉnh các mục cần thiết. Mọi thay đổi chỉ ở bản nháp; thanh trượt không tự gửi USB.
+4. Với **A80RT U có dây, firmware 1.37**, giao diện input/output report ID0, 64 byte, usage FF68/61, bấm **Áp dụng** để gửi. Ứng dụng chỉ báo đã áp dụng khi đọc lại khớp các trường đã sửa. Lỗi hoặc ngắt kết nối giữ lại bản nháp; nếu đã gửi một phần, đọc lại cấu hình trước khi thử tiếp.
+5. Dữ liệu mẫu và JSON mở lại chỉ dùng cho bản nháp cục bộ. Kể cả JSON có nhãn nguồn thiết bị và firmware phù hợp cũng không cấp quyền ghi. Sau khi kết nối lại cần đọc mới. A80RT, đầu thu 2.4 GHz, firmware/giao diện khác vẫn chưa mở ghi.
+6. Xuất JSON để lưu bản đang xem hoặc bản nháp. Tệp có thể chứa cấu hình cá nhân và macro; tự chọn nơi lưu/chia sẻ. Nhật ký giữ tối đa 500 gói cấu hình, không ghi nội dung gõ phím thông thường.
 
-### Sửa lỗi ở bản 0.2
+Các mục hiệu chuẩn và khôi phục vẫn bị khóa do chưa đo được ACK bảo trì. Firmware chỉ mở web hãng, không flash trong ứng dụng; chọn đúng model khi dùng công cụ ngoài.
 
-Bổ sung đầu thu **A80RT U Dongle**: VID `0x0C45`, PID `0xFEFC`, usage page `0xFF80`, usage `0x0001`. Bản 0.1 chỉ lọc hai PID có dây nên hộp chọn WebHID không hiện đầu thu này. Nhãn kết nối hiện phân biệt cáp USB và đầu thu 2.4 GHz. URL module có số phiên bản để bản sửa không dùng lại bộ lọc cũ trong bộ nhớ đệm.
+## Đã đo được gì
 
-**Chưa được xác nhận trên bàn phím vật lý.** Bộ kiểm thử dùng thiết bị mô phỏng để kiểm tra đóng gói, ghép dữ liệu, từ chối phản hồi thiếu, dừng đọc và thời gian chờ. Dữ liệu mẫu được đánh dấu riêng. Các nhánh phần cứng / firmware khác có thể chưa tương thích.
+Ngày 22/10/2026, công cụ USB gốc đọc đủ 9 nhóm (4688 byte) trên A80RT U 0C45:80A1, FF68/61, report0/64, firmware bytes [55,1] = 1.37. Phép thử được cho phép thay RGB lưu của W (slot34, offsets137–139), đọc lại khớp, rồi khôi phục; cả 9 nhóm cuối khớp dữ liệu ban đầu.
 
-## Chạy tại máy
+Đã đo 22 ACK ghi màu (0x24) và gói điều khiển sau ghi (0). Header phản hồi gồm 55/command/count/offset/00/final/00, report64, count56 và final8 cho màu; control0 count56/final1. Không giả định payload ACK lặp payload đọc. Kiểm thử có dùng bản sao header đã loại dữ liệu riêng; phần đệm trong thiết bị giả là dữ liệu tổng hợp, không phải capture phần cứng.
 
-Không cần cài thư viện. Trong thư mục dự án:
+Các lệnh cấu hình 0x21–0x28 dùng cùng tuyến sendReportSuper/buildPkt_final/getStoreData trong mã nguồn hãng. Bản này cho phép các lệnh đã ánh xạ đó trên đúng giao diện và firmware có dây nêu trên, áp dụng chính sách header nghiêm ngặt và đọc lại các trường đã đổi. **Ngoài màu/control, các lệnh chưa được thử riêng trên phần cứng**; các gói ngắn đầu/cuối của settings32 và lighting16 cũng chưa đo riêng. Không mở opcode tùy ý hay lệnh bảo trì compact.
+
+Phép đo xác nhận RGB được lưu và đọc lại trong cùng kết nối; chưa xác nhận màu đèn nhìn thấy, giữ cấu hình sau mất điện hoặc toàn bộ luồng ghi của ứng dụng trình duyệt. Kiểm tra với thiết bị mô phỏng không thay thế các phép thử này.
+
+## Chạy tại máy và kiểm thử
+
+Không cần cài thư viện. Phục vụ thư mục `dist` qua localhost, ví dụ:
 
 ```text
 python -m http.server 8787 --bind 127.0.0.1 --directory dist
 ```
 
-Mở `http://127.0.0.1:8787` bằng Chrome / Edge. Không mở `index.html` qua `file://`, vì trang dùng JavaScript modules.
-
-Kiểm tra giao thức với Node.js:
+Mở localhost bằng Chrome/Edge, không mở qua file://. Chạy kiểm thử giao thức, codec, phiên giao dịch và giao diện:
 
 ```text
 npm test
 ```
 
-## Phạm vi giao thức
+HTML chứa một import map cho **toàn bộ** module JavaScript, dùng chung token phiên bản `0.3.0-preview`; entry script và CSS dùng cùng token. Source imports giữ đường dẫn không query để browser có một registry/class và Node giữ cùng module identity. Mỗi lần phát hành thay module phải cập nhật phiên bản package, import map, entry/CSS và metadata cùng nhau; kiểm thử release graph kiểm tra đủ đường dẫn và các chu trình. Không dựa riêng vào `_headers` chưa xác minh trên Sites. Controller kiểm tra cache/CSP và triển khai lên Site hiện có.
 
-Tham chiếu: mã phía trình duyệt của https://leobog.driveall.cn/, quan sát ngày 22/10/2026. Tệp bundle tham chiếu: `static/js/app.3086f769.js` và `static/js/chunk-keyboard.c8da5c12.js`. Đây là bản triển khai nhỏ viết riêng từ các quan sát giao thức.
+## Giao thức và giới hạn
 
-- VID `0x0C45`, PID `0x80A2` (A80RT), `0x80A1` (A80RT U có dây), `0xFEFC` (A80RT U Dongle 2.4 GHz); kiểm tra thêm tên thiết bị vì ID có thể dùng chung với mẫu khác.
-- Tìm giao diện vendor usage `0xFF68`, `0xFF80`, `0xFF60`, ưu tiên `0xFF68`; chỉ nhận output report ID 0 có kích thước 32 hoặc 64 byte.
-- Request: byte 0 `0xAA`, byte 1 mã lệnh, byte 2 độ dài đoạn, byte 3–4 offset little endian, byte 6 cờ đoạn cuối, payload từ byte 8. Request đọc dùng payload toàn 0.
-- Response dự kiến: byte 0 `0x55`, cùng mã lệnh và offset, độ dài dữ liệu trong byte 2. Phản hồi không khớp bị bỏ qua; phản hồi thiếu dữ liệu báo lỗi.
-- Lệnh cho phép: `0x10` thông tin (32 byte), `0x11` thiết lập (32), `0x12` keymap (512), `0x13` đèn (16), `0x16` Fn (512), `0x17` RT (1024). Không triển khai lệnh ghi, lưu, reset, hiệu chuẩn hay cập nhật firmware.
-- RT: 8 byte / vị trí; byte 0 ID switch, byte 1 cờ chế độ, byte 2–3 điểm nhận little endian. Điểm nhận hiển thị theo raw / 100 mm; raw 0 được giữ là chưa xác định, không tự thay bằng mặc định.
-- Ngưỡng nhấn / nhả byte 4–7 giữ nguyên đơn vị raw. Mã gán phím và Fn hiển thị nguyên 4 byte; chưa suy diễn macro hoặc phím đặc biệt.
-- Các slot vật lý không liên tục; ví dụ W ở slot 34, Backspace 92, PgDn 108.
+Nguồn: mã trình duyệt [driver LEOBOG](https://leobog.driveall.cn/), bundle `static/js/app.3086f769.js`, quan sát 22/10/2026; bản triển khai riêng từ các quan sát này. `dist/device/protocol-facts.json` ghi ánh xạ chi tiết và phân biệt bằng chứng nguồn với phép đo.
 
-Nếu kết nối được nhưng không đọc được, xuất các nhóm đã nhận và nhật ký để đối chiếu giao thức trên thiết bị thật trước khi bổ sung chức năng ghi.
+- VID0C45, PID80A1 A80RT U có dây, PID80A2 A80RT, PIDFEFC A80RT U Dongle; tên model phải khớp, không suy từ PID dùng chung.
+- Đọc: device0x10/32, settings0x11/32, keymap0x12/512, lighting0x13/16, colors0x14/512, macro0x15/1024, Fn0x16/512, RT0x17/1024, DKS0x18/1024. Dung lượng macro vật lý chưa được đo; 1024 là vùng đọc theo nguồn.
+- Request AA/command/count/offsetLE/00/final/00, payload từ byte8. Đọc có thể thử lại một lần; ghi/control không thử lại. Phản hồi khác command/offset bị bỏ qua; phản hồi ghi trùng command/offset nhưng sai count/flags/report length gây lỗi đóng.
+- Chỉ một giao dịch giữ transport tại một thời điểm. Snapshot thực có provenance không thể phục hồi từ JSON; session và write epoch ngăn dùng bản đọc cũ sau ghi/kết nối lại. Firmware được xác thực qua phản hồi đọc đầy đủ trong phiên hiện tại; mẫu/import không tạo được attestation.
+- Codec giữ byte chưa giải mã, từ chối trường và liên kết không hợp lệ. RT raw/100 là mm; giá trị raw0 giữ nguyên. Các slot vật lý không liên tục, W34, Backspace92, PgDn108.
+- “Đã áp dụng” chỉ xác nhận các trường đã sửa khớp đọc lại. Control0 là bước sau ghi theo nguồn, chưa phải bằng chứng lưu vĩnh viễn.

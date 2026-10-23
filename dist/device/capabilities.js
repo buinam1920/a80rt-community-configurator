@@ -25,6 +25,8 @@ function createCapability(model) {
     identity,
     // Flat properties remain compatibility aliases for the original consumers.
     model:model[2],name:model[1],vendorId:0x0c45,productId:model[0],
+    // Static contracts never grant live writes. Partial color/control evidence
+    // and current firmware attestation are evaluated by A80Transport instead.
     source:'protocol-facts.json',hardwareQualified:false,
     transport:dongle ? 'dongle' : 'wired',
     slots:KEYS.map(key=>key.slot),

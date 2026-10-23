@@ -1,0 +1,390 @@
+{
+  "kind": "native-wired-one-key-color-roundtrip",
+  "hardwareCapture": true,
+  "createdAt": "2026-10-22T14:34:03Z",
+  "slot": 34,
+  "changedByteOffsets": [
+    137,
+    138,
+    139
+  ],
+  "testReadbackMatches": true,
+  "restoredColorsMatch": true,
+  "finalBlockMatchesOriginal": {
+    "device": true,
+    "settings": true,
+    "keymap": true,
+    "lighting": true,
+    "colors": true,
+    "macro": true,
+    "fn": true,
+    "rt": true,
+    "dks": true
+  },
+  "identity": {
+    "vendorId": 3141,
+    "productId": 32929,
+    "productName": "A80RT U",
+    "usagePage": 65384,
+    "usage": 97,
+    "reportId": 0,
+    "packetSize": 64
+  },
+  "privateCaptureSha256": "7f9862e8e8e3db1e23d313816fc9699b04eacadb9a97f53d99275d4ca6ee7004",
+  "writeAcks": [
+    {
+      "phase": "test-color",
+      "header": [
+        85,
+        36,
+        56,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "elapsedMs": 16
+    },
+    {
+      "phase": "test-color",
+      "header": [
+        85,
+        36,
+        56,
+        56,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "elapsedMs": 16
+    },
+    {
+      "phase": "test-color",
+      "header": [
+        85,
+        36,
+        56,
+        112,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "elapsedMs": 15
+    },
+    {
+      "phase": "test-color",
+      "header": [
+        85,
+        36,
+        56,
+        168,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "elapsedMs": 16
+    },
+    {
+      "phase": "test-color",
+      "header": [
+        85,
+        36,
+        56,
+        224,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "elapsedMs": 16
+    },
+    {
+      "phase": "test-color",
+      "header": [
+        85,
+        36,
+        56,
+        24,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "elapsedMs": 15
+    },
+    {
+      "phase": "test-color",
+      "header": [
+        85,
+        36,
+        56,
+        80,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "elapsedMs": 16
+    },
+    {
+      "phase": "test-color",
+      "header": [
+        85,
+        36,
+        56,
+        136,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "elapsedMs": 31
+    },
+    {
+      "phase": "test-color",
+      "header": [
+        85,
+        36,
+        56,
+        192,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "elapsedMs": 16
+    },
+    {
+      "phase": "test-color",
+      "header": [
+        85,
+        36,
+        8,
+        248,
+        1,
+        0,
+        1,
+        0
+      ],
+      "reportLength": 64,
+      "elapsedMs": 15
+    },
+    {
+      "phase": "test-color-control",
+      "header": [
+        85,
+        0,
+        56,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "reportLength": 64,
+      "elapsedMs": 0
+    },
+    {
+      "phase": "restore-color",
+      "header": [
+        85,
+        36,
+        56,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "elapsedMs": 31
+    },
+    {
+      "phase": "restore-color",
+      "header": [
+        85,
+        36,
+        56,
+        56,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "elapsedMs": 15
+    },
+    {
+      "phase": "restore-color",
+      "header": [
+        85,
+        36,
+        56,
+        112,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "elapsedMs": 16
+    },
+    {
+      "phase": "restore-color",
+      "header": [
+        85,
+        36,
+        56,
+        168,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "elapsedMs": 16
+    },
+    {
+      "phase": "restore-color",
+      "header": [
+        85,
+        36,
+        56,
+        224,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "elapsedMs": 15
+    },
+    {
+      "phase": "restore-color",
+      "header": [
+        85,
+        36,
+        56,
+        24,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "elapsedMs": 16
+    },
+    {
+      "phase": "restore-color",
+      "header": [
+        85,
+        36,
+        56,
+        80,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "elapsedMs": 16
+    },
+    {
+      "phase": "restore-color",
+      "header": [
+        85,
+        36,
+        56,
+        136,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "elapsedMs": 15
+    },
+    {
+      "phase": "restore-color",
+      "header": [
+        85,
+        36,
+        56,
+        192,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "elapsedMs": 16
+    },
+    {
+      "phase": "restore-color",
+      "header": [
+        85,
+        36,
+        8,
+        248,
+        1,
+        0,
+        1,
+        0
+      ],
+      "reportLength": 64,
+      "elapsedMs": 15
+    },
+    {
+      "phase": "restore-color-control",
+      "header": [
+        85,
+        0,
+        56,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "reportLength": 64,
+      "elapsedMs": 0
+    }
+  ],
+  "limits": [
+    "Only colors command0x24 and source block-framed control0 measured on this wired identity/report64. Other write commands and dongle report32 remain source-only.",
+    "Readback passed within current connection; persistence after USB reconnect/power cycle untested.",
+    "Global lighting mode11 preserved; test verifies stored per-key color bytes, not visual illumination.",
+    "Native HID diagnostic, not browser application end-to-end acceptance. Private raw configuration/macro data excluded."
+  ],
+  "firmwareVersionBytes": [
+    55,
+    1
+  ],
+  "versionDecoded": 1.37,
+  "deviceRead": {
+    "header": [
+      85,
+      16,
+      32,
+      0,
+      0,
+      0,
+      1,
+      0
+    ],
+    "reportLength": 64
+  }
+}

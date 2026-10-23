@@ -4,12 +4,13 @@ import {identifyDevice,readPlan} from './device/capabilities.js';
 import {ConfigSession} from './config/session.js';
 import {mountCoreEditors} from './ui/core-editors.js';
 import {mountAdvancedEditors} from './ui/advanced-editors.js';
+import {mountDeviceSettings} from './ui/device-settings.js';
 const SAMPLE_CAPABILITY=identifyDevice({vendorId:VENDOR,productId:0x80a2,productName:'A80RT'});
 const BLOCK_NAMES={device:'Thông tin thiết bị',settings:'Thiết lập chung',keymap:'Gán phím',lighting:'Thiết lập đèn',colors:'Màu từng phím',macro:'Macro',fn:'Lớp Fn',rt:'Rapid Trigger',dks:'DKS'};
 const FULL_BLOCKS=readPlan(SAMPLE_CAPABILITY).map(block=>({...block,name:BLOCK_NAMES[block.id]}));
 let editors=null,mountedSession=undefined,mountedCapability=undefined;
 const $=id=>document.getElementById(id);
-const state={reader:null,snapshot:null,selected:34,selectedSlots:[34],multi:false,session:null,capability:null,applying:false,applyAbort:null,layer:'base',reading:false,connecting:false,activeBlock:null,progress:0,totalPackets:0};
+const state={reader:null,snapshot:null,selected:34,selectedSlots:[34],multi:false,session:null,capability:null,applying:false,maintaining:false,applyAbort:null,layer:'base',reading:false,connecting:false,activeBlock:null,progress:0,totalPackets:0};
 const buttons=new Map();
 const supported=!!navigator.hid&&window.isSecureContext;
 let runtimeHidBlocked=false;
@@ -87,7 +88,7 @@ function renderLog(){
 function render(){
   const connected=!!state.reader,source=mode(),hasData=!!state.snapshot&&Object.keys(state.snapshot.blocks).length>0;
   const responding=connected&&state.reader.getState().hasResponse;
-  const busy=state.reading||state.connecting||state.applying;
+  const busy=state.reading||state.connecting||state.applying||state.maintaining;
   $('connect-button').hidden=connected;$('connect-button').disabled=!supported||runtimeHidBlocked||busy;
   $('disconnect-button').hidden=!connected;$('disconnect-button').disabled=busy;
   $('read-button').hidden=state.reading;$('read-button').disabled=!connected||busy;
@@ -139,12 +140,13 @@ async function connect(){
   finally{state.connecting=false;render();}
 }
 async function disconnect(){
+  await editors?.cancelCalibration();
   const reader=state.reader;state.reader=null;state.reading=false;state.activeBlock=null;state.applyAbort?.abort();
   if(reader)await reader.close().catch(()=>{});
   render();
 }
 async function read(){
-  if(!state.reader||state.reading||state.applying)return;
+  if(!state.reader||state.reading||state.applying||state.maintaining)return;
   if(!state.capability){message('Danh tính model chưa khớp hoàn toàn; chưa thể đọc snapshot chỉnh sửa.',true);return;}
   const reader=state.reader;
   const sessionId=reader.getState().sessionId;
@@ -179,14 +181,16 @@ function renderEditors(){
   const capability=state.capability??SAMPLE_CAPABILITY;
   if(mountedSession===state.session&&mountedCapability===capability)return;
   editors?.destroy();mountedSession=state.session;mountedCapability=capability;
-  const context={session:state.session,capability,selectedSlots:state.selectedSlots,isBusy:()=>state.reading||state.connecting||state.applying,onEdit:()=>{renderSelection();renderDraft();}};
+  const context={session:state.session,capability,selectedSlots:state.selectedSlots,isBusy:()=>state.reading||state.connecting||state.applying||state.maintaining||!!state.session?.invalidated,onEdit:()=>{renderSelection();renderDraft();}};
   const core=mountCoreEditors($('core-editors'),{...context,onLayerChange:layer=>{state.layer=layer;renderSelection();}});
   const advanced=mountAdvancedEditors($('advanced-editors'),context);
-  editors={setSelection(slots){core.setSelection(slots);advanced.setSelection(slots);},setLayer(layer){core.setLayer(layer);advanced.setLayer(layer);},refresh(){core.refresh();advanced.refresh();},destroy(){core.destroy();advanced.destroy();}};
+  const settings=mountDeviceSettings($('device-settings'),{...context,modelConfirmed:!!state.capability,transport:state.capability?state.reader?.transport:undefined,onNavigate:()=>advanced.stopRecording(),onInvalidate:()=>{if(state.session===context.session&&state.snapshot)state.snapshot.complete=false;},onReload:()=>read(),onBusyChange:value=>{if(mountedSession!==context.session)return;state.maintaining=value;if(value)advanced.stopRecording();render();editors?.refresh();}});
+  editors={setSelection(slots){core.setSelection(slots);advanced.setSelection(slots);},setLayer(layer){core.setLayer(layer);advanced.setLayer(layer);},refresh(){core.refresh();advanced.refresh();settings.refresh();},cancelCalibration:()=>settings.cancelCalibration(),destroy(){core.destroy();advanced.destroy();settings.destroy();}};
   editors.setLayer(state.layer);
 }
 function draftReason(){
   if(!state.session)return mode()==='import'?'Bản JSON cũ chỉ để xem. Đọc đủ cấu hình từ thiết bị để chỉnh sửa.':'Đọc đủ 9 nhóm cấu hình để chỉnh sửa.';
+  if(state.session.invalidated)return state.session.invalidReason;
   if(mode()==='demo')return 'Dữ liệu mẫu · bản nháp cục bộ, không gửi thiết bị.';
   if(!state.reader)return 'Đã ngắt kết nối · đọc lại snapshot sau khi kết nối để ghi.';
   if(state.session.snapshot.provenance.sessionId!==state.reader.getState().sessionId)return 'Phiên kết nối đã đổi · cần đọc lại snapshot.';
@@ -195,7 +199,7 @@ function draftReason(){
   return 'Áp dụng sẽ gửi bản nháp và đọc lại để xác minh.';
 }
 function renderDraft(){
-  const count=state.session?.diff().length??0,busy=state.reading||state.connecting||state.applying;
+  const count=state.session?.diff().length??0,busy=state.reading||state.connecting||state.applying||state.maintaining||!!state.session?.invalidated;
   setText('draft-count',`${count} thay đổi trong bản nháp`);setText('apply-reason',draftReason());
   $('revert-button').disabled=!state.session||!count||busy;
   $('apply-button').disabled=!state.session||!count||busy||mode()!=='device'||!state.reader||!state.reader.transport.getWriteState().qualified||state.session.snapshot.provenance.sessionId!==state.reader.getState().sessionId;
@@ -255,5 +259,5 @@ $('import-file').addEventListener('change',importData);
 $('layer-base').addEventListener('click',()=>{state.layer='base';renderSelection();});
 $('layer-fn').addEventListener('click',()=>{state.layer='fn';renderSelection();});
 $('diagnostics').addEventListener('toggle',renderLog);
-navigator.hid?.addEventListener('disconnect',event=>{if(event.device===state.reader?.device){const reader=state.reader;state.reader=null;state.reading=false;state.activeBlock=null;state.applyAbort?.abort();reader.close().catch(()=>{});render();message('Bàn phím đã ngắt kết nối. Kiểm tra cáp USB rồi kết nối lại.',true);}});
+navigator.hid?.addEventListener('disconnect',async event=>{if(event.device===state.reader?.device){const reader=state.reader;state.reader=null;state.reading=false;state.activeBlock=null;state.applyAbort?.abort();render();message('Bàn phím đã ngắt kết nối. Kiểm tra cáp USB rồi kết nối lại.',true);await editors?.cancelCalibration();await reader.close().catch(()=>{});}});
 makeKeyboard();checkBrowser();render();

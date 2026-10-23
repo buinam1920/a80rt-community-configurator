@@ -435,6 +435,142 @@
       "length": 152,
       "sha256": "d9c6cf0fadf9dbb2086486ae821928daec02f6b01adfcdd6c2297b19c92530ce",
       "text": "gd=[{value:0,label:\"常规\",text:\"macro_mask_select1\"},{value:2,label:\"再次按键结束\",text:\"macro_mask_select2\"},{value:1,label:\"重复播放\",text:\"macro_mask_select3\"}],"
+    },
+    {
+      "id": "settings-model-a80rt",
+      "bundle": "app",
+      "offset": 1627764,
+      "length": 116,
+      "sha256": "28c77cbc1b10d530064510d7a5219ab82c3c7106af21d84859ae94ee7f14e98c",
+      "text": "settings:{isShowSleepTime:!1,isShowWaken:!1,isShowStability:!0,isShowCalibration:!0,isShowRate:!0,isShowFirmware:!0}"
+    },
+    {
+      "id": "settings-model-u",
+      "bundle": "app",
+      "offset": 1628803,
+      "length": 116,
+      "sha256": "28c77cbc1b10d530064510d7a5219ab82c3c7106af21d84859ae94ee7f14e98c",
+      "text": "settings:{isShowSleepTime:!1,isShowWaken:!1,isShowStability:!0,isShowCalibration:!0,isShowRate:!0,isShowFirmware:!0}"
+    },
+    {
+      "id": "settings-dongle-flags",
+      "bundle": "app",
+      "offset": 1629252,
+      "length": 53,
+      "sha256": "0da25cfb4f27a87a0cd81412be4e2cc9bfcdc7f6237f43335d66dea162ccfc2b",
+      "text": "isItem:!0,timeValue:1,rateOfValue:!0,isCalibration:!0"
+    },
+    {
+      "id": "settings-model-dongle",
+      "bundle": "app",
+      "offset": 1629903,
+      "length": 116,
+      "sha256": "bbcb7a0f8903bfc846cbe85b783d37e2e199e86ba2e9a39b26823cc979ef0639",
+      "text": "settings:{isShowSleepTime:!0,isShowWaken:!1,isShowStability:!0,isShowCalibration:!0,isShowRate:!1,isShowFirmware:!0}"
+    },
+    {
+      "id": "settings-values",
+      "bundle": "app",
+      "offset": 2759717,
+      "length": 1090,
+      "sha256": "d3719a9e05d38375d362b7c68c575078c623aab4a865e030df123577a626c28e",
+      "text": "maxTime:30,responseTimeValue:0,responseTimeList:[{text:\"1\",value:1},{text:\"2\",value:2},{text:\"3\",value:3},{text:\"4\",value:4},{text:\"5\",value:5}],tftTimeValue:0,tftTimeList:[{text:\"time_1\",value:0},{text:\"time_2\",value:1}],dateList:[{name:\"关闭时间\",value:1,show:0,text:\"closeDayName\"}],viewList:[{name:\"亮色主题\",text:\"themeBright\"},{name:\"暗色主题\",text:\"themeDark\"},{name:\"将主题与电脑同步\",text:\"themeWin\"}],list:[{name:\"界面设置\",text:\"settingView\"},{name:\"键盘设置\",text:\"keyNameSey\"},{name:\"更新\",text:\"updateName\"}],reportRateList:[{text:\"report_rate1\",value:3},{text:\"report_rate4\",value:4},{text:\"report_rate2\",value:5},{text:\"report_rate3\",value:6}]}},props:{currentDevice:{type:String},version:{type:String|Number},versionInfo:{type:Object},reportType:{type:Number|String},AutoCalibration:{type:Number|String},restTime:{type:Number|String},Waken:{type:Number|String},stability:{type:Number|String},responseTime:{type:Number|String},tftTime:{type:Number|String},isTypeWin:{type:Boolean}},components:{Switchs:Gc,Slider:Zc,ISP:Ph},computed:Oh(Oh({},(0,Ur.aH)({RtInfo:function(e){return e.keyboard.RtInfo}})),{},{"
+    },
+    {
+      "id": "settings-filter-2k",
+      "bundle": "app",
+      "offset": 2760807,
+      "length": 217,
+      "sha256": "4f06f218100d1c03810e27ebc13fe0151393713b9e8d2c3a38db869ce26f74a2",
+      "text": "getRateList:function(){var e=this;return this.RtInfo.is2KRate?this.reportRateList:this.reportRateList.filter((function(i){return 4!=i.value&&!e.RtInfo.is2KRate}))}}),created:function(){var e=\"en,zh,zh-TW,ja,ko,fr,es,p"
+    },
+    {
+      "id": "manual-model-gate",
+      "bundle": "app",
+      "offset": 2775437,
+      "length": 128,
+      "sha256": "c913a50d34d9e549b1ed4ae311c13599ffdcd99279f87b502efcb505b285323b",
+      "text": "e.RtInfo.timeValue?e._e():i(\"el-tab-pane\",{attrs:{label:e.$t(\"recali_brate\"),name:\"rese\"}})],1),i(\"div\",{staticClass:\"device-rig"
+    },
+    {
+      "id": "manual-start-end",
+      "bundle": "app",
+      "offset": 3257393,
+      "length": 387,
+      "sha256": "472bad95c9ab3c75e76a84fde8eb23384c17d9b6340e11c7f92deba31bd0cfab",
+      "text": "getSendReportCalibration:function(){var e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:100;Hl.sendReportCmd(e,[0,0,0,0])},hadnleCalibration:function(){this.$refs.keyboard.getClostList(),this.Calibration=!1,this.Calibration2=!1,this.removePreventDefault(),Hl.sendReportCmd(101,[0,0,0,0])},getWaitSendOver:function(e,i,t){var n=this;this.packTotalAll++,16!=e&&51!=e&&(this.loadin"
+    },
+    {
+      "id": "manual-end-save",
+      "bundle": "app",
+      "offset": 2042929,
+      "length": 38,
+      "sha256": "cca6440b7d5c0aa913f2d29fb7fa92c054ba313a126bd93e583f2434bfb70a01",
+      "text": "\"calibration_close\":\"Save Calibration\""
+    },
+    {
+      "id": "manual-clear-label",
+      "bundle": "app",
+      "offset": 2049447,
+      "length": 30,
+      "sha256": "b2be3f31030415047d83f12436b48c03e4a3acdbea9b0929fcd131cbf6875835",
+      "text": "\"rt_close\":\"Clear Calibration\""
+    },
+    {
+      "id": "maintenance-compact-framing",
+      "bundle": "app",
+      "offset": 1923977,
+      "length": 700,
+      "sha256": "dfbc923c1705c2df4a421378c5848d90c5f00ccd2d13192f4a423bed2b32dbe0",
+      "text": "sendReportCmd:function(e,i){var t=new Uint8Array(this.packLen).fill(0);t[0]=170,t[1]=e,this.cmdState=!0;for(var n=0;n<i.length;n++)t[2+n]=i[n];this.sendReport(t)},sendReportSuper:function(e,i){var t=this,n=arguments.length>2&&void 0!==arguments[2]?arguments[2]:[];return new Promise((function(o,a){var r=t.packLen-8,s=Math.floor(i.length/r),d=i.length%r,l=0;0!=d&&(s+=1);var c=t.splitArrayIntoChunks(i,r),m=t.buildPkt_final(e,l==s-1&&0!=l&&0!=d?d:r,l*r,c[l],t.packLen,n,l==s-1);t.SendState=!1,t.sendReport(m);var u=setTimeout((function(){a(new Error(\"Send report super timed out\"))}),5e3);window.getAllDataSuper=function(i){if(55!=i.data.getUint8(1)){if(t.linkState=!1,clearInterval(t.timeoutInfo),t."
+    },
+    {
+      "id": "maintenance-factory-reset",
+      "bundle": "app",
+      "offset": 3224422,
+      "length": 73,
+      "sha256": "f1e0f52d38d0a2f5eb5b6795f793d0639330cb9f9c33d19a217108717d2be521",
+      "text": "handelResetting:function(){Hl.sendReportCmd(Hl.cmd.cmdReset,[255,0,0,0])}"
+    },
+    {
+      "id": "maintenance-destructive-clear",
+      "bundle": "app",
+      "offset": 3203997,
+      "length": 75,
+      "sha256": "9d6d2f2838ff3e8634bf19772b107a1863730c76604140dc7a7b06e6f2ea317a",
+      "text": "handleCloseCheckKey:function(){Hl.sendReportCmd(Hl.cmd.cmdReset,[5,0,0,0])}"
+    },
+    {
+      "id": "maintenance-reset-scope",
+      "bundle": "app",
+      "offset": 2047982,
+      "length": 103,
+      "sha256": "22147418bbd49b3cd07d3d02153da61f1a56c863f02b960a8e963b24d64edf17",
+      "text": "\"reset_message\":\"Are you sure you want to reset? \\\\nThis will reset all device settings.\",\"file_error\":"
+    },
+    {
+      "id": "maintenance-info",
+      "bundle": "app",
+      "offset": 3194028,
+      "length": 558,
+      "sha256": "b613aae5aed6bfa601e06b82d89022882160bbd09acb28aa577e26a702885d9c",
+      "text": "getDeviceInfo:function(){var e;if(this.version=(((15&this.deviceArray[8])+10*((240&this.deviceArray[8])>>4)+100*this.deviceArray[9])/100).toFixed(2),this.macroMax=512,this.Electricity=this.deviceArray[17],this.AxialModel=this.deviceArray[20]+(this.deviceArray[21]<<8),this.Maxframe=this.deviceArray[22]+(this.deviceArray[23]<<8),this.gifFrame=this.deviceArray[24]+(this.deviceArray[25]<<8),this.ledFrame=this.deviceArray[26]+(this.deviceArray[27]<<8),this.deviceArray[28]&&null!==(e=this.RtInfo)&&void 0!==e&&e.screenConfig){var i=JSON.parse(JSON.stringify(t"
+    },
+    {
+      "id": "firmware-manifest-selection",
+      "bundle": "app",
+      "offset": 3192238,
+      "length": 1160,
+      "sha256": "997d69d753050400d9b3635429e779a199bd7688590230d1db09c3611ca9b1d4",
+      "text": "getVersionInfo:function(e){var i=this;return(0,Ar.A)(Br().mark((function t(){var n,o,a,r,s,d,l;return Br().wrap((function(t){while(1)switch(t.prev=t.next){case 0:return n=Hl.m_keyboard_instance,t.prev=1,o=window.location.origin+window.location.pathname.replace(/\\/index\\.html$/,\"\")||\"/\",a=o+\"/update.json\",t.next=6,fetch(a);case 6:if(r=t.sent,r.ok){t.next=9;break}return t.abrupt(\"return\");case 9:return t.next=11,r.json();case 11:s=t.sent,d=null,l=0;case 14:if(!(l<s.length)){t.next=25;break}if(s[l].id!=i.AxialModel){t.next=21;break}return d=s[l],d.isRed=s[l].v>e,t.abrupt(\"break\",25);case 21:n.productName!==s[l].productName&&n.deviceName!==s[l].productName||n.productId!==s[l].productId||(d=s[l],d.isRed=s[l].v>e);case 22:l++,t.next=14;break;case 25:i.versionInfo=d,i.versionInfo&&i.versionInfo.isRed&&(i.centerDialogVisible=!0,i.$store.dispatch(\"rt/setLinkState\",1)),t.next=32;break;case 29:t.prev=29,t.t0=t[\"catch\"](1),console.log(\"err\",t.t0);case 32:case\"end\":return t.stop()}}),t,null,[[1,29]])})))()},handleChangeText:function(e){Hl.sendReportCmd(e?102:103,[0,0,0,0])},handleKeyDonSelect:function(e){var i=this,t=e.item,n=e.isSelected;t.state=!t.state"
+    },
+    {
+      "id": "firmware-external-route",
+      "bundle": "app",
+      "offset": 3204073,
+      "length": 738,
+      "sha256": "220a1827abbbe980e1b300912b02901d4ebeee379fdf549e79336019f56fa413",
+      "text": "handleUpdate:function(){if(this.versionInfo&&this.versionInfo.isRed&&this.isTypeWin){if(this.versionInfo.url)return void window.open(this.versionInfo.url);if(this.versionInfo.isHex)return this.centerDialogVisible=!1,void(this.isISP=!0);var e=this.versionInfo.file_name,i=window.location.origin+window.location.pathname.replace(/\\/index\\.html$/,\"\")||\"/\",t=i+e,n=document.createElement(\"a\");n.href=t,n.download=e,document.body.appendChild(n),n.click(),document.body.removeChild(n),this.centerDialogVisible=!1}else this.$message.error(this.$t(\"update_error\"))},handleClcikFn:function(e){this.currentFn!==e&&(this.currentFn=e)},mergeByKeys:function(e){var i=e.reduce((function(e,i){var t=\"\".concat(i.key1,\"-\").concat(i.key2,\"-\").concat(i.mode"
     }
   ]
 }

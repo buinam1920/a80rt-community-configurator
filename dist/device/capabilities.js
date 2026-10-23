@@ -38,7 +38,8 @@ function createCapability(model) {
       colors:{rgb:true},keymap:{binding:true},fn:{binding:true},macro:{macros:true},dks:{pattern:true},
     },
     features:{sourceAdvancedBindings:advanced,writeQualified:false},
-    firmware:{status:'unverified',officialUrl:null},
+    maintenance:{manualCalibration:!dongle,reset:true,qualified:false,calibrationEndMaySave:true},
+    firmware:{status:'official-handoff-only',officialUrl:'https://leobog.driveall.cn/',directFlash:false,latestVersion:null},
     limits:{
       macroReadSpan:1024,macroPhysicalCapacity:null,macroPointerEntries:100,macroPointerBytes:400,
       macroSourceUiBudget:512,writeAckShape:null,

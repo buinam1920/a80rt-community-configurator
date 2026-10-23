@@ -59,7 +59,7 @@ export function decodeBlock(blockId,raw,capability) {
   else if (blockId === 'keymap' || blockId === 'fn') result.records = Array.from({length:bytes.length/4},(_,slot)=>({slot,binding:binding(bytes,slot*4)}));
   else if (blockId === 'colors') result.records = Array.from({length:bytes.length/4},(_,slot)=>({slot,marker:bytes[slot*4],red:bytes[slot*4+1],green:bytes[slot*4+2],blue:bytes[slot*4+3]}));
   else if (blockId === 'settings' || blockId === 'lighting') result.fields = Object.fromEntries(Object.entries(blockId==='settings'?SETTINGS:LIGHTING).map(([field,offset])=>[field,bytes[offset]]));
-  else if (blockId === 'device') result.fields = {version:((bytes[8]&15)+10*(bytes[8]>>4)+100*bytes[9])/100,battery:bytes[17],axialModel:word(bytes,20)};
+  else if (blockId === 'device') result.fields = {version:(bytes[8]&15)<=9&&(bytes[8]>>4)<=9?((bytes[8]&15)+10*(bytes[8]>>4)+100*bytes[9])/100:null,battery:bytes[17]<=100?bytes[17]:null,axialModel:word(bytes,20)};
   // Macro and DKS semantic editors/validation belong to Task5. Their source formats
   // are documented in protocol-facts.json; opaque reads still round-trip exactly.
   else result.format = 'opaque';

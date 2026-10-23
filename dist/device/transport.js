@@ -10,10 +10,12 @@ export class A80Transport {
   constructor(device,{onTrace=()=>{},timeoutMs=3000}={}) {
     if(!Number.isFinite(timeoutMs)||timeoutMs<=0)throw new Error('Thời gian chờ không hợp lệ.');
     this.device=device;this.interface=selectInterface(device);this.onTrace=onTrace;this.timeoutMs=timeoutMs;
-    this._opened=false;this._hasResponse=false;this._sessionId=0;this._writeEpoch=0;this._tail=Promise.resolve();this._pending=null;
+    this._opened=false;this._hasResponse=false;this._sessionId=0;this._writeEpoch=0;this._tail=Promise.resolve();this._pending=null;this._sessionEndListeners=new Set();
   }
   getState(){return {opened:this._opened&&this.device.opened,deviceOpened:this.device.opened,linkLost:!!this._linkLost,hasResponse:this._hasResponse,sessionId:this._sessionId,writeEpoch:this._writeEpoch};}
   _trace(type,details={}){this.onTrace({type,sessionId:this._sessionId,at:Date.now(),...details});}
+  onSessionEnd(listener){this._sessionEndListeners.add(listener);return ()=>this._sessionEndListeners.delete(listener);}
+  _notifySessionEnd(){for(const listener of this._sessionEndListeners)listener();}
   withTransaction(operation,{signal,sessionId=this._sessionId,writeEpoch}={}){
     if(this._reservation)return Promise.reject(running());
     const owner={signal,sessionId};this._reservation=owner;
@@ -28,6 +30,7 @@ export class A80Transport {
           readBlock:(command,length,options={})=>this._readBlock(command,length,{signal,...options},owner),
           writeBlock:(command,bytes,options={})=>this._writeBlock(command,bytes,{signal,...options},owner),
           sendControl:(command,payload,options={})=>this._sendControl(command,payload,{signal,...options},owner),
+          sendMaintenance:(action,options={})=>this._sendMaintenance(action,options,owner),
         });
         return await operation(scope);
       }finally{
@@ -70,6 +73,7 @@ export class A80Transport {
           this._linkLost=true;this._opened=false;this._hasResponse=false;++this._sessionId;
           this.device.removeEventListener('inputreport',this._listener);this._listener=null;
           this._pending?.finish(new Error('Đầu thu báo mất liên kết với bàn phím. Đánh thức bàn phím ở chế độ 2.4 GHz rồi kết nối và đọc lại.'));
+          this._notifySessionEnd();
           this._tail=Promise.resolve();this._trace('link-lost',{header:bytes.slice(0,5)});return;
         }
         const pending=this._pending;
@@ -88,6 +92,7 @@ export class A80Transport {
     ++this._sessionId;this._opened=false;this._hasResponse=false;
     if(this._listener)this.device.removeEventListener('inputreport',this._listener);
     this._listener=null;this._pending?.finish(stopped());this._tail=Promise.resolve();
+    this._notifySessionEnd();
     this._closing=(async()=>{
       if(this._opening)await this._opening.catch(()=>{});
       if(this.device.opened)await this.device.close();
@@ -125,6 +130,33 @@ export class A80Transport {
   // Add a model-specific measured policy here only after preserving capture
   // evidence and tests. Synthetic test subclasses do not qualify hardware.
   _getWriteQualification(){return null;}
+  // Source100/101/15 framing is known, but NO real maintenance ACK is measured.
+  // This is independent from the ordinary config write qualification boundary.
+  _getMaintenanceQualification(){return null;}
+  getMaintenanceState(action){
+    const capability=identifyDevice(this.device),manual=['beginCalibration','endCalibration'].includes(action);
+    const supported=action==='reset'||manual&&capability.maintenance.manualCalibration;
+    const policy=supported?this._getMaintenanceQualification(action):null;
+    const qualified=!!policy&&typeof policy.parseAck==='function'&&typeof policy.evidence==='string'&&policy.evidence.length>0;
+    return {supported,qualified,ready:qualified&&this.getState().opened,evidence:qualified?policy.evidence:null,reason:!supported?'Model này không hỗ trợ hiệu chuẩn thủ công trong driver hãng.':!qualified?'Chưa có xác minh ACK bảo trì từ thiết bị thật.':!this.getState().opened?'Thiết bị đã ngắt kết nối.':null};
+  }
+  _sendMaintenance(action,{signal}={},owner){
+    try{
+      const state=this.getMaintenanceState(action);if(!state.ready)throw new Error(state.reason);
+      const command={beginCalibration:100,endCalibration:101,reset:15}[action];
+      if(command===undefined)throw new Error('Unknown maintenance action.');
+      const packet=new Uint8Array(this.interface.packetSize);packet.set([0xaa,command,action==='reset'?255:0,0,0,0]);
+      const sessionId=this._sessionId,policy=this._getMaintenanceQualification(action);
+      const progress={command,sentChunks:0,acknowledgedChunks:0,sentBytes:0,totalBytes:4};
+      return this._schedule(async()=>{
+        if(signal?.aborted||sessionId!==this._sessionId)throw stopped();
+        if(!this.getState().opened)throw new Error('Thiết bị đã ngắt kết nối.');
+        // Compact sendReportCmd: arguments begin at2; no8-byte block header.
+        try{await this._writeExchange(packet,{command,offset:0,length:4,sessionId,signal,policy,progress,count:4,owner});progress.acknowledgedChunks++;return {...progress};}
+        catch(error){error.writeProgress={...progress};throw error;}
+      },owner);
+    }catch(error){return Promise.reject(error);}
+  }
   getWriteState(){
     const policy=this._getWriteQualification(),qualified=!!policy&&typeof policy.parseAck==='function'&&typeof policy.evidence==='string';
     return {qualified,ready:qualified&&this.getState().opened&&this._hasResponse,evidence:qualified?policy.evidence:null};

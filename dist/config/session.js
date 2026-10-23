@@ -53,7 +53,7 @@ export async function readSnapshot(transport,capability,{signal,onProgress=()=>{
 }
 
 export class ConfigSession {
-  #capability;#snapshot;#blocks;#draft;#edits=new Map();#origin;#applying=false;#plan;
+  #capability;#snapshot;#blocks;#draft;#edits=new Map();#origin;#applying=false;#plan;#invalidReason=null;
   constructor(snapshot,capability){
     this.#plan=readPlan(capability);this.#capability=capability;
     if(!snapshot||identifyDevice(snapshot.identity)!==capability)throw new Error('Snapshot identity does not match capability.');
@@ -68,8 +68,12 @@ export class ConfigSession {
   get snapshot(){return this.#snapshot;}
   get draft(){return copyBlocks(this.#draft);}
   get applying(){return this.#applying;}
+  get invalidated(){return this.#invalidReason!==null;}
+  get invalidReason(){return this.#invalidReason;}
+  invalidate(reason='Snapshot đã hết hiệu lực; đọc lại cấu hình.'){this.#invalidReason=reason;}
   #editable(){
     if(this.#applying)throw new Error('Một giao dịch đang chạy.');
+    if(this.invalidated)throw new Error(this.#invalidReason);
     if(!completeCoverage(this.#blocks,this.#snapshot.coverage,this.#plan))throw new Error('Complete snapshot coverage is required before editing.');
   }
   edit(blockId,edits){return this.transaction({[blockId]:edits});}
@@ -109,6 +113,7 @@ export class ConfigSession {
     this.#applying=true;busyTransports.add(transport);
     let activeBlock;
     try{
+      if(this.invalidated)throw new Error(this.#invalidReason);
       if(!this.#origin||this.#origin.transport!==transport||this.#origin.capability!==this.#capability||this.#snapshot.provenance.source!=='device')throw new Error('Only a complete device-read snapshot from this transport can write; sample/import provenance is not writable.');
       if(!completeCoverage(this.#blocks,this.#snapshot.coverage,this.#plan))throw new Error('Complete snapshot coverage is required before writing.');
       return await transport.withTransaction(async io=>{

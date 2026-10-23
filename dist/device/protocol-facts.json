@@ -976,5 +976,72 @@
     "rs": "type12,0,first HID usage,second HID usage; assign both physical slots atomically",
     "socd": "type11,mode,first HID usage,second HID usage; modes3/1/2/4; assign both atomically",
     "references": "DKS pattern8/index@1; macro6/index@1. DKS/MT/TGL key bytes are HID usages, not nested macro references."
+  },
+  "maintenance": {
+    "evidence": "Manufacturer source only; NO measured manual/reset ACK or persistence evidence.",
+    "source": [
+      "settings-model-a80rt",
+      "settings-model-u",
+      "settings-dongle-flags",
+      "settings-model-dongle",
+      "settings-values",
+      "settings-filter-2k",
+      "manual-model-gate",
+      "manual-start-end",
+      "manual-end-save",
+      "manual-clear-label",
+      "maintenance-compact-framing",
+      "maintenance-factory-reset",
+      "maintenance-destructive-clear",
+      "maintenance-reset-scope",
+      "maintenance-info",
+      "firmware-manifest-selection",
+      "firmware-external-route"
+    ],
+    "framing": "compact AA command arguments at2, zero padding to actual HID descriptor packet size, reportId0; NOT8-byte block header",
+    "manual": {
+      "start": 100,
+      "end": 101,
+      "endMaySave": true,
+      "rollbackKnown": false,
+      "dongleAvailable": false,
+      "progressCommand": 251,
+      "progressIsEndAck": false
+    },
+    "reset": {
+      "command": 15,
+      "args": [
+        255,
+        0,
+        0,
+        0
+      ],
+      "scope": "All device settings requested; actual persistence unmeasured"
+    },
+    "clearCalibration": {
+      "command": 15,
+      "args": [
+        5,
+        0,
+        0,
+        0
+      ],
+      "destructive": true,
+      "cleanup": false
+    },
+    "productionQualification": false
+  },
+  "firmware": {
+    "officialUrl": "https://leobog.driveall.cn/",
+    "route": "External official website with exact-model guidance",
+    "directFlash": false,
+    "latestVersion": null,
+    "imageValidated": false,
+    "manifestStatus": "Official root update.json readonly404; other app base paths remain unknown",
+    "source": [
+      "firmware-manifest-selection",
+      "firmware-external-route",
+      "maintenance-info"
+    ]
   }
 }

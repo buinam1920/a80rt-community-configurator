@@ -75,6 +75,7 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
   const listeners=[],controls=new Map(),panels=new Map(),tabs=new Map();let active='rt',destroyed=false;
   const make=(tag,text,className)=>{const el=document.createElement(tag);if(text)el.textContent=text;if(className)el.className=className;return el;};
   const listen=(el,type,fn)=>{el.addEventListener(type,fn);listeners.push(()=>el.removeEventListener(type,fn));};
+  listen(root,'pointerdown',onNavigate);listen(root,'focusin',onNavigate);
   const intro=make('div',null,'editor-heading'),title=make('h2','Chỉnh cấu hình'),selection=make('p');intro.append(title,selection);
   const reason=make('p',null,'editor-reason'),error=make('p',null,'editor-error');error.setAttribute('role','alert');error.hidden=true;
   const tabbar=make('div',null,'editor-tabs');tabbar.setAttribute('role','tablist');tabbar.setAttribute('aria-label','Nhóm chỉnh sửa');

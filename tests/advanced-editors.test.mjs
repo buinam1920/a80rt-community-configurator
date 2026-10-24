@@ -40,3 +40,37 @@ test('actual host locks editors during Apply and preserves unsaved macro input a
 test('Escape provides a keyboard exit from recording and returns normal keyboard handling',()=>{
  const win=new EventTarget(),doc=new EventTarget();doc.hasFocus=()=>true;const events=[];const recorder=api.createMacroRecorder({window:win,document:doc,onEvent:e=>events.push(e)});recorder.start();const escape=new Event('keydown',{cancelable:true});Object.defineProperty(escape,'code',{value:'Escape'});win.dispatchEvent(escape);assert.equal(recorder.recording,false);assert.equal(events.length,0);recorder.destroy();
 });
+
+test('actual host stops recording on core entry and tab navigation while retaining the unsaved timeline',async t=>{
+ class Element{
+  constructor(tag='div'){this.tag=tag;this.children=[];this.listeners=new Map();this.attributes={};this.value='';this.disabled=false;this.hidden=false;this.style={setProperty(){}};this.classList={toggle(){}};this.textContent='';}
+  append(...nodes){for(const node of nodes){node.parentElement=this;this.children.push(node);if(this.tag==='select'&&this.children.length===1)this.value=node.value;}}
+  replaceChildren(...nodes){this.children=[];this.append(...nodes);}setAttribute(k,v){this.attributes[k]=v;}get options(){return this.children;}
+  addEventListener(t,fn){this.listeners.set(t,fn);}removeEventListener(t){this.listeners.delete(t);}
+  async trigger(type,event={}){const e=event instanceof Event?event:{target:this,...event};for(let el=this;el;el=el.parentElement)await el.listeners?.get(type)?.(e);}
+  focus(){this.trigger('focusin');}querySelectorAll(){return this.children.flatMap(c=>[c,...(c.querySelectorAll?.()??[])]).filter(c=>['input','select','button'].includes(c.tag));}
+ }
+ const old={document:globalThis.document,window:globalThis.window,navigator:Object.getOwnPropertyDescriptor(globalThis,'navigator')};
+ const elements=[],roots=new Map(),get=id=>elements.findLast(el=>el.id===id)??roots.get(id)??(()=>{const el=new Element();roots.set(id,el);return el;})();
+ globalThis.document=Object.assign(new EventTarget(),{getElementById:get,createElement:tag=>{const el=new Element(tag);elements.push(el);return el;},createTextNode:text=>({textContent:text}),hasFocus:()=>true});
+ globalThis.window=Object.assign(new EventTarget(),{isSecureContext:true});Object.defineProperty(globalThis,'navigator',{configurable:true,value:{hid:new EventTarget()}});
+ const key=code=>{const event=new Event('keydown',{cancelable:true});Object.defineProperties(event,{code:{value:code},repeat:{value:false}});window.dispatchEvent(event);return event;};
+ const timeline=()=>elements.findLast(el=>el.attributes['aria-label']==='Dòng thời gian macro');
+ try{
+  await import('../dist/app.js?final-core-recorder');await get('sample-button').trigger('click');
+  for(const [name,exit]of [
+   ['pointer into a core input',()=>get('core-actuationMm').trigger('pointerdown')],
+   ['focus into a core input',()=>get('core-actuationMm').trigger('focusin')],
+   ['core RGB tab click',()=>get('editor-tab-rgb').trigger('click')],
+   ['core tab keyboard navigation',async()=>{const event=new Event('keydown',{cancelable:true});Object.defineProperties(event,{key:{value:'ArrowRight'},code:{value:'ArrowRight'}});await get('editor-tab-rt').trigger('keydown',event);window.dispatchEvent(event);assert.equal(get('editor-tab-binding').attributes['aria-selected'],'true');}]
+  ])await t.test(name,async()=>{
+   await get('editor-tab-rt').trigger('click');await get('macro-new').trigger('click');await get('macro-add-event').trigger('click');const delay=elements.findLast(el=>el.attributes['aria-label']==='Delay ms sự kiện 1');delay.value='123';await delay.trigger('change');
+   await get('macro-record-start').trigger('pointerdown');await get('macro-record-start').trigger('focusin');await get('macro-record-start').trigger('click');
+   try{
+    await get('macro-record-stop').trigger('focusin');await get('advanced-editors').trigger('pointerdown');assert.equal(get('macro-record-stop').disabled,false,'macro controls keep explicit recording usable');
+    assert.equal(key('KeyA').defaultPrevented,true);assert.equal(timeline().children.length,2);await exit();
+    assert.equal(get('macro-record-stop').disabled,true);assert.equal(key('KeyB').defaultPrevented,false);assert.equal(timeline().children.length,2);assert.equal(elements.findLast(el=>el.attributes['aria-label']==='Delay ms sự kiện 1').value,'123');assert.match(get('draft-count').textContent,/^0 /);
+   }finally{await get('macro-record-stop').trigger('click');}
+  });
+ }finally{globalThis.document=old.document;globalThis.window=old.window;if(old.navigator)Object.defineProperty(globalThis,'navigator',old.navigator);else delete globalThis.navigator;}
+});

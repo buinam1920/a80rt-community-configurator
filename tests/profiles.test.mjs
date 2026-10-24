@@ -14,6 +14,31 @@ function session(){
 }
 function profile(s=session()){assert.equal(typeof api.createProfile,'function','profile creation API required');return api.createProfile(s,'Cấu hình chơi');}
 const json=p=>JSON.stringify(p);
+const pattern={thresholds:[10,20,20,10],keys:[4,5,6,7],actions:[1,2,4,8]};
+test('baseline profile restores ordinary binding after DKS without clearing the unused current pattern',()=>{
+ const s=session(),baseline=api.parseProfile(json(profile(s)),cap);
+ s.advanced({type:'dks',slots:[34],index:1,pattern});const dks=s.draft.dks;
+ const before=s.draft;assert.ok(api.previewProfile(baseline,s).some(c=>c.block==='keymap'));assert.deepEqual(s.draft,before);
+ api.loadProfile(baseline,s);assert.deepEqual(s.draft.keymap.slice(136,140),Uint8Array.of(2,0,26,91));assert.deepEqual(s.draft.dks,dks);
+});
+test('stale unreferenced profile DKS record cannot block an unrelated supported edit',()=>{
+ const s=session(),p=profile(s);p.blocks.dks[32]=255;p.blocks.colors[137]=12;
+ const parsed=api.parseProfile(json(p),cap),before=s.draft;assert.equal(api.previewProfile(parsed,s).length,1);assert.deepEqual(s.draft,before);
+ api.loadProfile(parsed,s);assert.equal(s.draft.colors[137],12);assert.deepEqual(s.draft.dks,before.dks);
+});
+test('profile preserves patterns referenced by retained locked Fn and nonphysical records',()=>{
+ const original=session(),baseline=profile(original);original.advanced({type:'dks',slots:[34],index:1,pattern});
+ const raw=original.draft;raw.fn.set([8,1,17,19],4);raw.keymap.set([8,1,21,23],127*4);
+ const s=new ConfigSession({...original.snapshot,blocks:raw},cap),before=s.draft;baseline.blocks.colors[137]=12;
+ api.previewProfile(baseline,s);assert.deepEqual(s.draft,before);api.loadProfile(baseline,s);
+ assert.deepEqual(s.draft.fn,before.fn);assert.deepEqual(s.draft.keymap.slice(508),Uint8Array.of(8,1,21,23));assert.deepEqual(s.draft.dks,before.dks);assert.equal(s.draft.colors[137],12);
+});
+test('profile stages active base and Fn DKS patterns and rejects invalid active patterns atomically',()=>{
+ const source=session();source.advanced({type:'dks',slots:[34],index:1,pattern});source.advanced({type:'dks',layer:'fn',slots:[49],index:2,pattern:{...pattern,thresholds:[5,15,15,5]}});
+ const p=profile(source),s=session();api.loadProfile(p,s);assert.equal(s.draft.keymap[136],8);assert.equal(s.draft.fn[196],8);assert.deepEqual(Array.from(s.draft.dks.slice(32,36)),[5,15,15,5]);
+ const bad=structuredClone(p);bad.blocks.dks.splice(16,4,20,10,10,20);bad.blocks.colors[137]=22;const before=s.draft,diff=s.diff();
+ assert.throws(()=>api.previewProfile(bad,s),/DKS.*order/);assert.throws(()=>api.loadProfile(bad,s),/DKS.*order/);assert.deepEqual(s.draft,before);assert.deepEqual(s.diff(),diff);
+});
 test('profile round trip keeps exact identity, full bytes and truthful sample origin',()=>{
  const s=session(),p=profile(s),out=api.parseProfile(api.exportProfile(p),cap);
  assert.equal(out.schema,'a80rt-profile/v2');assert.deepEqual(out.identity,cap.identity);assert.equal(out.source,'sample');assert.deepEqual(out.blocks.colors.slice(136,140),[77,0,0,0]);

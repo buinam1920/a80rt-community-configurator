@@ -1,6 +1,6 @@
 import {identifyDevice,readPlan} from '../device/capabilities.js';
 import {ConfigSession} from './session.js';
-import {decodeBlock} from './codecs.js';
+import {decodeBlock,patchBlock} from './codecs.js';
 import {decodeMacros,patchMacros} from './macros.js';
 import {decodePattern,validateReferences} from './advanced.js';
 
@@ -68,7 +68,6 @@ function semanticGroups(profile,session){
    else{const a=bindingValue(before[slot].binding),b=bindingValue(after[slot].binding);if(['unknown','combination'].includes(b.type))continue;if(!same(a,b))add(id,{slot,field:'binding',value:b});}
   }
  }
- for(let slot=1;slot<=63;slot++){const a=decodePattern(current.dks,slot),b=decodePattern(desired.dks,slot);if(!same(a,b))add('dks',{slot,field:'pattern',value:b});}
  const events=macros=>macros.map(m=>m.events.map(({flags,...event})=>event)),old=decodeMacros(current.macro,cap),next=decodeMacros(desired.macro,cap);
  if(!same(events(old),events(next))){
   // Imported source indices have no authority over current opaque metadata.
@@ -82,6 +81,20 @@ function semanticGroups(profile,session){
    if(!cap.slots.includes(slot)||id==='fn'&&cap.limits.fnLockedSlots.includes(slot))fail('macro reference trong vị trí khóa không thể sửa.');
    add(id,{slot,field:'binding',value:bindingValue(decodeBlock(id,desired[id],cap).records[slot].binding)});
   }
+ }
+ // Only import templates used by the final semantic projection. Locked,
+ // nonphysical and skipped bindings still own their current references; an
+ // unreferenced captured template has no authority to clear those patterns.
+ const needed=new Set(),imported=new Set();
+ for(const id of ['keymap','fn']){
+  const projected=groups[id]?patchBlock(id,current[id],groups[id],cap).bytes:current[id];
+  for(let offset=0;offset<projected.length;offset+=4)if(projected[offset]===8){
+   const index=projected[offset+1];needed.add(index);
+   if(desired[id][offset]===8&&desired[id][offset+1]===index)imported.add(index);
+  }
+ }
+ for(const slot of needed)if(imported.has(slot)){
+  const a=decodePattern(current.dks,slot),b=decodePattern(desired.dks,slot);if(!same(a,b))add('dks',{slot,field:'pattern',value:b});
  }
  return groups;
 }

@@ -184,7 +184,7 @@ function renderEditors(){
   const capability=state.capability??SAMPLE_CAPABILITY;
   if(mountedSession===state.session&&mountedCapability===capability)return;
   editors?.destroy();mountedSession=state.session;mountedCapability=capability;
-  const context={session:state.session,capability,selectedSlots:state.selectedSlots,isBusy:()=>state.reading||state.connecting||state.applying||state.maintaining||!!state.session?.invalidated,onNavigate:()=>editors?.cancelCalibration(),onEdit:()=>{clearProfilePreview();renderSelection();renderDraft();scheduleRecovery();}};
+  const context={session:state.session,capability,selectedSlots:state.selectedSlots,isBusy:()=>state.reading||state.connecting||state.applying||state.maintaining||!!state.session?.invalidated,onNavigate:()=>{editors?.stopRecording();editors?.cancelCalibration();},onEdit:()=>{clearProfilePreview();renderSelection();renderDraft();scheduleRecovery();}};
   const core=mountCoreEditors($('core-editors'),{...context,onLayerChange:layer=>{state.layer=layer;renderSelection();}});
   const advanced=mountAdvancedEditors($('advanced-editors'),context);
   const settings=mountDeviceSettings($('device-settings'),{...context,modelConfirmed:!!state.capability,transport:state.capability?state.reader?.transport:undefined,onNavigate:()=>advanced.stopRecording(),onInvalidate:()=>{if(state.session===context.session&&state.snapshot)state.snapshot.complete=false;},onReload:()=>read(),onBusyChange:value=>{if(mountedSession!==context.session)return;state.maintaining=value;if(value)advanced.stopRecording();render();editors?.refresh();}});

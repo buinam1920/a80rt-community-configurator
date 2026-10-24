@@ -57,12 +57,16 @@ test('Change carries typed scalar, RGB and binding values with only actual chang
     const result=patchBlock(block,keys,[{slot:34,field:'binding',value}],cap());
     assert.deepEqual(result.changes,[{block,path:'records[34].binding',
       before:{type:'keyboard',typeCode:2,bytes:Uint8Array.of(2,0,4,99),modifier:0,usage:4},
-      after:{type:'keyboard',typeCode:2,bytes:Uint8Array.of(2,0,26,99),modifier:0,usage:26},byteOffsets:[138]}]);
+      after:{type:'keyboard',typeCode:2,bytes:Uint8Array.of(2,0,26,0),modifier:0,usage:26},byteOffsets:[138,139]}]);
     value.usage=5;result.changes[0].after.bytes[2]=10;
     assert.equal(result.changes[0].after.usage,26);
     assert.equal(result.bytes[138],26);
     assert.equal(keys[138],4);
-    assert.deepEqual(patchBlock(block,keys,[{slot:34,field:'binding',value:{type:'keyboard',usage:26}},{slot:34,field:'binding',value:{type:'keyboard',usage:4}}],cap()).changes,[]);
+    // Explicit replacement follows getUpdateKeyData/getBuildFn: even restoring
+    // the old usage owns all four bytes and canonicalizes its trailing payload.
+    const restored=patchBlock(block,keys,[{slot:34,field:'binding',value:{type:'keyboard',usage:26}},{slot:34,field:'binding',value:{type:'keyboard',usage:4}}],cap());
+    assert.deepEqual(restored.changes[0].byteOffsets,[139]);
+    assert.deepEqual(Array.from(restored.bytes.slice(136,140)),[2,0,4,0]);
   }
 });
 
@@ -122,17 +126,38 @@ test('Dongle sleep duration uses source minutes1..30 and zero disables it',()=>{
   for(const minutes of [-1,31,0.5])assert.throws(()=>patchBlock('settings',bytes,[{field:'sleep',value:minutes}],cap()),/sleep/);
 });
 
-test('RGB preserves marker and neighbors; key remap preserves fourth byte and Fn independence',()=>{
+test('RGB preserves marker and neighbors; explicit key replacement owns four bytes and retains Fn independence',()=>{
   const colors=raw('colors');
   const rgb=patchBlock('colors',colors,[{slot:34,field:'rgb',value:{red:1,green:2,blue:3}}],cap());
   assert.deepEqual(diff(colors,rgb.bytes),[137,138,139]);
   assert.equal(rgb.bytes[136],colors[136]);
   const keys=raw('keymap');
   const binding=patchBlock('keymap',keys,[{slot:92,field:'binding',value:{type:'keyboard',usage:26}}],cap());
-  assert.deepEqual(Array.from(binding.bytes.slice(368,372)),[2,0,26,keys[371]]);
+  assert.deepEqual(Array.from(binding.bytes.slice(368,372)),[2,0,26,0]);
+  assert.deepEqual(binding.bytes.slice(0,368),keys.slice(0,368));
+  assert.deepEqual(binding.bytes.slice(372),keys.slice(372));
   assert.equal(decodeBlock('keymap',binding.bytes,cap()).records[92].binding.usage,26);
   assert.deepEqual(raw('fn'),Uint8Array.from(fixture.blocks.fn));
   assert.throws(()=>patchBlock('keymap',keys,[{slot:34,field:'binding',value:{type:'keyboard',usage:26,modifier:2}}],cap()),/modifier/);
+});
+
+test('WIN to simple binding replacements use the source four-byte encoder in both layers',()=>{
+  const wired=identifyDevice({vendorId:0x0c45,productId:0x80a1,productName:'A80RT U'});
+  for(const block of ['keymap','fn'])for(const [value,want]of [
+    [{type:'keyboard',usage:26,modifier:0},[2,0,26,0]],
+    [{type:'keyboard',modifier:225},[2,225,0,0]],
+    [{type:'empty'},[0,0,0,0]],
+    [{type:'mouse',mouseCode:3,code:255},[1,3,255,0]],
+    [{type:'media',usage:404},[3,148,1,0]],
+  ]){
+    const bytes=raw(block);bytes.set([13,0,0,8],136);const before=bytes.slice();
+    const result=patchBlock(block,bytes,[{slot:34,field:'binding',value}],wired);
+    assert.deepEqual(Array.from(result.bytes.slice(136,140)),want);
+    assert.deepEqual(result.bytes.slice(0,136),before.slice(0,136));
+    assert.deepEqual(result.bytes.slice(140),before.slice(140));
+    assert.deepEqual(bytes,before);
+    assert.deepEqual(patchBlock(block,bytes,[],wired).bytes,before);
+  }
 });
 
 test('switch travel limits apply to completed patch; no mutation on late validation failure',()=>{

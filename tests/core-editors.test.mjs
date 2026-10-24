@@ -33,7 +33,8 @@ test('direct session edits cannot bypass Fn locks and base F1–F12 remain edita
   }
   session.edit('keymap',Array.from({length:12},(_,index)=>({slot:index+1,field:'binding',value:{type:'media',usage:233}})));
   assert.equal(session.diff().length,12);
-  for(let slot=1;slot<=12;slot++)assert.deepEqual(session.draft.keymap.slice(slot*4,slot*4+4),Uint8Array.of(3,233,0,91));
+  // Source ordinary replacement owns all four bytes, including trailing zero.
+  for(let slot=1;slot<=12;slot++)assert.deepEqual(session.draft.keymap.slice(slot*4,slot*4+4),Uint8Array.of(3,233,0,0));
   assert.deepEqual(session.draft.fn,before.fn);
 });
 test('switch edits recalculate valid travel without silently clamping unrelated distances',()=>{

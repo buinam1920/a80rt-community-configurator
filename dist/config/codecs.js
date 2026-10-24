@@ -119,18 +119,20 @@ function patchBinding(bytes,edit,capability) {
   const properties = own(types,value.type) ? types[value.type] : null;
   if (!properties) { bytes.set(encodeAdvancedBinding(value,bytes.slice(offset,offset+4),capability),offset);return; }
   for (const key of Object.keys(value)) if (!properties.includes(key)) fail(`binding.${key}`,'unknown property');
-  // Preserve byte3 for the simple types: manufacturer decoding leaves it opaque.
-  if (value.type==='empty') bytes.fill(0,offset,offset+3);
+  // getUpdateKeyData initializes a complete four-byte record; getBuildFn copies
+  // all four. Explicit replacement clears the prior type's payload (e.g. WIN's
+  // trailing 8), while every unedited record remains byte-exact.
+  if (value.type==='empty') bytes.fill(0,offset,offset+4);
   else if (value.type==='keyboard') {
     const usage = member(value.usage??0,capability.limits.keyboardUsages,'binding.usage'), modifier = member(value.modifier??0,capability.limits.modifierUsages,'binding.modifier');
     if (usage && modifier) fail('binding.modifier','combined modifier+usage has no verified source editor');
-    bytes.set([2,modifier,usage],offset);
+    bytes.set([2,modifier,usage,0],offset);
   } else if (value.type==='mouse') {
     const mouseCode=member(value.mouseCode,[1,3],'binding.mouseCode');
-    bytes.set([1,mouseCode,member(value.code,capability.limits.mouseCodes[mouseCode],'binding.code')],offset);
+    bytes.set([1,mouseCode,member(value.code,capability.limits.mouseCodes[mouseCode],'binding.code'),0],offset);
   }
   else if (value.type==='media') {
-    const usage=member(value.usage,capability.limits.mediaUsages,'binding.usage');bytes.set([3,usage&255,usage>>8],offset);
+    const usage=member(value.usage,capability.limits.mediaUsages,'binding.usage');bytes.set([3,usage&255,usage>>8,0],offset);
   } else {
     const code=member(value.code,capability.limits.functionCodes,'binding.function');bytes.set([13,code>>>16,code>>>8&255,code&255],offset);
   }

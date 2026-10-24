@@ -19,7 +19,9 @@ test('baseline profile restores ordinary binding after DKS without clearing the 
  const s=session(),baseline=api.parseProfile(json(profile(s)),cap);
  s.advanced({type:'dks',slots:[34],index:1,pattern});const dks=s.draft.dks;
  const before=s.draft;assert.ok(api.previewProfile(baseline,s).some(c=>c.block==='keymap'));assert.deepEqual(s.draft,before);
- api.loadProfile(baseline,s);assert.deepEqual(s.draft.keymap.slice(136,140),Uint8Array.of(2,0,26,91));assert.deepEqual(s.draft.dks,dks);
+ // Source getUpdateKeyData canonicalizes the explicitly replaced binding;
+ // the profile's old fourth byte is not payload for this keyboard target.
+ api.loadProfile(baseline,s);assert.deepEqual(s.draft.keymap.slice(136,140),Uint8Array.of(2,0,26,0));assert.deepEqual(s.draft.dks,dks);
 });
 test('stale unreferenced profile DKS record cannot block an unrelated supported edit',()=>{
  const s=session(),p=profile(s);p.blocks.dks[32]=255;p.blocks.colors[137]=12;
@@ -59,7 +61,7 @@ test('v1 opens only as view-only data and cannot load or save as full profile',a
 test('preview and load use semantic atomic patches retaining current opaque bytes and locked Fn',()=>{
  const target=session(),p=profile();p.blocks.settings[0]=19;p.blocks.colors.splice(136,4,2,3,4,5);p.blocks.rt[273]=7;p.blocks.fn.splice(4,4,13,0,0,3);p.blocks.keymap.splice(136,4,2,0,4,199);
  const before=target.draft,preview=api.previewProfile(p,target);assert.deepEqual(target.draft,before);assert.equal(preview.length,3);
- const changes=api.loadProfile(p,target);assert.equal(changes.length,3);assert.deepEqual(target.draft.colors.slice(136,140),Uint8Array.of(77,3,4,5));assert.equal(target.draft.settings[0],231);assert.equal(target.draft.rt[273],129);assert.equal(target.draft.keymap[139],91);assert.deepEqual(target.draft.fn,before.fn);assert.deepEqual(target.draft.device,before.device);
+ const changes=api.loadProfile(p,target);assert.equal(changes.length,3);assert.deepEqual(target.draft.colors.slice(136,140),Uint8Array.of(77,3,4,5));assert.equal(target.draft.settings[0],231);assert.equal(target.draft.rt[273],129);assert.equal(target.draft.keymap[139],0);assert.deepEqual(target.draft.keymap.slice(140),before.keymap.slice(140));assert.deepEqual(target.draft.fn,before.fn);assert.deepEqual(target.draft.device,before.device);
 });
 test('invalid supported field rejects whole transaction and preserves an existing draft',()=>{
  const target=session();target.edit('colors',[{slot:49,field:'rgb',value:{red:8,green:9,blue:10}}]);const before=target.draft,diff=target.diff(),p=profile();p.blocks.colors[137]=7;p.blocks.lighting[9]=255;

@@ -39,6 +39,62 @@ class Wired extends EventTarget {
 async function setup(){const device=new Wired(),transport=new A80Transport(device,{timeoutMs:15});await transport.open();return {device,transport};}
 const rgb={slot:34,field:'rgb',value:{red:27,green:128,blue:255}};
 
+test('Fn WIN replacement sends canonical keyboard W through wired policy and restores its function',async()=>{
+  const {device,transport}=await setup();
+  try{
+    device.blocks.fn.set([13,0,0,8],136);const original=device.blocks.fn.slice();
+    const session=new ConfigSession(await readSnapshot(transport,cap),cap);device.sent=[];
+    session.edit('fn',[{slot:34,field:'binding',value:{type:'keyboard',usage:26,modifier:0}}]);
+    assert.deepEqual(Array.from(session.draft.fn.slice(136,140)),[2,0,26,0]);
+    const result=await session.apply(transport);assert.equal(result.status,'verified',result.error);
+    assert.deepEqual(result.verifiedFields,[{block:'fn',path:'records[34].binding'}]);
+    const packet=device.sent.find(p=>p[1]===0x26&&(p[3]|p[4]<<8)===112);
+    assert.deepEqual(Array.from(packet.slice(32,36)),[2,0,26,0]);
+    assert.deepEqual(Array.from(session.snapshot.blocks.fn.slice(136,140)),[2,0,26,0]);
+    session.edit('fn',[{slot:34,field:'binding',value:{type:'function',code:8}}]);
+    assert.equal((await session.apply(transport)).status,'verified');assert.deepEqual(device.blocks.fn,original);
+  }finally{await transport.close();}
+});
+
+class HostElement {
+  constructor(tag='div'){this.tag=tag;this.children=[];this.listeners=new Map();this.value='';this.disabled=false;this.hidden=false;this.attributes={};this.textContent='';this.style={setProperty(){}};this.classList={toggle(){}};}
+  append(...nodes){for(const node of nodes){node.parentElement=this;this.children.push(node);if(this.tag==='select'&&this.children.length===1)this.value=node.value;}}
+  replaceChildren(...nodes){this.children=[];this.append(...nodes);}setAttribute(k,v){this.attributes[k]=v;}
+  get options(){return this.children;}focus(){}
+  querySelectorAll(){return this.children.flatMap(child=>[child,...(child.querySelectorAll?.()??[])]).filter(child=>['input','select','button'].includes(child.tag));}
+  addEventListener(type,fn){this.listeners.set(type,fn);}removeEventListener(type){this.listeners.delete(type);}
+  async trigger(type,event={}){await this.listeners.get(type)?.({target:this,...event});}
+}
+
+test('actual host locks editors and apply after unconfirmed readback, preserves draft, and a nine-block read recovers',async()=>{
+  const old={document:globalThis.document,window:globalThis.window,navigator:Object.getOwnPropertyDescriptor(globalThis,'navigator')};
+  const device=new Wired(),hid=new EventTarget(),elements=[],roots=new Map(),doc=new EventTarget(),win=new EventTarget();
+  const get=id=>elements.findLast(el=>el.id===id)??roots.get(id)??(()=>{const el=new HostElement();roots.set(id,el);return el;})();
+  doc.getElementById=get;doc.createElement=tag=>{const el=new HostElement(tag);elements.push(el);return el;};doc.createTextNode=text=>({textContent:text});doc.hasFocus=()=>true;win.isSecureContext=true;hid.requestDevice=async()=>[device];
+  globalThis.document=doc;globalThis.window=win;Object.defineProperty(globalThis,'navigator',{configurable:true,value:{hid}});
+  try{
+    await import('../dist/app.js?task9-unconfirmed-host');await get('connect-button').trigger('click');await get('read-button').trigger('click');
+    const input=get('core-pressMm'),original=input.value;input.value='0.01';await input.trigger('change');
+    assert.equal(get('apply-button').disabled,false);
+    device.alterReply=(reply,packet)=>{if(packet[1]===0x17&&(packet[3]|packet[4]<<8)===224)reply[60]^=1;return reply;};
+    await get('apply-button').trigger('click');
+    assert.match(get('message').textContent,/Read-back mismatch/);assert.match(get('apply-reason').textContent,/đọc lại.*9|9.*đọc lại/i);
+    assert.equal(get('core-pressMm').disabled,true);assert.equal(get('settings-topDeadZone').disabled,true);
+    assert.equal(get('apply-button').disabled,true);assert.equal(get('revert-button').disabled,true);
+    assert.match(get('draft-count').textContent,/1 thay đổi/);assert.equal(get('core-pressMm').value,'0.01');
+    assert.equal(get('read-button').disabled,false);assert.equal(get('export-button').disabled,false);
+    assert.match(get('source-note').textContent,/chưa đủ/);
+    device.alterReply=null;device.sent=[];await get('read-button').trigger('click');
+    assert.equal(new Set(device.sent.map(p=>p[1])).size,9);
+    assert.equal(get('core-pressMm').disabled,false);assert.equal(get('settings-topDeadZone').disabled,false);
+    assert.match(get('draft-count').textContent,/0 thay đổi/);
+    get('core-pressMm').value=original;await get('core-pressMm').trigger('change');assert.equal(get('apply-button').disabled,false);
+  }finally{
+    await get('disconnect-button').trigger('click');globalThis.document=old.document;globalThis.window=old.window;
+    if(old.navigator)Object.defineProperty(globalThis,'navigator',old.navigator);else delete globalThis.navigator;
+  }
+});
+
 test('production policy requires a fresh complete genuine firmware read; reconnect and link loss reset it',async()=>{
   const {device,transport}=await setup();
   try {

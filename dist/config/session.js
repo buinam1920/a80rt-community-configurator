@@ -173,6 +173,7 @@ export class ConfigSession {
       },{signal,sessionId:this.#origin.sessionId,writeEpoch:this.#origin.writeEpoch});
     }catch(error){
       const mayHaveWritten=result.writtenBlocks.length>0||(error.writeProgress?.sentChunks??0)>0;
+      if(mayHaveWritten)this.invalidate('Chưa xác nhận trạng thái thiết bị sau khi ghi; đọc lại đủ 9 nhóm cấu hình trước khi chỉnh sửa hoặc áp dụng tiếp. Bản nháp vẫn được giữ; hoàn tác cục bộ không chứng minh thiết bị đã khôi phục.');
       if(activeBlock&&(error.writeProgress?.sentChunks??0)>0)result.partialBlock=activeBlock;
       if(error.writeProgress)result.writeProgress=copy(error.writeProgress);
       return {...result,status:mayHaveWritten?'unconfirmed':'failed',error:error.message??String(error)};

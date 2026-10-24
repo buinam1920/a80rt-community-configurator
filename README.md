@@ -1,4 +1,4 @@
-# A80RT Configurator — 0.3.0
+# A80RT Configurator — 0.3.1
 
 Ứng dụng WebHID cục bộ để đọc đủ 9 nhóm cấu hình LEOBOG A80RT / A80RT U, chỉnh bản nháp RT, gán phím, Fn, đèn, màu từng phím, macro, phím nâng cao và thiết lập chung. Dữ liệu thiết bị và hồ sơ cấu hình được xử lý trong trình duyệt. [Bảng đối chiếu tính năng](docs/feature-parity.md) ghi riêng chức năng triển khai, kiểm thử mô phỏng, bằng chứng phần cứng và các mục phụ thuộc hãng.
 
@@ -7,7 +7,7 @@
 1. Mở trang trực tiếp trong Chrome hoặc Edge trên máy tính. Nếu khung xem không cho phép USB, mở URL của trang trong tab trình duyệt riêng. Đóng tab driver hãng.
 2. Chọn **Kết nối bàn phím**, rồi **Đọc cấu hình**. Chỉ sau khi đọc đủ 9 nhóm mới chỉnh được bản nháp. Không thay dữ liệu thiếu bằng cấu hình mặc định.
 3. Chọn phím và chỉnh các mục cần thiết. Mọi thay đổi chỉ ở bản nháp; thanh trượt không tự gửi USB.
-4. Với **A80RT U có dây, firmware 1.37**, giao diện input/output report ID0, 64 byte, usage FF68/61, bấm **Áp dụng** để gửi. Ứng dụng chỉ báo đã áp dụng khi đọc lại khớp các trường đã sửa. Lỗi hoặc ngắt kết nối giữ lại bản nháp; nếu đã gửi một phần, đọc lại cấu hình trước khi thử tiếp.
+4. Với **A80RT U có dây, firmware 1.37**, giao diện input/output report ID0, 64 byte, usage FF68/61, bấm **Áp dụng** để gửi. Ứng dụng chỉ báo đã áp dụng khi đọc lại khớp các trường đã sửa. Nếu ghi chưa được xác nhận, ứng dụng giữ bản nháp và lỗi, khóa chỉnh sửa/Áp dụng/Hoàn tác cho tới khi đọc mới đủ 9 nhóm. Có thể xuất JSON bản nháp trước khi đọc lại; số thay đổi cục bộ không chứng minh thiết bị đã khôi phục.
 5. Dữ liệu mẫu và JSON mở lại chỉ dùng cho bản nháp cục bộ. Kể cả JSON có nhãn nguồn thiết bị và firmware phù hợp cũng không cấp quyền ghi. Sau khi kết nối lại cần đọc mới. A80RT, đầu thu 2.4 GHz, firmware/giao diện khác vẫn chưa mở ghi.
 6. Xuất JSON để lưu bản đang xem hoặc bản nháp. Tệp có thể chứa cấu hình cá nhân và macro; tự chọn nơi lưu/chia sẻ. Nhật ký giữ tối đa 500 gói cấu hình, không ghi nội dung gõ phím thông thường.
 
@@ -25,7 +25,7 @@ Bộ chọn switch từng phím chỉ mở cho A80RT U có dây theo điều ki�
 
 Trong **Hồ sơ cấu hình**, đặt tên rồi **Lưu bản nháp thành hồ sơ**. Hồ sơ được lưu trong IndexedDB của trình duyệt và phân theo đủ danh tính model, cổng kết nối, VID/PID và tên sản phẩm. Chọn hồ sơ để đổi tên, nhân bản, xóa hoặc xuất JSON v2. Mỗi lần lưu bản nháp tạo một hồ sơ mới. Đổi thư viện model để xem hồ sơ của model khác.
 
-**Xem trước đã chọn**, **Nhập hồ sơ JSON** và **Khôi phục phiên gần nhất** luôn mở bản xem trước. Bấm **Đưa vào bản nháp** để xác nhận. Khi đã có phiên chỉnh sửa, chỉ các trường được hỗ trợ được chuyển trong một giao dịch nguyên tử; byte chưa giải mã, marker màu, bit dành riêng, thông tin thiết bị và Fn F1–F12 giữ theo bản nháp hiện tại. Liên kết macro/DKS/RS/SOCD được kiểm tra; lỗi giữ nguyên toàn bộ bản nháp. Hồ sơ khác model, thiếu một trong 9 vùng, byte sai hoặc con trỏ macro lỗi bị từ chối.
+**Xem trước đã chọn**, **Nhập hồ sơ JSON** và **Khôi phục phiên gần nhất** luôn mở bản xem trước. Bấm **Đưa vào bản nháp** để xác nhận. Khi đã có phiên chỉnh sửa, chỉ các trường được hỗ trợ được chuyển trong một giao dịch nguyên tử; byte chưa giải mã ngoài bản ghi gán phím được thay, marker màu, bit dành riêng, thông tin thiết bị và Fn F1–F12 giữ theo bản nháp hiện tại. Thay gán phím rỗng/phím/chuột/media sở hữu đủ 4 byte và đặt byte cuối bằng 0 theo bộ mã hóa hãng; chức năng sở hữu đủ 4 byte mã chức năng. Bản ghi không sửa giữ nguyên. Liên kết macro/DKS/RS/SOCD được kiểm tra; lỗi giữ nguyên toàn bộ bản nháp. Hồ sơ khác model, thiếu một trong 9 vùng, byte sai hoặc con trỏ macro lỗi bị từ chối.
 
 Xem trước liệt kê các trường chưa hỗ trợ bị bỏ qua, gồm bottom/rtMode, switch của dongle và các bộ chỉnh chưa xác minh cho A80RT. Các trường này giữ giá trị hiện tại, kể cả bit từ hồ sơ cũ khác giá trị đang đọc. Mở hồ sơ khi chưa có phiên chỉ tạo phiên ngoại tuyến từ dữ liệu đã lưu.
 
@@ -41,9 +41,13 @@ Ngày 22/10/2026, công cụ USB gốc đọc đủ 9 nhóm (4688 byte) trên A8
 
 Đã đo 22 ACK ghi màu (0x24) và gói điều khiển sau ghi (0). Header phản hồi gồm 55/command/count/offset/00/final/00, report64, count56 và final8 cho màu; control0 count56/final1. Không giả định payload ACK lặp payload đọc. Kiểm thử có dùng bản sao header đã loại dữ liệu riêng; phần đệm trong thiết bị giả là dữ liệu tổng hợp, không phải capture phần cứng.
 
-Các lệnh cấu hình 0x21–0x28 dùng cùng tuyến sendReportSuper/buildPkt_final/getStoreData trong mã nguồn hãng. Bản này cho phép các lệnh đã ánh xạ đó trên đúng giao diện và firmware có dây nêu trên, áp dụng chính sách header nghiêm ngặt và đọc lại các trường đã đổi. **Ngoài màu/control, các lệnh chưa được thử riêng trên phần cứng**; các gói ngắn đầu/cuối của settings32 và lighting16 cũng chưa đo riêng. Không mở opcode tùy ý hay lệnh bảo trì compact.
+Các lệnh cấu hình 0x21–0x28 dùng cùng tuyến sendReportSuper/buildPkt_final/getStoreData trong mã nguồn hãng. Bản này cho phép các lệnh đã ánh xạ đó trên đúng giao diện và firmware có dây nêu trên, áp dụng chính sách header nghiêm ngặt và đọc lại các trường đã đổi. Màu/control và các phép RT/settings/base W bên dưới đã có đọc lại thực; các nhóm khác vẫn là suy luận nguồn. Lighting16 chưa có phép ghi/ACK riêng. Không mở opcode tùy ý hay lệnh bảo trì compact.
 
 Ngày 23/10/2026, phép thử trên chính trang riêng tư đã triển khai trong trình duyệt đã đạt: đọc 9/9 nhóm trên A80RT U có dây firmware 1.37, đổi riêng RGB lưu của W từ #000000 sang #1b80ff, **Áp dụng** báo đọc lại khớp rồi khôi phục #000000 bằng một lần Áp dụng được xác minh nữa. Chế độ đèn toàn bàn phím giữ nguyên 11. Bằng chứng này xác nhận luồng trình duyệt cho màu W; không mở rộng thành kiểm thử các nhóm khác, màu đèn nhìn thấy hoặc lưu sau mất điện. Kiểm tra mô phỏng không thay thế bằng chứng USB.
+
+Ngày 24/10/2026, controller đo thêm trên cùng U có dây: ngưỡng nhấn RT của W 0→0,01→0 mm; vùng chết phía trên toàn bàn phím 0,30→0,31→0,30 mm; base W [0,0,0,0]→[2,0,26,0]→[0,0,0,0]. Mỗi phép có hai lần Áp dụng và đọc lại ngữ nghĩa khớp, gồm lần khôi phục. Đây là xác nhận cấu hình đọc lại, chưa đo cảm giác RT, ký tự phát ra hoặc lưu sau mất điện.
+
+Phép Fn W từ WIN [13,0,0,8] sang keyboard W trên 0.3.0 trả lỗi đọc lại, chưa xác nhận. Đọc USB mới độc lập sau kết nối lại xác nhận Fn W vẫn [13,0,0,8], base W đã về rỗng, 8 byte RT W bằng 0 và settings[8]=30. Bản 0.3.1 sửa mã hóa thay gán đủ 4 byte theo nguồn ([ghi chú](docs/binding-source-evidence.md)); chưa chứng minh sai byte cuối là nguyên nhân lỗi, cũng chưa chứng minh Fn W hoạt động vật lý sau sửa. Cần controller thử lại phần cứng; không thêm khóa Fn W hoặc bỏ xác minh.
 
 ## Chạy tại máy và kiểm thử
 
@@ -59,7 +63,7 @@ Mở localhost bằng Chrome/Edge, không mở qua file://. Chạy kiểm thử 
 npm test
 ```
 
-HTML chứa một import map cho **toàn bộ** module JavaScript, dùng chung token phiên bản `0.3.0`; entry script và CSS dùng cùng token. Source imports giữ đường dẫn không query để browser có một registry/class và Node giữ cùng module identity. Mỗi lần phát hành thay module phải cập nhật phiên bản package, import map, entry/CSS và metadata cùng nhau; kiểm thử release graph kiểm tra đủ đường dẫn và các chu trình. Không dựa riêng vào `_headers` chưa xác minh trên Sites. Controller kiểm tra cache/CSP và triển khai lên Site hiện có.
+HTML chứa một import map cho **toàn bộ** module JavaScript, dùng chung token phiên bản `0.3.1`; entry script và CSS dùng cùng token. Source imports giữ đường dẫn không query để browser có một registry/class và Node giữ cùng module identity. Mỗi lần phát hành thay module phải cập nhật phiên bản package, import map, entry/CSS và metadata cùng nhau; kiểm thử release graph kiểm tra đủ đường dẫn và các chu trình. Không dựa riêng vào `_headers` chưa xác minh trên Sites. Controller kiểm tra cache/CSP và triển khai lên Site hiện có.
 
 ## Giao thức và giới hạn
 

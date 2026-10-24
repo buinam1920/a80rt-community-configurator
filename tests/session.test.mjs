@@ -241,6 +241,36 @@ test('an ambiguous partial write invalidates its original snapshot for a blind s
   }finally{await transport.close();}
 });
 
+test('unconfirmed mismatch or partial write locks edits and revert until a fresh complete read',async()=>{
+  for(const failure of ['mismatch','partial']){
+    const {device,transport,session}=await setup();
+    try{
+      session.edit('colors',[rgb]);const draft=session.draft,baseline=session.snapshot.blocks;
+      if(failure==='partial')device.badAck=true;
+      else device.alterReply=(reply,packet)=>{if(packet[1]===0x14&&packet[3]===120)reply[25]^=1;};
+      const result=await session.apply(transport);
+      assert.equal(result.status,'unconfirmed');assert.match(result.error,failure==='partial'?/ACK mismatch/:/Read-back mismatch/);
+      assert.equal(session.invalidated,true);assert.match(session.invalidReason,/đọc lại.*9|9.*đọc lại/i);
+      assert.deepEqual(session.draft,draft);assert.deepEqual(session.snapshot.blocks,baseline);
+      assert.throws(()=>session.edit('colors',[rgb]),/đọc lại/i);
+      assert.throws(()=>session.revert(),/đọc lại/i,'local revert must not suggest the device was restored');
+      device.badAck=false;device.alterReply=null;device.sent=[];
+      assert.equal((await session.apply(transport)).status,'failed');assert.equal(device.sent.length,0);
+      const recovered=new protocol.ConfigSession(await protocol.readSnapshot(transport,capability),capability);
+      assert.equal(recovered.invalidated,false);recovered.edit('colors',[rgb]);recovered.revert();assert.deepEqual(recovered.diff(),[]);
+    }finally{await transport.close();}
+  }
+});
+
+test('failed preflight without a write leaves local editing and revert available',async()=>{
+  const {device,transport,session}=await setup({qualified:false});
+  try{
+    session.edit('colors',[rgb]);assert.equal((await session.apply(transport)).status,'failed');
+    assert.equal(device.sent.length,0);assert.equal(session.invalidated,false);
+    session.edit('colors',[{...rgb,value:{red:7,green:8,blue:9}}]);session.revert();assert.deepEqual(session.diff(),[]);
+  }finally{await transport.close();}
+});
+
 test('configuration short-block count owns only captured bytes while control uses source zero padding',async()=>{
   const {device,transport}=await setup();
   try{

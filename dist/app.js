@@ -23,7 +23,7 @@ function clearMessage(){message('');}
 function setText(id,text){$(id).textContent=text;}
 function mode(){return state.snapshot?.source??'empty';}
 function describeSource(){if(mode()==='demo')return 'Dữ liệu mẫu';if(mode()==='import')return 'Bản đã lưu';if(mode()==='device')return state.reader?'Bàn phím thật':Object.keys(state.snapshot.blocks).length?'Bản đọc trước':'Thông tin thiết bị';return 'Chưa có dữ liệu';}
-function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.3.0',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
+function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.3.1',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
 function makeKeyboard(){
   for(const row of LAYOUT){
     const container=document.createElement('div');container.className='key-row';
@@ -215,7 +215,10 @@ async function applyDraft(){
   let result;try{result=await pending;}catch(error){result={status:'failed',error:error.message};}
   if(state.reader===reader&&state.session===session){
     if(result.status==='verified'){state.snapshot.blocks=session.snapshot.blocks;message('Đã áp dụng và đọc lại khớp các trường đã sửa. Chưa xác minh lưu qua lần kết nối lại.');}
-    else message(`${result.status==='unconfirmed'?'Đã gửi một phần, chưa xác nhận':'Chưa áp dụng'}: ${result.error}`,true);
+    else {
+      if(result.status==='unconfirmed')state.snapshot.complete=false;
+      message(`${result.status==='unconfirmed'?'Đã gửi một phần, chưa xác nhận':'Chưa áp dụng'}: ${result.error}${session.invalidated?` ${session.invalidReason}`:''}`,true);
+    }
   }
   state.applying=false;if(state.applyAbort===abort)state.applyAbort=null;editors?.refresh();render();
 }

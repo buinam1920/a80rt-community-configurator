@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "evidence": "tests/fixtures/source/a80rt-manufacturer.json",
-  "qualification": "Manufacturer source plus exact native A80RT U wired 0C45:80A1 FF68/61 input/output report0/64 firmware[55,1] (1.37). Color/control roundtrip22Oct; hosted W color23Oct and RTpress/topDZ/base W24Oct retained. Native25Oct source9697747 ten cases passed target readback and all-nine-block restoration,6036 frames: macro-unassigned/assignment,TGL,MT,RS,SOCD,DKS,polling,brightness,actuation. Fn38 failed app/vendor fresh readback; user physical Fn+U remained PrintScreen, root cause unresolved. Live Fn blocked before TX only for this exact qualified scope; local Fn editing retained. New ten cases not browser UI Apply, key-output/gameplay/timing/power-cycle/full-profile or maintenance verification. Dongle/other firmware remain closed.",
+  "qualification": "Manufacturer source plus exact native A80RT U wired 0C45:80A1 FF68/61 input/output report0/64 firmware[55,1] (1.37). Color/control roundtrip22Oct; hosted W color23Oct and RTpress/topDZ/base W24Oct retained. Native25Oct source9697747 ten cases passed target readback and all-nine-block restoration,6036 frames: macro-unassigned/assignment,TGL,MT,RS,SOCD,DKS,polling,brightness,actuation. Fn38 failed app/vendor fresh readback; user physical Fn+U remained PrintScreen, root cause unresolved. Live Fn blocked before TX only for this exact qualified scope; local Fn editing retained. New ten cases not browser UI Apply, key-output/gameplay/timing/power-cycle/full-profile or maintenance verification. Plain80A2/dongle/other firmware remain closed; plain local source capability corrections do not qualify hardware.",
   "path": [
     "model-u/model-wired/model-dongle select getLBA80RT",
     "connection routes these devices to generic Device kS/yS",
@@ -214,8 +214,8 @@
         5,
         6
       ],
-      "source": "model-u",
-      "note": "Raw0 remains0; manufacturer display falls back to defaultValue1. Per-key axial.value is not catalog axial.id or device firmware AxialModel. Switch2,3 travel3.3mm, others3.4mm. Applicable edit selector wiredU only, hidden on dongle by timeValue. PlainA80RT selector applicability unverified. See docs/rt-source-evidence.md."
+      "source": ["model-u", "model-wired", "model-dongle"],
+      "note": "Raw0 remains0; manufacturer display falls back to defaultValue1. Per-key axial.value is not catalog axial.id or device firmware AxialModel. Switch2,3 travel3.3mm; other known IDs0,1,4,5,6 travel3.4mm. Applicable local selector wiredU and plainA80RT80A2: isAxial and no timeValue; hidden on dongle by timeValue1. Plain catalog cp1626867 (duplicate model-wired fixture cp1020378) directly verified; no hardware qualification implied. Unknown switch travel rejects distance edits, never guessed. See docs/rt-source-evidence.md."
     },
     "whole": {
       "offset": 1,
@@ -588,10 +588,12 @@
         0,
         50
       ],
-      "unit": "0.01mm; raw0..50 displayed0.00..0.50mm, step1; globalU wired/dongle only, plainA80RT applicability unverified; docs/rt-source-evidence.md",
+      "unit": "0.01mm; raw0..50 displayed0.00..0.50mm, step1; global all three A80RT source models via isZone, including plain80A2; local staging only; docs/rt-source-evidence.md",
       "source": [
         "settings",
-        "model-u"
+        "model-u",
+        "model-wired",
+        "model-dongle"
       ]
     },
     "bottomDeadZone": {
@@ -601,10 +603,12 @@
         0,
         50
       ],
-      "unit": "0.01mm; raw0..50 displayed0.00..0.50mm, step1; globalU wired/dongle only, plainA80RT applicability unverified; docs/rt-source-evidence.md",
+      "unit": "0.01mm; raw0..50 displayed0.00..0.50mm, step1; global all three A80RT source models via isZone, including plain80A2; local staging only; docs/rt-source-evidence.md",
       "source": [
         "settings",
-        "model-u"
+        "model-u",
+        "model-wired",
+        "model-dongle"
       ]
     },
     "stability": {
@@ -882,7 +886,7 @@
   "limits": {
     "macroPhysicalCapacity": null,
     "writeAckShape": "Model/session-specific header policy; see writeTransport.ack. Static capabilities do not grant write qualification.",
-    "rtModeNames": "whole bit0=Full Distance Fast Trigger, editableU wired/dongle; bottom bit1=Bottom Optimization and rtMode bit2=Rampage Mode readable/preserved but not editable: applicableU controls absent or gated by missing isModel. PlainA80RT whole applicability unverified. See docs/rt-source-evidence.md.",
+    "rtModeNames": "whole bit0=Full Distance Fast Trigger, unconditional RT render cp2772330..2773325 for all three source models including plain80A2; bottom bit1=Bottom Optimization and rtMode bit2=Rampage Mode readable/preserved but not editable: bottom control absent, following Rampage gated by missing isModel. See docs/rt-source-evidence.md.",
     "unknownFields": "Reject by field name; never guess offsets"
   },
   "writeTransport": {

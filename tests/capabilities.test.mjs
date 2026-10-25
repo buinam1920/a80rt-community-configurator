@@ -60,3 +60,11 @@ test('readPlan covers every source-requested A80RT block; macro span is not capa
   assert.equal(readPlan(cap)[0].length,32);
   assert.throws(()=>readPlan(JSON.parse(JSON.stringify(cap))),/Capability/);
 });
+
+test('all source catalogs enable whole/zones, with switch selection only on wired models',async()=>{
+ const {readFile}=await import('node:fs/promises');const fixture=JSON.parse(await readFile(new URL('./fixtures/source/a80rt-manufacturer.json',import.meta.url),'utf8'));
+ for(const [productId,productName,id]of [[0x80a1,'A80RT U','model-u'],[0x80a2,'A80RT','model-wired'],[0xfefc,'A80RT U Dongle','model-dongle']]){
+  const source=fixture.snippets.find(s=>s.id===id).text,cap=identifyDevice(descriptor(productId,productName));assert.match(source,/isAxial:!0/);assert.match(source,/isZone:!0,zoneInfo:\{min:0,max:50\}/);assert.equal(/timeValue:1/.test(source),productId===0xfefc);
+  assert.equal(cap.fields.rt.switchId,productId!==0xfefc);assert.equal(cap.fields.rt.whole,true);assert.equal(cap.fields.settings.topDeadZone,true);assert.equal(cap.fields.settings.bottomDeadZone,true);assert.equal(cap.fields.rt.bottom,false);assert.equal(cap.fields.rt.rtMode,false);assert.equal(cap.features.writeQualified,false);assert.equal(cap.hardwareQualified,false);
+ }
+});

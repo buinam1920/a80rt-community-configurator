@@ -100,6 +100,7 @@ export class A80Reader {
     try{return await readSnapshot(this.transport,capability,{signal:abort.signal,onProgress});}
     finally{this.active=false;if(this.abort===abort)this.abort=null;}
   }
+  /** @deprecated Legacy partial diagnostics (six blocks); use readConfiguration for production nine-block sessions. */
   async readAll(onProgress=()=>{},onBlock=()=>{}) {
     if(this.active)throw new Error('Một lượt đọc đang chạy.');
     if(!this.getState().opened)throw new Error('Thiết bị chưa mở kết nối.');

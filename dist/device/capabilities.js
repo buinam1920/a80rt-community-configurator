@@ -18,9 +18,8 @@ const freeze = object => {
 
 function createCapability(model) {
   const dongle = model[0] === 0xfefc;
-  const uModel = model[0] === 0x80a1 || dongle;
   const identity = {vendorId:0x0c45,productId:model[0],productName:model[1],transport:dongle ? 'dongle' : 'wired',model:model[2]};
-  const settings = {polling:!dongle,sleep:dongle,wake:false,stability:true,autoCalibration:true,topDeadZone:uModel,bottomDeadZone:uModel,responseTime:false,osMode:false,tftTime:false};
+  const settings = {polling:!dongle,sleep:dongle,wake:false,stability:true,autoCalibration:true,topDeadZone:true,bottomDeadZone:true,responseTime:false,osMode:false,tftTime:false};
   const advanced = ['rs','socd','dks','mt','tgl'];
   const capability = freeze({
     identity,
@@ -36,7 +35,7 @@ function createCapability(model) {
     // Booleans describe local field editing, not successful device writes.
     fields:{
       device:{version:false,battery:false,axialModel:false},settings,
-      rt:{switchId:uModel&&!dongle,whole:uModel,bottom:false,rtMode:false,actuationMm:true,pressMm:true,releaseMm:true},
+      rt:{switchId:!dongle,whole:true,bottom:false,rtMode:false,actuationMm:true,pressMm:true,releaseMm:true},
       lighting:{mode:true,red:true,green:true,blue:true,secondaryRed:true,secondaryGreen:true,secondaryBlue:true,colorMode:true,brightness:true,speed:true,direction:true,gearMode:false},
       colors:{rgb:true},keymap:{binding:true},fn:{binding:true},macro:{macros:true},dks:{pattern:true},
     },

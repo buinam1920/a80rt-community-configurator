@@ -109,7 +109,6 @@ export function mountDeviceSettings(root,context){
    listen(input,'change',()=>{dirty.add(field.id);try{if(!editable())throw new Error('Đọc lại snapshot đầy đủ trước khi sửa thiết lập.');const scaled=input.value.trim()===''?NaN:Number(input.value)*(field.scale??1);const value=Math.abs(scaled-Math.round(scaled))<1e-8?Math.round(scaled):scaled;session.edit('settings',[{field:field.id,value}]);dirty.delete(field.id);context.onEdit?.();show('Đã thêm thiết lập vào bản nháp. Bấm Áp dụng để gửi và đọc lại xác minh.');}catch(error){show(`Chưa thêm vào bản nháp: ${error.message}`);}});
  }
  general.append(make('p','Các trường hệ điều hành và cách đánh thức chưa có mã giá trị/model được xác minh; dữ liệu gốc được giữ nguyên.','editor-hint'));
- if(!capability.settings.topDeadZone)general.append(make('p','Vùng chết toàn bàn phím: chưa xác minh phạm vi áp dụng cho A80RT trong nguồn đã lưu; giữ nguyên dữ liệu gốc.','editor-hint'));
  const maintenance=panels.get('maintenance'),maintenanceReason=element('p','settings-maintenance-reason',undefined,'editor-hint');maintenance.append(maintenanceReason);
  maintenance.append(make('h3','Hiệu chuẩn thủ công'),make('p',capability.maintenance.manualCalibration?'Giữ kết nối trong suốt phiên. Kết thúc và hủy đều gửi thao tác kết thúc/lưu; kết quả đã hiệu chuẩn có thể được lưu và không được hoàn tác.':'Driver hãng ẩn hiệu chuẩn thủ công cho model đầu thu này. Dùng hướng dẫn chính thức đúng model.','editor-hint'));
  const calibrationActions=make('div',undefined,'actions');maintenance.append(calibrationActions);

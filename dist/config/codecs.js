@@ -86,7 +86,9 @@ function patchRT(bytes,edit,capability) {
     bytes[offset+1] = value ? bytes[offset+1] | FLAGS[field] : bytes[offset+1] & ~FLAGS[field];
   } else if (own(DISTANCES,field)) {
     const scaled = value*100;
-    if (typeof value!=='number' || !Number.isFinite(value) || Math.abs(scaled-Math.round(scaled))>1e-8 || value<(field==='actuationMm'?0.01:0) || value>3.4) fail(field,'expected 0.01mm steps within switch travel');
+    // Stored actuation zero is a roundtrippable sentinel, not a physical distance claim.
+    // Direct manual actuation input keeps its positive minimum in the editor model.
+    if (typeof value!=='number' || !Number.isFinite(value) || Math.abs(scaled-Math.round(scaled))>1e-8 || value<0 || value>3.4) fail(field,'expected 0.01mm steps within switch travel');
     const index = offset+DISTANCES[field], raw = Math.round(scaled);
     bytes[index] = raw&255; bytes[index+1] = raw>>8;
   } else fail(field);

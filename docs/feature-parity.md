@@ -1,6 +1,8 @@
-# Đối chiếu tính năng 0.3.2
+# Đối chiếu tính năng 0.3.3
 
 Phạm vi đối chiếu gồm đủ các nhóm trong thiết kế được duyệt. **Triển khai** là hành vi mã/giao diện thực có; **mô phỏng** là kiểm thử bằng dữ liệu tổng hợp; **USB thật** chỉ ghi phép đã được thực hiện. Nguồn là [driver LEOBOG](https://leobog.driveall.cn/) đã quan sát 22/10/2026, các đoạn có hash trong [fixture nguồn](../tests/fixtures/source/a80rt-manufacturer.json), [ghi chú RT](rt-source-evidence.md) và [thay gán 4 byte](binding-source-evidence.md); [protocol-facts](../dist/device/protocol-facts.json) ghi offset, command và giới hạn.
+
+Bản 0.3.3 sửa khôi phục điểm nhận raw0 từ hồ sơ sau khi đã sửa dương: codec/session cho phép giá trị đã lưu, editor thủ công vẫn tối thiểu 0,01 mm. Kiểm thử tổng hợp xác minh preview không sửa bản nháp, giao dịch lỗi giữ nguyên mọi nhóm, chỉ hai byte điểm nhận được sở hữu, và luồng qualified wired 1,2 → raw0 qua Apply/đọc lại. Ý nghĩa vật lý raw0 chưa xác định; đây không phải bằng chứng Apply hồ sơ qua UI hoặc phép đo USB mới.
 
 | Nhóm | Hành vi triển khai / nguồn | Mô phỏng và UI cục bộ | USB thật / phụ thuộc hoặc gate |
 |---|---|---|---|

@@ -1,4 +1,4 @@
-# A80RT Configurator — 0.3.2
+# A80RT Configurator — 0.3.3
 
 Ứng dụng WebHID cục bộ để đọc đủ 9 nhóm cấu hình LEOBOG A80RT / A80RT U, chỉnh bản nháp RT, gán phím, Fn, đèn, màu từng phím, macro, phím nâng cao và thiết lập chung. Dữ liệu thiết bị và hồ sơ cấu hình được xử lý trong trình duyệt. [Bảng đối chiếu tính năng](docs/feature-parity.md) ghi riêng chức năng triển khai, kiểm thử mô phỏng, bằng chứng phần cứng và các mục phụ thuộc hãng.
 
@@ -28,6 +28,8 @@ Trong **Hồ sơ cấu hình**, đặt tên rồi **Lưu bản nháp thành hồ
 **Xem trước đã chọn**, **Nhập hồ sơ JSON** và **Khôi phục phiên gần nhất** luôn mở bản xem trước. Bấm **Đưa vào bản nháp** để xác nhận. Khi đã có phiên chỉnh sửa, chỉ các trường được hỗ trợ được chuyển trong một giao dịch nguyên tử; byte chưa giải mã ngoài bản ghi gán phím được thay, marker màu, bit dành riêng, thông tin thiết bị và Fn F1–F12 giữ theo bản nháp hiện tại. Thay gán phím rỗng/phím/chuột/media sở hữu đủ 4 byte và đặt byte cuối bằng 0 theo bộ mã hóa hãng; chức năng sở hữu đủ 4 byte mã chức năng. Bản ghi không sửa giữ nguyên. Liên kết macro/DKS/RS/SOCD được kiểm tra; lỗi giữ nguyên toàn bộ bản nháp. Hồ sơ khác model, thiếu một trong 9 vùng, byte sai hoặc con trỏ macro lỗi bị từ chối.
 
 Xem trước liệt kê các trường chưa hỗ trợ bị bỏ qua, gồm bottom/rtMode, switch của dongle và các bộ chỉnh chưa xác minh cho A80RT. Các trường này giữ giá trị hiện tại, kể cả bit từ hồ sơ cũ khác giá trị đang đọc. Mở hồ sơ khi chưa có phiên chỉ tạo phiên ngoại tuyến từ dữ liệu đã lưu.
+
+Hồ sơ có điểm nhận raw0 có thể xem trước và đưa lại giá trị đã lưu vào bản nháp sau khi sửa sang giá trị dương. Raw0 là giá trị được bảo toàn; chưa xác định ý nghĩa vật lý và không suy ra khoảng cách mặc định. Nhập điểm nhận thủ công vẫn tối thiểu 0,01 mm; tải hồ sơ chỉ sửa hai byte điểm nhận qua trường ngữ nghĩa hiện có, giữ nguyên byte khác và kiểm tra giao dịch/đọc lại.
 
 Sau thay đổi hợp lệ, bản nháp được giữ cục bộ sau khoảng 350 ms; đợi thông báo **Đã giữ bản nháp để phục hồi sau tải lại** trước khi tải lại trang. Chọn thư viện model rồi **Khôi phục phiên gần nhất** để mở lại. Bản phục hồi mở ngoại tuyến; cần kết nối và đọc mới trước khi chuyển hồ sơ vào phiên thiết bị để áp dụng. Sự kiện macro còn ở trình nhập và chưa bấm **Lưu macro vào bản nháp** không thuộc bản phục hồi. Lỗi dung lượng/quyền lưu không xóa bản nháp đang mở hoặc bản lưu trước.
 
@@ -69,7 +71,7 @@ Mở localhost bằng Chrome/Edge, không mở qua file://. Chạy kiểm thử 
 npm test
 ```
 
-HTML chứa một import map cho **toàn bộ 13** module JavaScript, dùng chung token phiên bản `0.3.2`; entry script và CSS dùng cùng token. Source imports giữ đường dẫn không query để browser có một registry/class và Node giữ cùng module identity. Mỗi lần phát hành thay module phải cập nhật phiên bản package, import map, entry/CSS và metadata cùng nhau; kiểm thử release graph kiểm tra đủ đường dẫn và các chu trình. Không dựa riêng vào `_headers` chưa xác minh trên Sites. Controller kiểm tra cache/CSP và triển khai lên Site hiện có.
+HTML chứa một import map cho **toàn bộ 13** module JavaScript, dùng chung token phiên bản `0.3.3`; entry script và CSS dùng cùng token. Source imports giữ đường dẫn không query để browser có một registry/class và Node giữ cùng module identity. Mỗi lần phát hành thay module phải cập nhật phiên bản package, import map, entry/CSS và metadata cùng nhau; kiểm thử release graph kiểm tra đủ đường dẫn và các chu trình. Không dựa riêng vào `_headers` chưa xác minh trên Sites. Controller kiểm tra cache/CSP và triển khai lên Site hiện có.
 
 ## Giao thức và giới hạn
 
@@ -79,5 +81,5 @@ Nguồn: mã trình duyệt [driver LEOBOG](https://leobog.driveall.cn/), bundle
 - Đọc: device0x10/32, settings0x11/32, keymap0x12/512, lighting0x13/16, colors0x14/512, macro0x15/1024, Fn0x16/512, RT0x17/1024, DKS0x18/1024. Dung lượng macro vật lý chưa được đo; 1024 là vùng đọc theo nguồn.
 - Request AA/command/count/offsetLE/00/final/00, payload từ byte8. Đọc có thể thử lại một lần; ghi/control không thử lại. Phản hồi khác command/offset bị bỏ qua; phản hồi ghi trùng command/offset nhưng sai count/flags/report length gây lỗi đóng.
 - Chỉ một giao dịch giữ transport tại một thời điểm. Snapshot thực có provenance không thể phục hồi từ JSON; session và write epoch ngăn dùng bản đọc cũ sau ghi/kết nối lại. Firmware được xác thực qua phản hồi đọc đầy đủ trong phiên hiện tại; mẫu/import không tạo được attestation.
-- Codec giữ byte chưa giải mã, từ chối trường và liên kết không hợp lệ. RT raw/100 là mm; giá trị raw0 giữ nguyên. Các slot vật lý không liên tục, W34, Backspace92, PgDn108.
+- Codec giữ byte chưa giải mã, từ chối trường và liên kết không hợp lệ. RT raw dương/100 là mm; điểm nhận raw0 được giữ nguyên, chưa xác định ý nghĩa vật lý. Các slot vật lý không liên tục, W34, Backspace92, PgDn108.
 - “Đã áp dụng” chỉ xác nhận các trường đã sửa khớp đọc lại. Control0 là bước sau ghi theo nguồn, chưa phải bằng chứng lưu vĩnh viễn.

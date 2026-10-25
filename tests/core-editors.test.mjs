@@ -12,6 +12,22 @@ function sample(){
   const coverage=Object.fromEntries(readPlan(cap).map(({id,length})=>[id,{complete:true,expectedBytes:length,receivedBytes:length}]));
   return new ConfigSession({identity:cap.identity,blocks,coverage,provenance:{source:'sample'}},cap);
 }
+
+test('manual actuation rejects zero atomically for a selection while stored zero remains readable',()=>{
+  const seed=sample(),raw=seed.draft;raw.rt[34*8+2]=0;
+  const session=new ConfigSession({...seed.snapshot,blocks:raw},cap);let edits=0;
+  const vm=createCoreEditorModel({session,capability:cap,selectedSlots:[34],onEdit:()=>edits++});
+  assert.equal(vm.view().rt.actuationMm.value,0);
+  vm.setSelection([34,49]);const before=session.draft,diff=session.diff();
+  assert.throws(()=>vm.edit('rt','actuationMm',0),/actuationMm.*0\.01/);
+  assert.deepEqual(session.draft,before);assert.deepEqual(session.diff(),diff);assert.equal(edits,0);
+  vm.edit('rt','actuationMm',0.01);
+  assert.equal(vm.view().rt.actuationMm.value,0.01);assert.equal(edits,1);
+  assert.deepEqual(session.diff().map(({path,after,byteOffsets})=>({path,after,byteOffsets})),[
+    {path:'records[34].actuationMm',after:0.01,byteOffsets:[274]},
+    {path:'records[49].actuationMm',after:0.01,byteOffsets:[394]},
+  ]);
+});
 test('W/A mixed selection preserves every byte until an explicit field edit',()=>{
   const session=sample(),before=session.draft,vm=createCoreEditorModel({session,capability:cap,selectedSlots:[34,49]});
   assert.equal(vm.view().rt.actuationMm.mixed,true);assert.equal(vm.view().rt.whole.mixed,true);

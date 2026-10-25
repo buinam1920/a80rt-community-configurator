@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {A80Transport,ConfigSession,readSnapshot} from '../dist/protocol.js';
 import {identifyDevice} from '../dist/device/capabilities.js';
 import {bindingOptions} from '../dist/ui/core-editors.js';
-import {createProfile,exportProfile,parseProfile,loadProfile} from '../dist/config/profiles.js';
+import {createProfile,exportProfile,parseProfile,previewProfile,loadProfile} from '../dist/config/profiles.js';
 
 const measured=JSON.parse(fs.readFileSync(new URL('./fixtures/a80rt-wired-color-qualification.json',import.meta.url)));
 const features=JSON.parse(fs.readFileSync(new URL('./fixtures/a80rt-wired-feature-qualification.json',import.meta.url)));
@@ -41,6 +41,29 @@ class Wired extends EventTarget {
 }
 async function setup(){const device=new Wired(),transport=new A80Transport(device,{timeoutMs:15});await transport.open();return {device,transport};}
 const rgb={slot:34,field:'rgb',value:{red:27,green:128,blue:255}};
+
+test('qualified synthetic session applies 1.2 then loads original stored zero and verifies full restoration',async()=>{
+  const {device,transport}=await setup();
+  try{
+    for(const id of ['macro','dks','keymap','fn'])device.blocks[id].fill(0);
+    device.blocks.rt.set([1,0xfd,0,0,17,0,29,0],792);
+    const original=structuredClone(device.blocks),session=new ConfigSession(await readSnapshot(transport,cap),cap);
+    const profile=parseProfile(exportProfile(createProfile(session,'Stored zero')),cap);
+    session.edit('rt',[{slot:99,field:'actuationMm',value:1.2}]);
+    const first=await session.apply(transport);assert.equal(first.status,'verified');assert.deepEqual(first.verifiedFields,[{block:'rt',path:'records[99].actuationMm'}]);
+    assert.deepEqual(device.blocks.rt.slice(792,800),Uint8Array.of(1,0xfd,120,0,17,0,29,0));
+    const before=session.draft;assert.deepEqual(previewProfile(profile,session),[{block:'rt',path:'records[99].actuationMm',before:1.2,after:0,byteOffsets:[794]}]);assert.deepEqual(session.draft,before);
+    loadProfile(profile,session);device.sent=[];
+    const restored=await session.apply(transport);assert.equal(restored.status,'verified');assert.deepEqual(restored.writtenBlocks,['rt']);
+    assert.deepEqual(restored.verifiedFields,[{block:'rt',path:'records[99].actuationMm'}]);
+    assert.deepEqual([...new Set(device.sent.map(packet=>packet[1]))],[39,0,23]);
+    assert.deepEqual(device.blocks,original);assert.deepEqual((await readSnapshot(transport,cap)).blocks,original);
+    assert.deepEqual(session.diff(),[]);
+    const offline=new ConfigSession({...session.snapshot,blocks:session.draft},cap);
+    offline.edit('rt',[{slot:99,field:'actuationMm',value:1.2}]);device.sent=[];
+    assert.equal((await offline.apply(transport)).status,'failed');assert.deepEqual(device.sent,[]);
+  }finally{await transport.close();}
+});
 
 test('sanitized ten-case fixture exercises measured short and first/final long ACK headers without payload echo',async()=>{
   const {device,transport}=await setup();

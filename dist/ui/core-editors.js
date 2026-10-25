@@ -39,6 +39,7 @@ export function createCoreEditorModel({session,capability,selectedSlots=[],onEdi
     if(isBusy()||session?.applying)throw new Error('Một giao dịch đang chạy.');
     if(!current.complete)throw new Error('Complete snapshot required before editing.');
     if(!slots.length)throw new Error('Selection is empty.');
+    if(block==='rt'&&field==='actuationMm'&&typeof value==='number'&&value<0.01)throw new Error('actuationMm: nhập tối thiểu 0.01 mm.');
     if(block==='binding'&&current.bindingLocked)throw new Error('Fn F1–F12 bị khóa theo cấu hình hãng.');
     const target=block==='binding'?(layer==='fn'?'fn':'keymap'):block;
     const edits=target==='lighting'?[{field,value}]:slots.map(slot=>({slot,field,value}));
@@ -91,7 +92,7 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
     wrap.append(caption,input);panel.append(wrap);controls.set(key,{input,wrap});return input;
   };
   const option=(select,value,label)=>{const el=make('option',label);el.value=String(value);select.append(el);};
-  const rtPanel=panels.get('rt');rtPanel.append(make('p','Chỉ trường bạn sửa được đổi cho vùng chọn. Giá trị 0 đọc được được giữ nguyên; không thay bằng mặc định.','editor-hint'));
+  const rtPanel=panels.get('rt');rtPanel.append(make('p','Chỉ trường bạn sửa được đổi cho vùng chọn. Điểm nhận raw0 đọc được được giữ nguyên và có thể khôi phục từ hồ sơ; chưa xác định ý nghĩa vật lý. Nhập điểm nhận thủ công tối thiểu 0,01 mm.','editor-hint'));
   if(capability?.fields.rt.switchId){
     const switchInput=field(rtPanel,'switchId','Loại switch · ID từng phím','select');option(switchInput,'','—');
     for(const id of capability.limits.switchIds)option(switchInput,id,`${id} · ${capability.limits.switchLabels[id]} · ${capability.limits.switchTravelMm[id]} mm`);

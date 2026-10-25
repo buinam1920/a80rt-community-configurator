@@ -15,6 +15,26 @@ function session(){
 function profile(s=session()){assert.equal(typeof api.createProfile,'function','profile creation API required');return api.createProfile(s,'Cấu hình chơi');}
 const json=p=>JSON.stringify(p);
 const pattern={thresholds:[10,20,20,10],keys:[4,5,6,7],actions:[1,2,4,8]};
+test('original stored-zero profile previews without mutation and restores after a 1.2 draft',()=>{
+ const seed=session(),raw=seed.draft;raw.rt.set([1,0xfd,0,0,17,0,29,0],792);
+ const s=new ConfigSession({...seed.snapshot,blocks:raw},cap),original=api.parseProfile(api.exportProfile(profile(s)),cap);
+ s.edit('rt',[{slot:99,field:'actuationMm',value:1.2}]);const before=s.draft,diff=s.diff();
+ assert.deepEqual(api.previewProfile(original,s),[{block:'rt',path:'records[99].actuationMm',before:1.2,after:0,byteOffsets:[794]}]);
+ assert.deepEqual(s.draft,before);assert.deepEqual(s.diff(),diff);
+ assert.deepEqual(api.loadProfile(original,s),[]);assert.deepEqual(s.draft,raw);
+});
+
+test('stored-zero profile and backend transactions preserve the whole draft when another group is invalid',()=>{
+ const seed=session(),raw=seed.draft;raw.rt[794]=0;
+ const s=new ConfigSession({...seed.snapshot,blocks:raw},cap),original=profile(s);
+ s.edit('rt',[{slot:99,field:'actuationMm',value:1.2}]);const before=s.draft,diff=s.diff();
+ original.blocks.lighting[9]=255;
+ assert.throws(()=>api.previewProfile(original,s),/brightness/);assert.throws(()=>api.loadProfile(original,s),/brightness/);
+ assert.deepEqual(s.draft,before);assert.deepEqual(s.diff(),diff);
+ assert.throws(()=>s.transaction({rt:[{slot:99,field:'actuationMm',value:0}],lighting:[{field:'brightness',value:255}]}),/brightness/);
+ assert.deepEqual(s.draft,before);assert.deepEqual(s.diff(),diff);
+});
+
 test('baseline profile restores ordinary binding after DKS without clearing the unused current pattern',()=>{
  const s=session(),baseline=api.parseProfile(json(profile(s)),cap);
  s.advanced({type:'dks',slots:[34],index:1,pattern});const dks=s.draft.dks;

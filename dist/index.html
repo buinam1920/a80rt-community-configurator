@@ -3,40 +3,40 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="Đọc, chỉnh bản nháp và áp dụng cấu hình A80RT U có dây được hỗ trợ qua WebHID, trực tiếp trên trình duyệt.">
-  <meta name="theme-color" content="#111519"><title>A80RT Configurator · 0.3.2</title>
+  <meta name="theme-color" content="#111519"><title>A80RT Configurator · 0.3.3</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23c3f56b'/%3E%3Cpath d='M16 43L29 19h7l13 24h-8l-3-6H27l-3 6zm14-12h5l-2-5z' fill='%23111519'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./styles.css?v=0.3.2">
+  <link rel="stylesheet" href="./styles.css?v=0.3.3">
   <script type="importmap">
   {"imports":{
-    "./app.js":"./app.js?v=0.3.2",
-    "./layout.js":"./layout.js?v=0.3.2",
-    "./protocol.js":"./protocol.js?v=0.3.2",
-    "./device/capabilities.js":"./device/capabilities.js?v=0.3.2",
-    "./device/transport.js":"./device/transport.js?v=0.3.2",
-    "./config/session.js":"./config/session.js?v=0.3.2",
-    "./config/codecs.js":"./config/codecs.js?v=0.3.2",
-    "./config/macros.js":"./config/macros.js?v=0.3.2",
-    "./config/advanced.js":"./config/advanced.js?v=0.3.2",
-    "./config/profiles.js":"./config/profiles.js?v=0.3.2",
-    "./ui/core-editors.js":"./ui/core-editors.js?v=0.3.2",
-    "./ui/advanced-editors.js":"./ui/advanced-editors.js?v=0.3.2",
-    "./ui/device-settings.js":"./ui/device-settings.js?v=0.3.2"
+    "./app.js":"./app.js?v=0.3.3",
+    "./layout.js":"./layout.js?v=0.3.3",
+    "./protocol.js":"./protocol.js?v=0.3.3",
+    "./device/capabilities.js":"./device/capabilities.js?v=0.3.3",
+    "./device/transport.js":"./device/transport.js?v=0.3.3",
+    "./config/session.js":"./config/session.js?v=0.3.3",
+    "./config/codecs.js":"./config/codecs.js?v=0.3.3",
+    "./config/macros.js":"./config/macros.js?v=0.3.3",
+    "./config/advanced.js":"./config/advanced.js?v=0.3.3",
+    "./config/profiles.js":"./config/profiles.js?v=0.3.3",
+    "./ui/core-editors.js":"./ui/core-editors.js?v=0.3.3",
+    "./ui/advanced-editors.js":"./ui/advanced-editors.js?v=0.3.3",
+    "./ui/device-settings.js":"./ui/device-settings.js?v=0.3.3"
   }}
   </script>
-  <script type="module" src="./app.js?v=0.3.2"></script>
+  <script type="module" src="./app.js?v=0.3.3"></script>
 </head>
 <body>
   <aside class="sidebar">
-    <a class="brand" href="./" aria-label="A80RT Configurator"><span class="brand-icon">A<span>↗</span></span><span>A80RT<span class="brand-sub">CONFIG / 0.3.2</span></span></a>
+    <a class="brand" href="./" aria-label="A80RT Configurator"><span class="brand-icon">A<span>↗</span></span><span>A80RT<span class="brand-sub">CONFIG / 0.3.3</span></span></a>
     <div class="sidebar-section">KHÔNG GIAN LÀM VIỆC</div>
     <div class="nav-current"><span>▦</span> Cấu hình bàn phím <span class="nav-dot"></span></div>
     <div class="side-device"><div class="eyebrow">THIẾT BỊ</div><strong id="device-name">Chưa kết nối</strong><div id="device-sub">LEOBOG A80RT / A80RT U</div><div class="device-visual" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><dl id="device-meta"><dt>Kết nối</dt><dd>USB / 2.4 GHz</dd><dt>Trạng thái</dt><dd>Đang chờ</dd></dl></div>
     <div class="side-bottom"><span class="readonly-dot"></span> CẤU HÌNH TRONG TRÌNH DUYỆT<p>Dữ liệu thiết bị được xử lý trong trình duyệt của bạn.</p><a href="https://leobog.driveall.cn/" target="_blank" rel="noopener noreferrer">Web driver hãng ↗</a></div>
   </aside>
   <main>
-    <header class="topbar"><span>Workspace <span class="slash">/</span> A80RT Configurator</span><span class="build-tag">0.3.2</span></header>
+    <header class="topbar"><span>Workspace <span class="slash">/</span> A80RT Configurator</span><span class="build-tag">0.3.3</span></header>
     <section class="page-heading"><div><div class="eyebrow accent">LEOBOG · 82 PHÍM</div><h1>Cấu hình bàn phím<span>.</span></h1><p>Đọc cấu hình, chọn phím và chỉnh bản nháp trước khi áp dụng.</p></div><span id="connection-pill" class="pill"><i></i> Chưa kết nối</span></section>
-    <p class="small-note">Phiên bản 0.3.2 · Ghi cấu hình cho A80RT U có dây, firmware 1.37 sau khi đọc đủ dữ liệu. Lớp Fn chỉ chỉnh/lưu cục bộ; bản nháp có thay đổi Fn sẽ chặn toàn bộ Áp dụng. Hồ sơ được lưu cục bộ trong trình duyệt.</p>
+    <p class="small-note">Phiên bản 0.3.3 · Ghi cấu hình cho A80RT U có dây, firmware 1.37 sau khi đọc đủ dữ liệu. Lớp Fn chỉ chỉnh/lưu cục bộ; bản nháp có thay đổi Fn sẽ chặn toàn bộ Áp dụng. Hồ sơ được lưu cục bộ trong trình duyệt.</p>
     <div id="browser-notice" class="notice" hidden></div>
     <div id="sample-notice" class="notice sample-notice" hidden><span><strong>Đang xem dữ liệu mẫu.</strong> Các thông số này được tạo để thử giao diện.</span><button id="exit-sample" class="text-button">Thoát dữ liệu mẫu ×</button></div>
     <section class="connect-strip"><div class="step-symbol">01</div><div class="connect-copy"><strong id="next-title">Bắt đầu với bàn phím của bạn</strong><p id="next-copy">Cắm cáp USB hoặc đầu thu 2.4 GHz, bật bàn phím và đóng tab driver hãng.</p></div><div class="actions"><button id="sample-button" class="button quiet">Xem dữ liệu mẫu</button><button id="connect-button" class="button primary">Kết nối bàn phím <span>↗</span></button><button id="disconnect-button" class="button quiet" hidden>Ngắt kết nối</button></div></section>
@@ -66,8 +66,8 @@
     </section>
     <section class="panel draft-bar" aria-label="Bản nháp"><div><strong id="draft-count">0 thay đổi trong bản nháp</strong><p id="apply-reason"></p></div><div class="actions"><button id="revert-button" class="button quiet" disabled>Hoàn tác bản nháp</button><button id="apply-button" class="button primary" disabled>Áp dụng</button></div></section>
     <section class="panel data-panel"><div class="panel-heading"><div><h2>Dữ liệu & chẩn đoán</h2><p>Lưu bản đọc để đối chiếu hoặc tiếp tục kiểm tra giao thức.</p></div><div class="actions"><button id="import-button" class="button quiet small">Mở bản đã lưu</button><button id="export-button" class="button quiet small" disabled>Xuất JSON ↗</button><input id="import-file" type="file" accept=".json,application/json" hidden></div></div><div id="block-list" class="block-list"></div><details id="diagnostics"><summary><span>Nhật ký giao tiếp</span><span id="packet-count" class="mono muted">0 gói</span></summary><pre id="log">Nhật ký xuất hiện khi bắt đầu đọc cấu hình.</pre></details></section>
-    <details class="raw-details"><summary>Phạm vi đã kiểm tra</summary><p>Đã đọc đủ 9 nhóm trên A80RT U có dây, firmware 1.37. Ngày 23/10/2026, trang đã triển khai thay RGB lưu của W #000000→#1b80ff→#000000 qua Áp dụng và đọc lại khớp; USB gốc xác nhận 9 nhóm khôi phục khớp. Ngày 24/10, ngưỡng nhấn RT của W 0→0,01→0 mm, vùng chết phía trên 0,30→0,31→0,30 mm và gán W lớp mặc định rỗng→keyboard W→rỗng cũng đã Áp dụng/đọc lại khớp, gồm khôi phục.</p><p>Ngày 25/10/2026, công cụ USB gốc dùng codec production 9697747 đạt 10/10 phép cấu hình: macro chưa gán/gán Print (slot 99), TGL, MT, RS/SOCD trên Print + Insert (slot 103), DKS trên Print + mẫu trống 1, polling mã 6→3→6 (8 kHz→1 kHz→8 kHz), độ sáng 5→4→5 và điểm nhận Print raw 0→120→0. Macro A nhấn/nhả có delay 0/20 ms, DKS có mốc [16,30,30,16]. Tổng 6036 khung, ACK 0/33/34/35/37/39/40 gồm settings 32 byte và lighting 16 byte; mỗi phép đọc lại khớp và cuối 9 nhóm khớp từng byte bản gốc. Đây là kiểm chứng USB gốc; chưa thử Áp dụng qua giao diện cho 10 phép này.</p><p>Fn W/U trên app 0.3.0/0.3.1 vẫn không đổi theo USB mới, kể cả thử không có control 0. Driver hãng đổi UI Fn+U Print→U nhưng đọc USB vẫn Prt; người dùng bấm Fn+U vẫn bật PrintScreen. Đã trả UI hãng về Print, đóng tab và xác nhận 9 nhóm gốc. Bản 0.3.2 chặn ghi Fn trên đúng U có dây firmware 1.37 trước khi gửi; bản nháp có thay đổi Fn chặn toàn bộ Áp dụng, vẫn đọc/chỉnh/lưu/xuất/hoàn tác cục bộ. Chưa xác định nguyên nhân riêng firmware hay driver, không suy rộng mọi model/phiên bản.</p><p>Chưa đo Áp dụng qua giao diện cho 10 phép mới, sự kiện phím/hành vi trong game ngoại trừ Fn+U âm tính, độ trễ, màu đèn nhìn thấy, giữ sau mất điện, Áp dụng toàn hồ sơ, bảo trì, đầu thu hoặc firmware/model khác. Hiệu chuẩn, khôi phục và flash trực tiếp vẫn bị khóa; công cụ/dịch vụ phụ thuộc hãng dùng driver chính thức.</p></details>
-    <footer><span>A80RT CONFIG <span class="muted">/</span> 0.3.2</span><span>Bản nháp cục bộ · Áp dụng có xác minh</span></footer>
+    <details class="raw-details"><summary>Phạm vi đã kiểm tra</summary><p>Đã đọc đủ 9 nhóm trên A80RT U có dây, firmware 1.37. Ngày 23/10/2026, trang đã triển khai thay RGB lưu của W #000000→#1b80ff→#000000 qua Áp dụng và đọc lại khớp; USB gốc xác nhận 9 nhóm khôi phục khớp. Ngày 24/10, ngưỡng nhấn RT của W 0→0,01→0 mm, vùng chết phía trên 0,30→0,31→0,30 mm và gán W lớp mặc định rỗng→keyboard W→rỗng cũng đã Áp dụng/đọc lại khớp, gồm khôi phục.</p><p>Ngày 25/10/2026, công cụ USB gốc dùng codec production 9697747 đạt 10/10 phép cấu hình: macro chưa gán/gán Print (slot 99), TGL, MT, RS/SOCD trên Print + Insert (slot 103), DKS trên Print + mẫu trống 1, polling mã 6→3→6 (8 kHz→1 kHz→8 kHz), độ sáng 5→4→5 và điểm nhận Print raw 0→120→0. Macro A nhấn/nhả có delay 0/20 ms, DKS có mốc [16,30,30,16]. Tổng 6036 khung, ACK 0/33/34/35/37/39/40 gồm settings 32 byte và lighting 16 byte; mỗi phép đọc lại khớp và cuối 9 nhóm khớp từng byte bản gốc. Đây là kiểm chứng USB gốc; chưa thử Áp dụng qua giao diện cho 10 phép này.</p><p>Fn W/U trên app 0.3.0/0.3.1 vẫn không đổi theo USB mới, kể cả thử không có control 0. Driver hãng đổi UI Fn+U Print→U nhưng đọc USB vẫn Prt; người dùng bấm Fn+U vẫn bật PrintScreen. Đã trả UI hãng về Print, đóng tab và xác nhận 9 nhóm gốc. Bản 0.3.3 chặn ghi Fn trên đúng U có dây firmware 1.37 trước khi gửi; bản nháp có thay đổi Fn chặn toàn bộ Áp dụng, vẫn đọc/chỉnh/lưu/xuất/hoàn tác cục bộ. Chưa xác định nguyên nhân riêng firmware hay driver, không suy rộng mọi model/phiên bản.</p><p>Chưa đo Áp dụng qua giao diện cho 10 phép mới, sự kiện phím/hành vi trong game ngoại trừ Fn+U âm tính, độ trễ, màu đèn nhìn thấy, giữ sau mất điện, Áp dụng toàn hồ sơ, bảo trì, đầu thu hoặc firmware/model khác. Hiệu chuẩn, khôi phục và flash trực tiếp vẫn bị khóa; công cụ/dịch vụ phụ thuộc hãng dùng driver chính thức.</p></details>
+    <footer><span>A80RT CONFIG <span class="muted">/</span> 0.3.3</span><span>Bản nháp cục bộ · Áp dụng có xác minh</span></footer>
   </main>
 </body>
 </html>

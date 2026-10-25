@@ -255,6 +255,7 @@
         0.01,
         3.4
       ],
+      "storedZero": "Codec/session semantic patches can restore captured raw0 as a sentinel; physical meaning/default distance unspecified. editRange remains the manual editor range. Own only the existing two bytes; native25Oct source9697747 raw0->120->0 evidence is historical, not a new profile/UI test.",
       "source": [
         "rt-encode",
         "rt-decode"

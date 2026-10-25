@@ -9,6 +9,17 @@ const fixture=JSON.parse(fs.readFileSync(new URL('./fixtures/synthetic/config-bl
 const raw=id=>Uint8Array.from(fixture.blocks[id]);
 const diff=(a,b)=>Array.from(a.keys()).filter(i=>a[i]!==b[i]);
 
+test('backend stored-zero restoration owns only the two actuation bytes and keeps one semantic change',()=>{
+  const bytes=raw('rt');bytes.set([1,0xfd,44,1,17,0,29,0],99*8);const before=bytes.slice();
+  const result=patchBlock('rt',bytes,[{slot:99,field:'actuationMm',value:0}],cap());
+  assert.deepEqual(diff(bytes,result.bytes),[794,795]);
+  assert.deepEqual(result.bytes.slice(792,800),Uint8Array.of(1,0xfd,0,0,17,0,29,0));
+  assert.deepEqual(result.changes,[{block:'rt',path:'records[99].actuationMm',before:3,after:0,byteOffsets:[794,795]}]);
+  assert.equal(decodeBlock('rt',result.bytes,cap()).records[99].actuationMm,0);
+  assert.deepEqual(bytes,before);
+  for(const value of [-0.01,0.001,3.41,NaN,'0'])assert.throws(()=>patchBlock('rt',bytes,[{slot:99,field:'actuationMm',value}],cap()),/actuationMm/);
+});
+
 test('RT W slot34 threshold80 is0.8mm;1.2mm patch owns only LE16 threshold bytes',()=>{
   const bytes=raw('rt'),original=bytes.slice();
   assert.equal(decodeBlock('rt',bytes,cap()).records[34].actuationMm,0.8);

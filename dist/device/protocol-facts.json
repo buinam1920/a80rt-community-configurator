@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "evidence": "tests/fixtures/source/a80rt-manufacturer.json",
-  "qualification": "Manufacturer source plus measured native A80RT U wired 0C45:80A1 FF68/61 report0/64 firmware[55,1] (1.37): nine blocks read, stored W RGB changed/read back/restored, all nine restored blocks equal. Colors0x24 and block control0 ACK headers measured. Hosted browser acceptance PASSED23Oct2026:9/9 read, W storedRGB000000->1b80ff verified Apply then000000 verified restoration, globalmode11 unchanged. Other config commands source-inferred; visible illumination and power-cycle persistence untested. Dongle writes and maintenance remain closed.",
+  "qualification": "Manufacturer source plus exact native A80RT U wired 0C45:80A1 FF68/61 input/output report0/64 firmware[55,1] (1.37). Color/control roundtrip22Oct; hosted W color23Oct and RTpress/topDZ/base W24Oct retained. Native25Oct source9697747 ten cases passed target readback and all-nine-block restoration,6036 frames: macro-unassigned/assignment,TGL,MT,RS,SOCD,DKS,polling,brightness,actuation. Fn38 failed app/vendor fresh readback; user physical Fn+U remained PrintScreen, root cause unresolved. Live Fn blocked before TX only for this exact qualified scope; local Fn editing retained. New ten cases not browser UI Apply, key-output/gameplay/timing/power-cycle/full-profile or maintenance verification. Dongle/other firmware remain closed.",
   "path": [
     "model-u/model-wired/model-dongle select getLBA80RT",
     "connection routes these devices to generic Device kS/yS",
@@ -914,12 +914,12 @@
         "colors-encode"
       ]
     },
-    "configurationCount": "Actual captured payload bytes. Intentional safety deviation from sendReportSuper: first/only short source chunk advertises packetSize-8; local writer never counts zero packet padding as unknown configuration bytes. Measured wired colors accepted56 and final8; first/only short settings32 and lighting16 remain source-inferred, not individually hardware measured. Exact identity/report/firmware guards and semantic readback apply.",
+    "configurationCount": "Actual captured payload bytes. Intentional safety deviation from sendReportSuper: local writer never counts zero packet padding as unknown configuration bytes. Native measured settings32,lighting16,color/keymap final8 and macro/RT/DKS final16; long chunks56. Control0 retains count56/final1. Exact identity/report/firmware guards and semantic readback apply.",
     "ack": {
       "shape": "55 / command / count / offsetLE / 00 / final0or1 / 00, exactly64 bytes. Match command+offset; matching malformed count/flags/length fails closed. Payload is not interpreted.",
-      "qualification": "Exact A80RT U wired 0C45:80A1 FF68/61 input+output report0/64 after genuine complete current-session device read firmware[55,1]. Config0x21..0x28 and block control0 only; reset on reopen/disconnect/linkloss/version reread.",
+      "qualification": "Exact A80RT U wired 0C45:80A1 FF68/61 input+output report0/64 after genuine complete current-session device read firmware[55,1]. Mapped config0x21..0x28 EXCEPT Fn0x26/38, plus block control0; reset on reopen/disconnect/linkloss/version reread. Preflight all changed commands before first write/control; failed known-blocked preflight preserves baseline and draft with0TX/writeEpoch change.",
       "source": "read-chunking",
-      "note": "Manufacturer sendReportSuper/buildPkt_final/getStoreData route uses a common frame family and broadly advances for any opcode except decimal55. Native colors0x24 and block control0 measured22 ACKs; other mapped config commands use this strictly checked header policy by source inference, not individual hardware qualification. No payload echo assumed, no retries, semantic readback required. Evidence: tests/fixtures/a80rt-wired-color-qualification.json (sanitized header-only; synthetic padding exists only in tests)."
+      "note": "Strict header policy unchanged; no payload echo, no write retries, semantic readback required. Native colors0x24/control0 measured22Oct; native25Oct measured ACK0/33/34/35/37/39/40. Fn38 ACKs did not establish successful writes: original bytes remained after app/vendor tests, negative physical Fn+U; cause unresolved. Sanitized bounded evidence: tests/fixtures/a80rt-wired-color-qualification.json and a80rt-wired-feature-qualification.json (historical sourceCommit9697747). Synthetic padding only in tests; fixture metadata cannot mint live attestation."
     },
     "retry": "None for writes or control; a send, ACK timeout, abort or disconnect after TX is possibly partial and must remain unconfirmed.",
     "postWrite": {

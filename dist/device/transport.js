@@ -4,11 +4,13 @@ import {identifyDevice} from './capabilities.js';
 const stopped=()=>new DOMException('Đã dừng đọc.','AbortError');
 const running=()=>new Error('Một giao dịch đang chạy.');
 
-// Measured on native A80RT U wired 1.37: colors0x24 and block control0.
-// Other mapped config commands use the same source frame family, but have not
-// been individually hardware tested. ACK payload is deliberately not interpreted.
+// Native A80RT U wired 1.37: color/control roundtrip (22 Oct), then ten
+// config readback/restore cases (25 Oct, source9697747): commands33/34/35/37/39/40.
+// Command38 ACKed but retained the original Fn bytes in app/vendor tests;
+// physical Fn+U also remained PrintScreen. Cause unresolved, scope exact U1.37.
+// ACK payload is deliberately not interpreted. Local staging is independent.
 const WIRED_CONFIG_POLICY=Object.freeze({
-  evidence:'Native wired A80RT U 1.37 color/control roundtrip, 2026-10-22; other mapped config commands source-inferred.',
+  evidence:'Native wired A80RT U 1.37 color/control roundtrip, 2026-10-22; ten config readback/restore cases, 2026-10-25 (source9697747). Fn38 unavailable after measured failures; UI/key-output/persistence not established for the new cases.',
   parseAck(bytes,{command,offset,length,last}){
     if(bytes[0]!==0x55||bytes[1]!==command)return null;
     if(bytes.length<5)throw new Error('Malformed matching write ACK header.');
@@ -185,8 +187,12 @@ export class A80Transport {
       },owner);
     }catch(error){return Promise.reject(error);}
   }
-  getWriteState(){
+  getWriteState(command){
     const policy=this._getWriteQualification(),qualified=!!policy&&typeof policy.parseAck==='function'&&typeof policy.evidence==='string';
+    if(qualified&&command!==undefined){
+      if(policy===WIRED_CONFIG_POLICY&&command===0x26)return {qualified:false,ready:false,evidence:policy.evidence,reason:'Ghi lớp Fn trên A80RT U có dây firmware 1.37 chưa khả dụng theo phép đo: ACK có phản hồi nhưng đọc lại vẫn giữ gán gốc. Bản nháp Fn vẫn sửa, lưu và xuất cục bộ; toàn bộ Áp dụng bị chặn nếu có thay đổi Fn.'};
+      if(command!==0&&!Object.values(identifyDevice(this.device).blocks).some(block=>block.writeCommand===command))return {qualified:false,ready:false,evidence:policy.evidence,reason:'Unknown write command/opcode.'};
+    }
     return {qualified,ready:qualified&&this.getState().opened&&this._hasResponse,evidence:qualified?policy.evidence:null,reason:qualified?null:'Cần A80RT U có dây, giao diện 64 byte và đọc mới firmware 1.37 trong kết nối hiện tại.'};
   }
   writeBlock(command,bytes,options={}){return this._writeBlock(command,bytes,options);}
@@ -217,7 +223,8 @@ export class A80Transport {
   }
   _queueWrite(command,data,signal,control=false,owner){
     const policy=this._getWriteQualification();
-    if(!this.getWriteState().qualified)return Promise.reject(new Error('Write ACK qualification is unavailable for this device.'));
+    const state=this.getWriteState(command);
+    if(!state.qualified)return Promise.reject(new Error(`Write ACK qualification is unavailable: ${state.reason??'read the device again.'}`));
     const sessionId=this._sessionId,capacity=this.interface.packetSize-8;
     const progress={command,sentChunks:0,acknowledgedChunks:0,sentBytes:0,totalBytes:data.length};
     const run=async()=>{
@@ -225,7 +232,7 @@ export class A80Transport {
         for(let offset=0;offset<data.length;offset+=capacity){
           if(signal?.aborted||sessionId!==this._sessionId)throw stopped();
           if(!this.getState().opened)throw new Error('Thiết bị chưa mở kết nối.');
-          if(!this.getWriteState().qualified)throw new Error('Write ACK qualification expired; read the device again.');
+          if(!this.getWriteState(command).qualified)throw new Error('Write ACK qualification expired; read the device again.');
           const count=Math.min(capacity,data.length-offset),last=offset+count===data.length;
           // Config counts own only captured bytes, never source-wrapper padding.
           // Control0 separately mirrors sendReportSuper's first-chunk count.

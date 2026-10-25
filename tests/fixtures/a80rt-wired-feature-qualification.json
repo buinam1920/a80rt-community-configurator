@@ -1,0 +1,1237 @@
+{
+  "kind": "native-wired-config-feature-qualification",
+  "hardwareCapture": true,
+  "date": "2026-10-25",
+  "sourceCommit": "9697747f4917c00d52ac4b92a6689d7b15121ef5",
+  "identity": {
+    "vendorId": 3141,
+    "productId": 32929,
+    "productName": "A80RT U"
+  },
+  "interface": {
+    "usagePage": 65384,
+    "usage": 97,
+    "interfaceNumber": 2,
+    "reportId": 0,
+    "reportLength": 64
+  },
+  "firmware": {
+    "bytes": [
+      55,
+      1
+    ],
+    "version": "1.37"
+  },
+  "scope": "Native controller test/readback/restore using production codecs; not browser-UI, key-output, gameplay, timing, visual LED or power-cycle verification.",
+  "cases": [
+    {
+      "name": "macro-unassigned",
+      "blocks": [
+        "macro"
+      ],
+      "changedOffsets": {
+        "macro": [
+          0,
+          1,
+          400,
+          406,
+          407,
+          408,
+          410,
+          411
+        ]
+      },
+      "targetReadbackMatches": true,
+      "allNineBlocksRestored": true,
+      "unexpectedConfigChanges": [],
+      "dependencyKeymapRestored": null,
+      "frames": 620
+    },
+    {
+      "name": "macro-assignment",
+      "blocks": [
+        "keymap",
+        "macro"
+      ],
+      "changedOffsets": {
+        "keymap": [
+          396,
+          399
+        ],
+        "macro": [
+          0,
+          1,
+          400,
+          406,
+          407,
+          408,
+          410,
+          411
+        ]
+      },
+      "targetReadbackMatches": true,
+      "allNineBlocksRestored": true,
+      "unexpectedConfigChanges": [],
+      "dependencyKeymapRestored": true,
+      "frames": 682
+    },
+    {
+      "name": "tgl",
+      "blocks": [
+        "keymap"
+      ],
+      "changedOffsets": {
+        "keymap": [
+          396,
+          397
+        ]
+      },
+      "targetReadbackMatches": true,
+      "allNineBlocksRestored": true,
+      "unexpectedConfigChanges": [],
+      "dependencyKeymapRestored": null,
+      "frames": 584
+    },
+    {
+      "name": "mt",
+      "blocks": [
+        "keymap"
+      ],
+      "changedOffsets": {
+        "keymap": [
+          396,
+          397,
+          398,
+          399
+        ]
+      },
+      "targetReadbackMatches": true,
+      "allNineBlocksRestored": true,
+      "unexpectedConfigChanges": [],
+      "dependencyKeymapRestored": null,
+      "frames": 584
+    },
+    {
+      "name": "rs",
+      "blocks": [
+        "keymap"
+      ],
+      "changedOffsets": {
+        "keymap": [
+          396,
+          398,
+          399,
+          412,
+          414,
+          415
+        ]
+      },
+      "targetReadbackMatches": true,
+      "allNineBlocksRestored": true,
+      "unexpectedConfigChanges": [],
+      "dependencyKeymapRestored": null,
+      "frames": 584
+    },
+    {
+      "name": "socd",
+      "blocks": [
+        "keymap"
+      ],
+      "changedOffsets": {
+        "keymap": [
+          396,
+          397,
+          398,
+          399,
+          412,
+          413,
+          414,
+          415
+        ]
+      },
+      "targetReadbackMatches": true,
+      "allNineBlocksRestored": true,
+      "unexpectedConfigChanges": [],
+      "dependencyKeymapRestored": null,
+      "frames": 584
+    },
+    {
+      "name": "dks",
+      "blocks": [
+        "dks",
+        "keymap"
+      ],
+      "changedOffsets": {
+        "dks": [
+          16,
+          17,
+          18,
+          19,
+          21,
+          23,
+          28,
+          29
+        ],
+        "keymap": [
+          396,
+          397
+        ]
+      },
+      "targetReadbackMatches": true,
+      "allNineBlocksRestored": true,
+      "unexpectedConfigChanges": [],
+      "dependencyKeymapRestored": true,
+      "frames": 682
+    },
+    {
+      "name": "polling",
+      "blocks": [
+        "settings"
+      ],
+      "changedOffsets": {
+        "settings": [
+          5
+        ]
+      },
+      "targetReadbackMatches": true,
+      "allNineBlocksRestored": true,
+      "unexpectedConfigChanges": [],
+      "dependencyKeymapRestored": null,
+      "frames": 548
+    },
+    {
+      "name": "brightness",
+      "blocks": [
+        "lighting"
+      ],
+      "changedOffsets": {
+        "lighting": [
+          9
+        ]
+      },
+      "targetReadbackMatches": true,
+      "allNineBlocksRestored": true,
+      "unexpectedConfigChanges": [],
+      "dependencyKeymapRestored": null,
+      "frames": 548
+    },
+    {
+      "name": "actuation",
+      "blocks": [
+        "rt"
+      ],
+      "changedOffsets": {
+        "rt": [
+          794
+        ]
+      },
+      "targetReadbackMatches": true,
+      "allNineBlocksRestored": true,
+      "unexpectedConfigChanges": [],
+      "dependencyKeymapRestored": null,
+      "frames": 620
+    }
+  ],
+  "writeAckHeaders": [
+    {
+      "header": [
+        85,
+        0,
+        56,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 22
+    },
+    {
+      "header": [
+        85,
+        33,
+        32,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        34,
+        8,
+        248,
+        1,
+        0,
+        1,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 12
+    },
+    {
+      "header": [
+        85,
+        34,
+        56,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 12
+    },
+    {
+      "header": [
+        85,
+        34,
+        56,
+        56,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 12
+    },
+    {
+      "header": [
+        85,
+        34,
+        56,
+        112,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 12
+    },
+    {
+      "header": [
+        85,
+        34,
+        56,
+        168,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 12
+    },
+    {
+      "header": [
+        85,
+        34,
+        56,
+        224,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 12
+    },
+    {
+      "header": [
+        85,
+        34,
+        56,
+        24,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 12
+    },
+    {
+      "header": [
+        85,
+        34,
+        56,
+        80,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 12
+    },
+    {
+      "header": [
+        85,
+        34,
+        56,
+        136,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 12
+    },
+    {
+      "header": [
+        85,
+        34,
+        56,
+        192,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 12
+    },
+    {
+      "header": [
+        85,
+        35,
+        16,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        37,
+        16,
+        240,
+        3,
+        0,
+        1,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 4
+    },
+    {
+      "header": [
+        85,
+        37,
+        56,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 4
+    },
+    {
+      "header": [
+        85,
+        37,
+        56,
+        56,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 4
+    },
+    {
+      "header": [
+        85,
+        37,
+        56,
+        112,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 4
+    },
+    {
+      "header": [
+        85,
+        37,
+        56,
+        168,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 4
+    },
+    {
+      "header": [
+        85,
+        37,
+        56,
+        224,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 4
+    },
+    {
+      "header": [
+        85,
+        37,
+        56,
+        24,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 4
+    },
+    {
+      "header": [
+        85,
+        37,
+        56,
+        80,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 4
+    },
+    {
+      "header": [
+        85,
+        37,
+        56,
+        136,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 4
+    },
+    {
+      "header": [
+        85,
+        37,
+        56,
+        192,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 4
+    },
+    {
+      "header": [
+        85,
+        37,
+        56,
+        248,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 4
+    },
+    {
+      "header": [
+        85,
+        37,
+        56,
+        48,
+        2,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 4
+    },
+    {
+      "header": [
+        85,
+        37,
+        56,
+        104,
+        2,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 4
+    },
+    {
+      "header": [
+        85,
+        37,
+        56,
+        160,
+        2,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 4
+    },
+    {
+      "header": [
+        85,
+        37,
+        56,
+        216,
+        2,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 4
+    },
+    {
+      "header": [
+        85,
+        37,
+        56,
+        16,
+        3,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 4
+    },
+    {
+      "header": [
+        85,
+        37,
+        56,
+        72,
+        3,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 4
+    },
+    {
+      "header": [
+        85,
+        37,
+        56,
+        128,
+        3,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 4
+    },
+    {
+      "header": [
+        85,
+        37,
+        56,
+        184,
+        3,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 4
+    },
+    {
+      "header": [
+        85,
+        39,
+        16,
+        240,
+        3,
+        0,
+        1,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        39,
+        56,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        39,
+        56,
+        56,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        39,
+        56,
+        112,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        39,
+        56,
+        168,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        39,
+        56,
+        224,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        39,
+        56,
+        24,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        39,
+        56,
+        80,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        39,
+        56,
+        136,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        39,
+        56,
+        192,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        39,
+        56,
+        248,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        39,
+        56,
+        48,
+        2,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        39,
+        56,
+        104,
+        2,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        39,
+        56,
+        160,
+        2,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        39,
+        56,
+        216,
+        2,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        39,
+        56,
+        16,
+        3,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        39,
+        56,
+        72,
+        3,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        39,
+        56,
+        128,
+        3,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        39,
+        56,
+        184,
+        3,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        40,
+        16,
+        240,
+        3,
+        0,
+        1,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        40,
+        56,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        40,
+        56,
+        56,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        40,
+        56,
+        112,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        40,
+        56,
+        168,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        40,
+        56,
+        224,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        40,
+        56,
+        24,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        40,
+        56,
+        80,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        40,
+        56,
+        136,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        40,
+        56,
+        192,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        40,
+        56,
+        248,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        40,
+        56,
+        48,
+        2,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        40,
+        56,
+        104,
+        2,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        40,
+        56,
+        160,
+        2,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        40,
+        56,
+        216,
+        2,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        40,
+        56,
+        16,
+        3,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        40,
+        56,
+        72,
+        3,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        40,
+        56,
+        128,
+        3,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    },
+    {
+      "header": [
+        85,
+        40,
+        56,
+        184,
+        3,
+        0,
+        0,
+        0
+      ],
+      "reportLength": 64,
+      "observedCount": 2
+    }
+  ],
+  "totalFrames": 6036,
+  "negativeFn": {
+    "date": "2026-10-24",
+    "command": 38,
+    "cases": [
+      "Fn+W WIN to W",
+      "Fn+U Print to U"
+    ],
+    "result": "ACK received but fresh readback stayed original; official driver comparison Fn+U also stayed PrintScreen in user physical test.",
+    "cause": "Unresolved; do not generalize beyond tested device/firmware."
+  },
+  "excluded": [
+    "manual calibration",
+    "factory reset",
+    "direct firmware flashing",
+    "2.4GHz writes",
+    "other models/firmware",
+    "full profile Apply",
+    "key output/gameplay/permanence"
+  ]
+}

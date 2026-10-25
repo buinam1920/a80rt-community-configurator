@@ -23,7 +23,7 @@ function clearMessage(){message('');}
 function setText(id,text){$(id).textContent=text;}
 function mode(){return state.snapshot?.source??'empty';}
 function describeSource(){if(mode()==='demo')return 'Dữ liệu mẫu';if(mode()==='import')return 'Bản đã lưu';if(mode()==='device')return state.reader?'Bàn phím thật':Object.keys(state.snapshot.blocks).length?'Bản đọc trước':'Thông tin thiết bị';return 'Chưa có dữ liệu';}
-function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.3.1',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
+function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.3.2',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
 function makeKeyboard(){
   for(const row of LAYOUT){
     const container=document.createElement('div');container.className='key-row';
@@ -191,13 +191,21 @@ function renderEditors(){
   editors={setSelection(slots){core.setSelection(slots);advanced.setSelection(slots);},setLayer(layer){core.setLayer(layer);advanced.setLayer(layer);},refresh(){core.refresh();advanced.refresh();settings.refresh();},stopRecording:()=>advanced.stopRecording(),cancelCalibration:()=>settings.cancelCalibration(),destroy(){core.destroy();advanced.destroy();settings.destroy();}};
   editors.setLayer(state.layer);
 }
+function draftWriteState(){
+  const transport=state.reader?.transport;if(!transport)return null;
+  for(const id of new Set(state.session?.diff().map(change=>change.block)??[])){
+    const qualification=transport.getWriteState(state.capability.blocks[id].writeCommand);
+    if(!qualification.ready)return qualification;
+  }
+  return transport.getWriteState();
+}
 function draftReason(){
   if(!state.session)return mode()==='import'?'Bản JSON cũ chỉ để xem. Đọc đủ cấu hình từ thiết bị để chỉnh sửa.':'Đọc đủ 9 nhóm cấu hình để chỉnh sửa.';
   if(state.session.invalidated)return state.session.invalidReason;
   if(mode()==='demo')return 'Dữ liệu mẫu · bản nháp cục bộ, không gửi thiết bị.';
   if(!state.reader)return 'Đã ngắt kết nối · đọc lại snapshot sau khi kết nối để ghi.';
   if(state.session.snapshot.provenance.sessionId!==state.reader.getState().sessionId)return 'Phiên kết nối đã đổi · cần đọc lại snapshot.';
-  const qualification=state.reader.transport.getWriteState();
+  const qualification=draftWriteState();
   if(!qualification.qualified)return `Chưa thể ghi: ${qualification.reason??'chưa có xác minh ACK ghi từ thiết bị thật.'}`;
   return 'Áp dụng sẽ gửi bản nháp và đọc lại để xác minh.';
 }
@@ -205,7 +213,7 @@ function renderDraft(){
   const count=state.session?.diff().length??0,busy=state.reading||state.connecting||state.applying||state.maintaining||!!state.session?.invalidated;
   setText('draft-count',`${count} thay đổi trong bản nháp`);setText('apply-reason',draftReason());
   $('revert-button').disabled=!state.session||!count||busy;
-  $('apply-button').disabled=!state.session||!count||busy||mode()!=='device'||!state.reader||!state.reader.transport.getWriteState().qualified||state.session.snapshot.provenance.sessionId!==state.reader.getState().sessionId;
+  $('apply-button').disabled=!state.session||!count||busy||mode()!=='device'||!state.reader||!draftWriteState().ready||state.session.snapshot.provenance.sessionId!==state.reader.getState().sessionId;
 }
 async function applyDraft(){
   if($('apply-button').disabled)return;

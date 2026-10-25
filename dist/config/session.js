@@ -127,6 +127,12 @@ export class ConfigSession {
         const changes=this.diff(),changedIds=new Set(changes.map(change=>change.block));
         const plan=this.#plan.filter(block=>changedIds.has(block.id));
         if(!plan.length)return {...result,status:'verified'};
+        // Preflight the entire atomic intent before any write/control or progress
+        // callback. A known blocked command keeps the fresh baseline and draft.
+        for(const command of [...plan.map(block=>this.#capability.blocks[block.id].writeCommand),0]){
+          const state=transport.getWriteState(command);
+          if(!state.ready)throw new Error(state.reason??'Write command qualification is unavailable for this device.');
+        }
         for(const {id} of plan){
           check();
           onProgress({phase:'write',block:id,completed:result.writtenBlocks.length,total:plan.length});

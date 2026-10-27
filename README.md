@@ -1,6 +1,10 @@
-# A80RT Configurator — 0.3.4
+# A80RT Configurator — 0.3.5
 
 Ứng dụng WebHID cục bộ để đọc đủ 9 nhóm cấu hình LEOBOG A80RT / A80RT U, chỉnh bản nháp RT, gán phím, Fn, đèn, màu từng phím, macro, phím nâng cao và thiết lập chung. Dữ liệu thiết bị và hồ sơ cấu hình được xử lý trong trình duyệt. [Bảng đối chiếu tính năng](docs/feature-parity.md) ghi riêng chức năng triển khai, kiểm thử mô phỏng, bằng chứng phần cứng và các mục phụ thuộc hãng.
+
+Bản 0.3.5: bỏ chọn macro vẫn giữ nguyên timeline chưa lưu, dừng ghi và khóa Xóa/Gán; Lưu tạo macro mới, chọn lại macro thật sẽ nạp nguồn đó. Đây là sửa trạng thái chọn cục bộ, không bổ sung kiểm chứng phần cứng.
+
+Bản này cũng sửa lệch lớp sau lỗi RT; tái sử dụng an toàn vùng macro do phiên tạo khi lưu tăng dần; bảo vệ mẫu DKS của Fn khóa/vị trí không vật lý khi nhập hồ sơ; và ngăn kết quả đọc JSON cũ ghi đè phiên mới. Mẫu DKS dùng chung với vị trí phải giữ sẽ từ chối giao dịch thay mẫu, có lý do rõ. [Thiết kế và regression 0.3.5](docs/0.3.5-correctness.md) ghi vòng đời ownership và phạm vi bằng chứng.
 
 ## Sử dụng
 
@@ -73,7 +77,7 @@ Mở localhost bằng Chrome/Edge, không mở qua file://. Chạy kiểm thử 
 npm test
 ```
 
-HTML chứa một import map cho **toàn bộ 13** module JavaScript, dùng chung token phiên bản `0.3.4`; entry script và CSS dùng cùng token. Source imports giữ đường dẫn không query để browser có một registry/class và Node giữ cùng module identity. Mỗi lần phát hành thay module phải cập nhật phiên bản package, import map, entry/CSS và metadata cùng nhau; kiểm thử release graph kiểm tra đủ đường dẫn và các chu trình. Không dựa riêng vào `_headers` chưa xác minh trên Sites. Controller kiểm tra cache/CSP và triển khai lên Site hiện có.
+HTML chứa một import map cho **toàn bộ 13** module JavaScript, dùng chung token phiên bản `0.3.5`; entry script và CSS dùng cùng token. Source imports giữ đường dẫn không query để browser có một registry/class và Node giữ cùng module identity. Mỗi lần phát hành thay module phải cập nhật phiên bản package, import map, entry/CSS và metadata cùng nhau; kiểm thử release graph kiểm tra đủ đường dẫn và các chu trình. Không dựa riêng vào `_headers` chưa xác minh trên Sites. Controller kiểm tra cache/CSP và triển khai lên Site hiện có.
 
 ## Giao thức và giới hạn
 

@@ -1,6 +1,6 @@
 import {identifyDevice,readPlan} from '../device/capabilities.js';
 import {decodeBlock,patchBlock,fieldChanges} from './codecs.js';
-import {patchMacros} from './macros.js';
+import {createMacroPatcher} from './macros.js';
 import {validateReferenceEdits,advancedEdits} from './advanced.js';
 import {A80Transport} from '../device/transport.js';
 
@@ -53,7 +53,7 @@ export async function readSnapshot(transport,capability,{signal,onProgress=()=>{
 }
 
 export class ConfigSession {
-  #capability;#snapshot;#blocks;#draft;#edits=new Map();#origin;#applying=false;#plan;#invalidReason=null;
+  #capability;#snapshot;#blocks;#draft;#edits=new Map();#origin;#applying=false;#plan;#invalidReason=null;#patchMacro;
   constructor(snapshot,capability){
     this.#plan=readPlan(capability);this.#capability=capability;
     if(!snapshot||identifyDevice(snapshot.identity)!==capability)throw new Error('Snapshot identity does not match capability.');
@@ -63,6 +63,7 @@ export class ConfigSession {
     this.#blocks=Object.fromEntries(Object.entries(blocks).map(([id,bytes])=>[id,decodeBlock(id,bytes,capability).bytes]));
     this.#snapshot=snapshotView(capability.identity,this.#blocks,snapshot.coverage??{},snapshot.provenance??{source:'unknown'});
     this.#origin=origins.get(snapshot);this.#draft=copyBlocks(this.#blocks);
+    if(this.#blocks.macro)this.#patchMacro=createMacroPatcher(this.#blocks.macro,capability);
     if(this.#origin)origins.set(this.#snapshot,this.#origin);
   }
   get snapshot(){return this.#snapshot;}
@@ -78,19 +79,22 @@ export class ConfigSession {
   }
   edit(blockId,edits){return this.transaction({[blockId]:edits});}
   advanced(binding){return this.transaction(advancedEdits(this.#draft,binding,this.#capability));}
+  preview(groups){
+    const shadow=new ConfigSession({...this.#snapshot,blocks:this.#draft,provenance:{source:'profile'}},this.#capability);
+    shadow.#patchMacro=this.#patchMacro;return shadow.transaction(groups);
+  }
   transaction(groups){
     this.#editable();if(!groups||typeof groups!=='object'||Array.isArray(groups))throw new Error('Edit groups required.');
     // A macro list has one identity mapping per transaction. Reject ambiguous
     // repeated lists before any group is staged or reference identity is lost.
     if(Array.isArray(groups.macro)&&groups.macro.filter(edit=>edit?.field==='macros').length>1)throw new Error('Duplicate macro list edits are not allowed in one transaction.');
-    const draft=copyBlocks(this.#draft),saved=new Map(this.#edits);
+    const draft=copyBlocks(this.#draft),saved=new Map(this.#edits);let remaps=[];
     for(const [id,edits]of Object.entries(groups)){
-      const result=patchBlock(id,draft[id],edits,this.#capability);draft[id]=result.bytes;
+      const result=patchBlock(id,draft[id],edits,this.#capability,{patchMacro:this.#patchMacro});draft[id]=result.bytes;
+      if(id==='macro')remaps=result.referenceChanges??[];
       const fields=new Map(saved.get(id)??[]);for(const edit of edits)fields.set(`${edit.slot??'global'}:${edit.field}`,copy(edit));saved.set(id,fields);
     }
     if(groups.macro?.some(edit=>edit.field==='macros')){
-      const macroEdit=groups.macro.find(e=>e.field==='macros');
-      const remaps=patchMacros(this.#draft.macro,macroEdit.value,this.#capability).referenceChanges;
       for(const id of ['keymap','fn'])for(let slot=0;slot<this.#draft[id].length/4;slot++){
         const offset=slot*4;if(this.#draft[id][offset]!==6||!remaps.some(r=>r.before===this.#draft[id][offset+1]))continue;
         if(!groups[id]?.some(e=>e.slot===slot&&e.field==='binding'))throw new Error(`${id}[${slot}] macro reference requires repair in the same transaction.`);
@@ -173,6 +177,9 @@ export class ConfigSession {
         onProgress({phase:'verified',completed:changes.length,total:changes.length});
         check();
         this.#blocks=actualBlocks;this.#draft=copyBlocks(actualBlocks);this.#edits.clear();
+        // Semantic verification does not attest opaque readback bytes. Rebase
+        // ownership conservatively from the actual capture after verified apply.
+        this.#patchMacro=createMacroPatcher(actualBlocks.macro,this.#capability);
         this.#origin={...this.#origin,writeEpoch};
         this.#snapshot=snapshotView(this.#capability.identity,actualBlocks,this.#snapshot.coverage,{...this.#snapshot.provenance,writeEpoch,verifiedAt:new Date().toISOString()});
         origins.set(this.#snapshot,this.#origin);return {...result,status:'verified'};

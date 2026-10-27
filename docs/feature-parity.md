@@ -1,6 +1,10 @@
-# Đối chiếu tính năng 0.3.4
+# Đối chiếu tính năng 0.3.5
 
 Phạm vi đối chiếu gồm đủ các nhóm trong thiết kế được duyệt. **Triển khai** là hành vi mã/giao diện thực có; **mô phỏng** là kiểm thử bằng dữ liệu tổng hợp; **USB thật** chỉ ghi phép đã được thực hiện. Nguồn là [driver LEOBOG](https://leobog.driveall.cn/) đã quan sát 22/10/2026, các đoạn có hash trong [fixture nguồn](../tests/fixtures/source/a80rt-manufacturer.json), [ghi chú RT](rt-source-evidence.md) và [thay gán 4 byte](binding-source-evidence.md); [protocol-facts](../dist/device/protocol-facts.json) ghi offset, command và giới hạn.
+
+Bản 0.3.5 sửa trạng thái bỏ chọn macro: placeholder, lựa chọn trống hoặc không hợp lệ tách nguồn và dừng recorder, giữ nguyên timeline cùng giá trị ô chưa lưu. Xóa/Gán cần chọn macro thật; Lưu thêm macro mới, giữ macro cũ và tham chiếu. Chọn lại nguồn khôi phục thao tác trên nguồn đó. Đây là sửa editor cục bộ, không có phép đo phần cứng mới.
+
+Bốn regression bổ sung của 0.3.5: lỗi RT chỉ giữ trường nhập trong đúng ngữ cảnh, lớp/gán/vùng chọn luôn theo model; macro có ownership private theo baseline và cấp phát lại khi phân mảnh, giữ opaque/reserved/flags; projection DKS chỉ nhận quyền từ tham chiếu editable, bảo vệ Fn F1–F12 và slot không vật lý, từ chối nguyên tử mẫu dùng chung xung đột; JSON v1/profile import kiểm generation trước khi cài kết quả hoặc hiển thị lỗi. Regression điều khiển thứ tự file đọc nằm trong `app-context-regressions.test.mjs`; đây là mô phỏng lịch hoàn tất, không phải tái hiện race bằng file thật trên browser. [Thiết kế chi tiết](0.3.5-correctness.md).
 
 Bản 0.3.4 sửa macro nguồn mất/thay sau Hoàn tác hoặc tải hồ sơ mà vẫn giữ nguyên timeline chưa lưu; ngừng recorder và yêu cầu lưu/chọn trước khi gán. DKS cho chọn rõ usage0, từ chối ô không có lựa chọn, giữ mặc định4 và không mở0 cho MT/TGL. Catalog/gate render hãng chứng minh A80RT80A2 có whole, switch selector và hai vùng chết cục bộ; quyền ghi vẫn chỉ U80A1 firmware1.37 đã đo. Hồ sơ ngoại tuyến giữ raw baseline/opaque, không có live origin; chuyển vào phiên hiện tại vẫn kiểm tra ngữ nghĩa và Fn khóa.
 

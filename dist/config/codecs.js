@@ -178,12 +178,13 @@ export function fieldChanges(blockId,before,after,edits,capability) {
   return changes.sort((a,b)=>a.byteOffsets[0]-b.byteOffsets[0] || a.path.localeCompare(b.path));
 }
 
-export function patchBlock(blockId,raw,edits,capability) {
+export function patchBlock(blockId,raw,edits,capability,{patchMacro=patchMacros}={}) {
   const bytes=copyBlock(blockId,raw,capability), before=bytes.slice();
+  let referenceChanges;
   if (!Array.isArray(edits)) fail('edits','expected edit array');
   for (const edit of edits) {
     checkEdit(edit);
-    if(blockId==='macro'){if(edit.field!=='macros'||own(edit,'slot'))fail(edit.field);bytes.set(patchMacros(bytes,edit.value,capability).bytes);}
+    if(blockId==='macro'){if(edit.field!=='macros'||own(edit,'slot'))fail(edit.field);const result=patchMacro(bytes,edit.value,capability);bytes.set(result.bytes);referenceChanges=result.referenceChanges;}
     else if(blockId==='dks'){if(edit.field!=='pattern')fail(edit.field);bytes.set(patchPattern(bytes,edit.slot,edit.value,capability));}
     else if (blockId==='rt') patchRT(bytes,edit,capability);
     else if (blockId==='settings' || blockId==='lighting') patchScalar(blockId,bytes,edit,capability);
@@ -208,5 +209,5 @@ export function patchBlock(blockId,raw,edits,capability) {
       if (edits.some(edit=>edit.slot===slot&&(edit.field===field||edit.field==='switchId')) && word(bytes,offset+relative)>Math.round(travel*100)) fail(field,'exceeds switch travel');
     }
   }
-  return {bytes,changes:fieldChanges(blockId,before,bytes,edits,capability)};
+  return {bytes,changes:fieldChanges(blockId,before,bytes,edits,capability),referenceChanges};
 }

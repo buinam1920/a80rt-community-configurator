@@ -1,7 +1,7 @@
 import {identifyDevice,readPlan} from '../device/capabilities.js';
 import {ConfigSession} from './session.js';
 import {decodeBlock,patchBlock} from './codecs.js';
-import {decodeMacros,patchMacros} from './macros.js';
+import {decodeMacros,macroReferenceChanges} from './macros.js';
 import {decodePattern,validateReferences} from './advanced.js';
 
 const SCHEMA='a80rt-profile/v2',clone=value=>structuredClone(value),same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
@@ -74,7 +74,7 @@ function semanticGroups(profile,session){
   // Corresponding current entries own the preserved reserved bytes and flags.
   const macros=next.map((m,index)=>({...index<old.length?{sourceIndex:index}:{},events:events([m])[0]}));
   add('macro',{field:'macros',value:macros});
-  const remaps=patchMacros(current.macro,macros,cap).referenceChanges;
+  const remaps=macroReferenceChanges(old,macros);
   for(const id of ['keymap','fn'])for(let slot=0;slot<128;slot++)if(current[id][slot*4]===6&&remaps.some(r=>r.before===current[id][slot*4+1])&&!groups[id]?.some(e=>e.slot===slot)){
    // Explicit repairs are required by the session, even if a semantic binding
    // already happens to match the requested final value. Locked Fn stays locked.
@@ -85,22 +85,25 @@ function semanticGroups(profile,session){
  // Only import templates used by the final semantic projection. Locked,
  // nonphysical and skipped bindings still own their current references; an
  // unreferenced captured template has no authority to clear those patterns.
- const needed=new Set(),imported=new Set();
+ const imported=new Set(),preserved=new Map();
  for(const id of ['keymap','fn']){
   const projected=groups[id]?patchBlock(id,current[id],groups[id],cap).bytes:current[id];
   for(let offset=0;offset<projected.length;offset+=4)if(projected[offset]===8){
-   const index=projected[offset+1];needed.add(index);
-   if(desired[id][offset]===8&&desired[id][offset+1]===index)imported.add(index);
+   const index=projected[offset+1],slot=offset/4;
+   const editable=cap.slots.includes(slot)&&!(id==='fn'&&cap.limits.fnLockedSlots.includes(slot));
+   if(editable&&desired[id][offset]===8&&desired[id][offset+1]===index)imported.add(index);
+   else preserved.set(index,[...(preserved.get(index)??[]),`${id}[${slot}]`]);
   }
  }
- for(const slot of needed)if(imported.has(slot)){
-  const a=decodePattern(current.dks,slot),b=decodePattern(desired.dks,slot);if(!same(a,b))add('dks',{slot,field:'pattern',value:b});
+ for(const slot of imported){
+  const a=decodePattern(current.dks,slot),b=decodePattern(desired.dks,slot);if(same(a,b))continue;
+  if(preserved.has(slot))fail(`DKS ${slot} dùng chung với vị trí phải giữ nguyên (${preserved.get(slot).join(', ')}); không thể thay mẫu. Chọn mẫu DKS riêng cho các phím được sửa.`);
+  add('dks',{slot,field:'pattern',value:b});
  }
  return groups;
 }
 export function previewProfile(profile,session){
- const groups=semanticGroups(profile,session),shadow=new ConfigSession({...session.snapshot,blocks:session.draft,provenance:{source:'profile'}},capabilityFor(session.snapshot.identity));
- return shadow.transaction(groups);
+ return session.preview(semanticGroups(profile,session));
 }
 export function profileSkippedFields(profile,session){
  const {cap,blocks:desired}=full(profile,capabilityFor(session.snapshot.identity)),current=session.draft,skipped=[];

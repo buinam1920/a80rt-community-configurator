@@ -74,3 +74,44 @@ test('same-count source changes are synchronized before direct save or delete; r
  for(const action of ['macro-save','macro-delete']){const s=sample([4]);editor(s,({get,click,error,timeline})=>{get('macro-select').value='0';get('macro-select').trigger('change');click('macro-add-event');loadProfile(createProfile(sample([5]),'Khác'),s);click(action);const macros=decodeMacros(s.draft.macro,cap);assert.equal(macros[0].events[0].code,5);assert.equal(timeline().children.length,2);assert.equal(macros.length,action==='macro-save'?2:1);assert.equal(error().hidden,action==='macro-save');});}
  const s=sample([4]);editor(s,({get,click,input,mount,timeline})=>{get('macro-select').value='0';get('macro-select').trigger('change');const code=input('Mã HID sự kiện 1');code.value='5';code.trigger('change');click('macro-save');s.revert();mount.refresh();assert.equal(get('macro-select').value,'-1');assert.equal(timeline().children.length,1);assert.equal(input('Mã HID sự kiện 1').value,'5');click('macro-save');assert.deepEqual(decodeMacros(s.draft.macro,cap).map(m=>m.events[0].code),[4,5]);});
 });
+
+for(const action of ['macro-delete','macro-assign'])test(`placeholder selection guards ${action} without changing the retained input or draft`,()=>{
+ const s=sample([4]);editor(s,({get,click,input,timeline,error})=>{
+  get('macro-select').value='0';get('macro-select').trigger('change');const code=input('Mã HID sự kiện 1');code.value='5';code.trigger('change');const row=timeline().children[0],before=s.draft;
+  get('macro-select').value='-1';get('macro-select').trigger('change');click(action);
+  assert.deepEqual(s.draft,before);assert.equal(error().hidden,false);assert.equal(get(action).disabled,true);assert.equal(get('macro-select').value,'-1');assert.equal(timeline().children[0],row);assert.equal(input('Mã HID sự kiện 1'),code);assert.equal(code.value,'5');
+ });
+});
+
+test('saving placeholder-detached input appends a new source and preserves old macro metadata and references',()=>{
+ const seed=sample([4]),blocks=seed.draft,original=decodeMacros(blocks.macro,cap)[0];blocks.macro.set([0x12,0x34],original.pointer+2);blocks.macro[original.pointer+7]=0xb5;const s=new ConfigSession({...seed.snapshot,blocks},cap);s.edit('keymap',[{slot:34,field:'binding',value:{type:'macro',index:0,mode:1,repeat:3}}]);
+ editor(s,({get,click,input,timeline,error})=>{
+  get('macro-select').value='0';get('macro-select').trigger('change');const code=input('Mã HID sự kiện 1'),delay=input('Delay ms sự kiện 1');code.value='5';code.trigger('change');delay.value='00123';delay.trigger('change');const row=timeline().children[0],before=s.draft;
+  get('macro-select').value='-1';get('macro-select').trigger('change');assert.equal(get('macro-save').disabled,false);click('macro-save');
+  const macros=decodeMacros(s.draft.macro,cap);assert.deepEqual(macros.map(m=>m.events[0].code),[4,5]);assert.deepEqual(macros[0],decodeMacros(before.macro,cap)[0]);assert.deepEqual(s.draft.keymap,before.keymap);assert.equal(macros[1].events[0].delayMs,123);assert.equal(error().hidden,true);assert.equal(get('macro-select').value,'1');assert.equal(get('macro-delete').disabled,false);assert.equal(get('macro-assign').disabled,false);assert.equal(timeline().children[0],row);assert.equal(input('Mã HID sự kiện 1'),code);assert.equal(input('Delay ms sự kiện 1'),delay);assert.equal(delay.value,'00123');
+ });
+});
+
+test('empty, invalid and unrepresented macro selections stop recording and preserve existing timeline fields',()=>{
+ for(const value of ['-1','','999','bogus','0.5','0.0']){const s=sample([4]);editor(s,({get,click,input,timeline,elements})=>{
+  get('macro-select').value='0';get('macro-select').trigger('change');const code=input('Mã HID sự kiện 1'),delay=input('Delay ms sự kiện 1');code.value='5';code.trigger('change');delay.value='00123';delay.trigger('change');const rows=[...timeline().children],before=s.draft;click('macro-record-start');assert.equal(get('macro-record-stop').disabled,false);
+  // Keep malformed values represented too, so Number coercion cannot alias source 0.
+  if(['bogus','0.5','0.0'].includes(value)){const option=new Element('option');option.value=value;get('macro-select').append(option);}get('macro-select').value=value;get('macro-select').trigger('change');
+  assert.equal(get('macro-select').value,'-1',value);assert.equal(get('macro-delete').disabled,true,value);assert.equal(get('macro-assign').disabled,true,value);assert.equal(get('macro-save').disabled,false,value);assert.equal(get('macro-record-stop').disabled,true,value);assert.equal(timeline().children.length,rows.length);assert.equal(timeline().children[0],rows[0]);assert.equal(input('Mã HID sự kiện 1'),code);assert.equal(input('Delay ms sự kiện 1'),delay);assert.equal(code.value,'5');assert.equal(delay.value,'00123');assert.deepEqual(s.draft,before);assert.ok(!elements.some(el=>/Macro nguồn đã đổi/.test(el.textContent)));
+  const key=new Event('keydown');Object.defineProperty(key,'code',{value:'KeyB'});window.dispatchEvent(key);assert.equal(timeline().children.length,1);
+ });}
+});
+
+test('choosing a real macro after deselection restores load, assignment, own-save update and delete',()=>{
+ const s=sample([4,6]);editor(s,({get,click,input,timeline,error})=>{
+  get('macro-select').value='0';get('macro-select').trigger('change');input('Mã HID sự kiện 1').value='5';input('Mã HID sự kiện 1').trigger('change');get('macro-select').value='-1';get('macro-select').trigger('change');assert.equal(get('macro-delete').disabled,true);
+  get('macro-select').value='1';get('macro-select').trigger('change');assert.equal(input('Mã HID sự kiện 1').value,'6');assert.equal(get('macro-delete').disabled,false);assert.equal(get('macro-assign').disabled,false);click('macro-assign');assert.deepEqual([...s.draft.keymap.slice(136,140)],[6,1,0,1]);input('Mã HID sự kiện 1').value='7';input('Mã HID sự kiện 1').trigger('change');click('macro-save');assert.deepEqual(decodeMacros(s.draft.macro,cap).map(m=>m.events[0].code),[4,7]);get('macro-repair').checked=true;click('macro-delete');assert.equal(error().hidden,true);assert.deepEqual(decodeMacros(s.draft.macro,cap).map(m=>m.events[0].code),[4]);assert.equal(timeline().children.length,0);
+ });
+});
+
+test('deselection cannot delete an assigned macro or repair either layer even with repair checked',()=>{
+ const s=sample([4,6]);for(const id of ['keymap','fn'])s.edit(id,[{slot:34,field:'binding',value:{type:'macro',index:0,mode:1,repeat:3}},{slot:49,field:'binding',value:{type:'macro',index:1,mode:2,repeat:1}}]);
+ editor(s,({get,click,input,timeline,error})=>{
+  get('macro-select').value='0';get('macro-select').trigger('change');input('Mã HID sự kiện 1').value='5';input('Mã HID sự kiện 1').trigger('change');get('macro-repair').checked=true;const before=s.draft,row=timeline().children[0];get('macro-select').value='-1';get('macro-select').trigger('change');click('macro-delete');assert.deepEqual(s.draft,before);assert.equal(error().hidden,false);assert.equal(get('macro-delete').disabled,true);assert.equal(timeline().children[0],row);assert.equal(input('Mã HID sự kiện 1').value,'5');
+ });
+});

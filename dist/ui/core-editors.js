@@ -73,7 +73,7 @@ function bindingValue(binding){
 
 export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdit=()=>{},onLayerChange=()=>{},onNavigate=()=>{},isBusy=()=>false}){
   const model=createCoreEditorModel({session,capability,selectedSlots,onEdit,isBusy});
-  const listeners=[],controls=new Map(),panels=new Map(),tabs=new Map();let active='rt',destroyed=false;
+  const listeners=[],controls=new Map(),panels=new Map(),tabs=new Map();let active='rt',destroyed=false,invalidInput=null;
   const make=(tag,text,className)=>{const el=document.createElement(tag);if(text)el.textContent=text;if(className)el.className=className;return el;};
   const listen=(el,type,fn)=>{el.addEventListener(type,fn);listeners.push(()=>el.removeEventListener(type,fn));};
   listen(root,'pointerdown',onNavigate);listen(root,'focusin',onNavigate);
@@ -86,7 +86,10 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
     tabs.set(id,tab);panels.set(id,panel);tabbar.append(tab);listen(tab,'click',()=>{onNavigate();active=id;refresh();});
     listen(tab,'keydown',event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();onNavigate();const ids=[...tabs.keys()],index=ids.indexOf(active);active=event.key==='Home'?ids[0]:event.key==='End'?ids.at(-1):ids[(index+(event.key==='ArrowRight'?1:2))%3];refresh();tabs.get(active).focus();});
   }
-  const commit=(block,field,value)=>{try{model.edit(block,field,value);error.hidden=true;error.textContent='';refresh();}catch(problem){error.textContent=problem.message;error.hidden=false;}};
+  const errorContext=()=>{const view=model.view();return JSON.stringify([view.layer,[...view.slots].sort((a,b)=>a-b),session?.draft,view.editable]);};
+  const clearError=()=>{invalidInput=null;error.hidden=true;error.textContent='';};
+  const showError=(problem,key)=>{const input=controls.get(key)?.input;invalidInput=input&&key!=='binding'?{input,value:input.value,checked:input.checked,context:errorContext()}:null;error.textContent=problem.message;error.hidden=false;};
+  const commit=(block,field,value)=>{try{model.edit(block,field,value);clearError();refresh();}catch(problem){showError(problem,block==='colors'?'selectedColor':field);}};
   const field=(panel,key,label,type='number')=>{
     const wrap=make('div',null,'editor-field'),caption=make('label',label),input=make(type==='select'?'select':'input');input.id=`core-${key}`;caption.htmlFor=input.id;if(type!=='select')input.type=type;
     wrap.append(caption,input);panel.append(wrap);controls.set(key,{input,wrap});return input;
@@ -121,8 +124,8 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
     const input=field(rgbPanel,key,label,'text');input.maxLength=7;input.autocomplete='off';
     listen(input,'change',()=>{
       try{const rgb=parseColor(input.value.trim());if(key==='selectedColor')commit('colors','rgb',rgb);
-        else{const prefix=key==='secondaryColor'?'secondary':'';session.edit('lighting',Object.entries(rgb).map(([channel,value])=>({field:prefix?prefix+channel[0].toUpperCase()+channel.slice(1):channel,value})));onEdit(session.diff());error.hidden=true;refresh();}}
-      catch(problem){error.textContent=problem.message;error.hidden=false;}
+        else{const prefix=key==='secondaryColor'?'secondary':'';session.edit('lighting',Object.entries(rgb).map(([channel,value])=>({field:prefix?prefix+channel[0].toUpperCase()+channel.slice(1):channel,value})));onEdit(session.diff());clearError();refresh();}}
+      catch(problem){showError(problem,key);}
     });
   }
   for(const [key,label,min,max]of [['brightness','Độ sáng (1–5)',1,5],['speed','Tốc độ (1–5)',1,5],['colorMode','Chế độ màu (0 / 1)',0,1],['direction','Hướng (0 / 1)',0,1]]){
@@ -131,7 +134,8 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
   rgbPanel.append(make('p','Màu vùng chọn nằm trong nhóm màu riêng; chọn hiệu ứng 128 để dùng màu từng phím. Hiệu ứng đồng bộ âm nhạc cần dịch vụ hãng, chưa tích hợp.','editor-hint'));
   root.replaceChildren(intro,reason,tabbar,...panels.values(),error);
   function refresh(){
-    if(destroyed)return;const view=model.view(),entered=error.hidden?null:[...controls.values()].map(({input})=>[input,input.value]);
+    if(destroyed)return;const view=model.view();
+    if(invalidInput&&invalidInput.context!==errorContext())clearError();
     selection.textContent=`${view.slots.length} phím đã chọn${view.slots.length?` · ${view.slots.map(slot=>KEYS.find(key=>key.slot===slot).label).slice(0,8).join(', ')}${view.slots.length>8?'…':''}`:''}`;
     reason.textContent=view.reason;
     for(const [id,tab]of tabs){tab.setAttribute('aria-selected',String(active===id));tab.tabIndex=active===id?0:-1;panels.get(id).hidden=active!==id;}
@@ -158,8 +162,9 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
       controls.get(key).input.value=Object.values(rgb).every(value=>value!==undefined)?colorHex(rgb):'';
     }
     controls.get('selectedColor').input.value=view.rgb.value?colorHex(view.rgb.value):'';controls.get('selectedColor').input.placeholder=view.rgb.mixed?'Giá trị khác nhau · #RRGGBB':'#RRGGBB';
-    // Preserve entered values on an error while still recomputing every lock.
-    if(entered)for(const [input,value]of entered)input.value=value;
+    // Only the failing field belongs to the error. Layer, binding and selection
+    // always follow the model, and a new context discards the invalid input.
+    if(invalidInput){const {input,value,checked}=invalidInput;input.value=value;if(input.type==='checkbox')input.checked=checked;}
   }
   refresh();
   return {setSelection(slots){model.setSelection(slots);refresh();},setLayer(next){model.setLayer(next);refresh();},refresh,destroy(){destroyed=true;for(const remove of listeners)remove();root.replaceChildren();}};

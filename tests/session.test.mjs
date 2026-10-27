@@ -456,3 +456,16 @@ test('a changed macro event or DKS action mismatch cannot pass semantic readback
   const result=await session.apply(transport);assert.equal(result.status,'unconfirmed');assert.match(result.error,/mismatch/);assert.ok(session.diff().length>0);
  }finally{await transport.close();}}
 });
+
+test('verified macro readback rebases allocation ownership from actual reserved and opaque bytes',async()=>{
+ const {device,transport,session}=await setup({cleanAdvanced:true});
+ const event={device:'keyboard',action:'down',code:4,delayMs:0};
+ try{
+  session.edit('macro',[{field:'macros',value:[{events:[event]}]}]);
+  device.beforeSend=packet=>{if(packet[1]===0){device.blocks.macro[402]=93;device.blocks.macro[900]=211;}};
+  assert.equal((await session.apply(transport)).status,'verified');
+  session.edit('macro',[{field:'macros',value:[]}]);
+  session.edit('macro',[{field:'macros',value:[{events:Array.from({length:80},()=>({...event}))}]}]);
+  assert.equal(session.draft.macro[402],93);assert.equal(session.draft.macro[900],211);
+ }finally{await transport.close();}
+});

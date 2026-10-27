@@ -15,6 +15,11 @@ const state={reader:null,snapshot:null,selected:34,selectedSlots:[34],multi:fals
 const buttons=new Map();
 const profileStorage=createIndexedDBStorage();
 let profileItems=[],profileRecovery=null,profilePending=null,profileBusy=false,profileSession=null,profileRefresh=0,recoveryTimer,recoveryQueue=Promise.resolve();
+// Imports may finish in any order. Any newer intent to edit/open a context
+// revokes old file reads, including their error messages and profile previews.
+let importGeneration=0;
+const invalidateImports=()=>++importGeneration;
+const currentImport=generation=>generation===importGeneration&&!state.reading&&!state.connecting&&!state.applying&&!state.maintaining;
 const supported=!!navigator.hid&&window.isSecureContext;
 let runtimeHidBlocked=false;
 const time=value=>new Date(value).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
@@ -23,7 +28,7 @@ function clearMessage(){message('');}
 function setText(id,text){$(id).textContent=text;}
 function mode(){return state.snapshot?.source??'empty';}
 function describeSource(){if(mode()==='demo')return 'Dữ liệu mẫu';if(mode()==='import')return 'Bản đã lưu';if(mode()==='device')return state.reader?'Bàn phím thật':Object.keys(state.snapshot.blocks).length?'Bản đọc trước':'Thông tin thiết bị';return 'Chưa có dữ liệu';}
-function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.3.4',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
+function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.3.5',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
 function makeKeyboard(){
   for(const row of LAYOUT){
     const container=document.createElement('div');container.className='key-row';
@@ -127,6 +132,7 @@ function addPacket(direction,bytes){
 }
 async function connect(){
   if(!supported||state.connecting||state.reading)return;
+  invalidateImports();
   clearMessage();state.connecting=true;render();let reader;
   try{
     const devices=await navigator.hid.requestDevice({filters:DEVICE_FILTERS.map(filter=>({...filter}))});
@@ -143,6 +149,7 @@ async function connect(){
   finally{state.connecting=false;render();}
 }
 async function disconnect(){
+  invalidateImports();
   await editors?.cancelCalibration();
   const reader=state.reader;state.reader=null;state.reading=false;state.activeBlock=null;state.applyAbort?.abort();
   if(reader)await reader.close().catch(()=>{});
@@ -151,6 +158,7 @@ async function disconnect(){
 async function read(){
   if(!state.reader||state.reading||state.applying||state.maintaining)return;
   if(!state.capability){message('Danh tính model chưa khớp hoàn toàn; chưa thể đọc snapshot chỉnh sửa.',true);return;}
+  invalidateImports();
   const reader=state.reader;
   const sessionId=reader.getState().sessionId;
   const snapshot=deviceSnapshot(reader.device,reader.interface);snapshot.session=reader.getState();state.snapshot=snapshot;state.session=null;
@@ -164,7 +172,8 @@ async function read(){
   finally{if(ownsRead()){snapshot.session=reader.getState();state.reading=false;state.activeBlock=null;render();}}
 }
 function sample(){
-  if(state.reader||state.reading||state.applying)return;
+  if(state.reader||state.reading||state.applying||state.connecting||state.maintaining)return;
+  invalidateImports();
   const capability=SAMPLE_CAPABILITY;
   const blocks=Object.fromEntries(readPlan(capability).map(b=>[b.id,new Uint8Array(b.length)]));
   for(const key of KEYS){
@@ -184,10 +193,10 @@ function renderEditors(){
   const capability=state.capability??SAMPLE_CAPABILITY;
   if(mountedSession===state.session&&mountedCapability===capability)return;
   editors?.destroy();mountedSession=state.session;mountedCapability=capability;
-  const context={session:state.session,capability,selectedSlots:state.selectedSlots,isBusy:()=>state.reading||state.connecting||state.applying||state.maintaining||!!state.session?.invalidated,onNavigate:()=>{editors?.stopRecording();editors?.cancelCalibration();},onEdit:()=>{clearProfilePreview();renderSelection();renderDraft();scheduleRecovery();}};
+  const context={session:state.session,capability,selectedSlots:state.selectedSlots,isBusy:()=>state.reading||state.connecting||state.applying||state.maintaining||!!state.session?.invalidated,onNavigate:()=>{invalidateImports();editors?.stopRecording();editors?.cancelCalibration();},onEdit:()=>{clearProfilePreview();renderSelection();renderDraft();scheduleRecovery();}};
   const core=mountCoreEditors($('core-editors'),{...context,onLayerChange:layer=>{state.layer=layer;renderSelection();}});
   const advanced=mountAdvancedEditors($('advanced-editors'),context);
-  const settings=mountDeviceSettings($('device-settings'),{...context,modelConfirmed:!!state.capability,transport:state.capability?state.reader?.transport:undefined,onNavigate:()=>advanced.stopRecording(),onInvalidate:()=>{if(state.session===context.session&&state.snapshot)state.snapshot.complete=false;},onReload:()=>read(),onBusyChange:value=>{if(mountedSession!==context.session)return;state.maintaining=value;if(value)advanced.stopRecording();render();editors?.refresh();}});
+  const settings=mountDeviceSettings($('device-settings'),{...context,modelConfirmed:!!state.capability,transport:state.capability?state.reader?.transport:undefined,onNavigate:()=>{invalidateImports();advanced.stopRecording();},onInvalidate:()=>{invalidateImports();if(state.session===context.session&&state.snapshot)state.snapshot.complete=false;},onReload:()=>read(),onBusyChange:value=>{if(mountedSession!==context.session)return;state.maintaining=value;if(value){invalidateImports();advanced.stopRecording();}render();editors?.refresh();}});
   editors={setSelection(slots){core.setSelection(slots);advanced.setSelection(slots);},setLayer(layer){core.setLayer(layer);advanced.setLayer(layer);},refresh(){core.refresh();advanced.refresh();settings.refresh();},stopRecording:()=>advanced.stopRecording(),cancelCalibration:()=>settings.cancelCalibration(),destroy(){core.destroy();advanced.destroy();settings.destroy();}};
   editors.setLayer(state.layer);
 }
@@ -217,6 +226,7 @@ function renderDraft(){
 }
 async function applyDraft(){
   if($('apply-button').disabled)return;
+  invalidateImports();
   const reader=state.reader,session=state.session,abort=new AbortController();state.applyAbort=abort;state.applying=true;render();
   const pending=session.apply(reader.transport,{signal:abort.signal,onProgress:progress=>{if(state.reader===reader&&state.session===session)message(`Đang ${progress.phase==='readback'?'đọc lại xác minh':'gửi bản nháp'}${progress.block?` · ${BLOCK_NAMES[progress.block]}`:''}…`);}});
   editors?.refresh();
@@ -240,7 +250,7 @@ function profileStatus(text,error=false){setText('profile-status',text);$('profi
 function libraryCapability(){return [SAMPLE_CAPABILITY,identifyDevice({vendorId:VENDOR,productId:0x80a2,productName:'A80RT'}),identifyDevice({vendorId:VENDOR,productId:0xfefc,productName:'A80RT U Dongle'})].find(cap=>cap.model===$('profile-model').value)??SAMPLE_CAPABILITY;}
 function selectedProfile(){return profileItems.find(p=>p.id===$('profile-list').value);}
 function profileBlocked(){return profileBusy||state.reading||state.connecting||state.applying||state.maintaining||!!state.session?.invalidated;}
-function clearProfilePreview(){profilePending=null;$('profile-preview').hidden=true;renderProfiles();}
+function clearProfilePreview(){invalidateImports();profilePending=null;$('profile-preview').hidden=true;renderProfiles();}
 function renderProfiles(){
  const busy=profileBlocked(),selected=selectedProfile();
  if(profilePending?.session!==state.session){profilePending=null;$('profile-preview').hidden=true;}
@@ -268,6 +278,7 @@ async function profileAction(action){
 }
 function stageProfile(profile){
  const session=state.session,changes=profile.readOnly?[]:session?previewProfile(profile,session):[];
+ invalidateImports();
  profilePending={profile,session,draft:session?JSON.stringify(session.draft):null};
  $('profile-preview').textContent=profile.readOnly?'JSON v1 · chỉ xem, không tạo hồ sơ đầy đủ.\n'+JSON.stringify(profile.blocks,null,2):session?`${profile.name} · ${profile.source==='sample'?'Dữ liệu mẫu':'Bản đã lưu'} · ${changes.length} thay đổi so với bản nháp hiện tại\n`+changes.map(change=>`${change.block} · ${change.path}: ${JSON.stringify(change.before)} → ${JSON.stringify(change.after)}`).join('\n'):`${profile.name} · Bản đã lưu · ${profile.identity.productName}\nMở 9 vùng cấu hình trong phiên ngoại tuyến. Không có quyền ghi thiết bị.`;
  $('profile-preview').hidden=false;profileStatus(profile.readOnly?'Bản cũ chỉ để xem.':session?'Đã xem trước. Xác nhận để đưa các trường được hỗ trợ vào bản nháp.':'Xác nhận để mở hồ sơ ngoại tuyến.');renderProfiles();
@@ -289,20 +300,31 @@ function scheduleRecovery(){
 function downloadProfile(profile){const blob=new Blob([exportProfile(profile)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`${profile.identity?.model??'a80rt'}-profile.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 async function importConfigurationProfile(event){
  const file=event.target.files[0];event.target.value='';if(!file)return;
- await profileAction(async()=>{clearProfilePreview();if(file.size>2*1024*1024)throw new Error('Tệp lớn hơn giới hạn 2 MB.');const text=await file.text(),input=JSON.parse(text),cap=state.capability??(input.schema==='a80rt-profile/v2'?identifyDevice(input.identity):libraryCapability());const profile=parseProfile(text,cap);stageProfile(profile);});
+ await profileAction(async()=>{
+  clearProfilePreview();const generation=importGeneration;
+  try{
+   if(file.size>2*1024*1024)throw new Error('Tệp lớn hơn giới hạn 2 MB.');
+   const text=await file.text();if(!currentImport(generation))return;
+   const input=JSON.parse(text),cap=state.capability??(input.schema==='a80rt-profile/v2'?identifyDevice(input.identity):libraryCapability());
+   const profile=parseProfile(text,cap);stageProfile(profile);
+  }catch(error){if(currentImport(generation))throw error;}
+ });
 }
 async function importData(event){
-  const file=event.target.files[0];event.target.value='';if(!file||state.reader||state.reading)return;
+  const file=event.target.files[0];event.target.value='';if(!file||state.reader||state.reading||state.connecting||state.applying||state.maintaining)return;
+  const generation=invalidateImports();
   try{
     if(file.size>2*1024*1024)throw new Error('Tệp lớn hơn giới hạn 2 MB.');
-    const input=JSON.parse(await file.text());
+    const text=await file.text();if(!currentImport(generation)||state.reader)return;
+    const input=JSON.parse(text);
     if(input.schema!=='a80rt-reader/v1'||!input.blocks||!input.device||!['device','demo','import'].includes(input.source))throw new Error('Chỉ mở bản JSON xuất từ A80RT Reader.');
     const blocks={};for(const block of FULL_BLOCKS){const bytes=input.blocks[block.id];if(bytes===undefined)continue;if(!Array.isArray(bytes)||bytes.length!==block.length||bytes.some(n=>!Number.isInteger(n)||n<0||n>255))throw new Error(`Nhóm ${block.name} không hợp lệ.`);blocks[block.id]=bytes;}
     if(!Object.keys(blocks).length)throw new Error('Tệp chưa có nhóm cấu hình nào.');
     if(typeof input.device.productName!=='string'||input.device.productName.length>100||!Number.isInteger(input.device.vendorId)||!Number.isInteger(input.device.productId)||Number.isNaN(Date.parse(input.createdAt)))throw new Error('Thông tin thiết bị hoặc thời gian không hợp lệ.');
     state.session=null;state.capability=null;state.snapshot={schema:input.schema,source:input.source==='demo'?'demo':'import',originalSource:input.originalSource??input.source,createdAt:input.createdAt,device:input.device,blocks,complete:Object.keys(blocks).length===FULL_BLOCKS.length,packets:[],totalPackets:0};
+    clearProfilePreview();
     clearMessage();render();message('Đã mở bản đã lưu. Dữ liệu này không được đọc trực tiếp từ bàn phím trong phiên hiện tại.');
-  }catch(error){message(`Không thể mở bản đã lưu: ${error.message}`,true);}
+  }catch(error){if(currentImport(generation))message(`Không thể mở bản đã lưu: ${error.message}`,true);}
 }
 function checkBrowser(){
   let text='';
@@ -321,7 +343,7 @@ $('clear-selection').addEventListener('click',()=>{state.selectedSlots=[];render
 $('revert-button').addEventListener('click',()=>{state.session?.revert();clearProfilePreview();editors?.refresh();clearMessage();renderSelection();renderDraft();scheduleRecovery();});
 $('apply-button').addEventListener('click',applyDraft);
 $('sample-button').addEventListener('click',sample);
-$('exit-sample').addEventListener('click',()=>{state.snapshot=null;state.session=null;state.capability=null;clearMessage();render();});
+$('exit-sample').addEventListener('click',()=>{invalidateImports();state.snapshot=null;state.session=null;state.capability=null;clearMessage();render();});
 $('export-button').addEventListener('click',exportData);
 $('import-button').addEventListener('click',()=>$('import-file').click());
 $('import-file').addEventListener('change',importData);
@@ -348,5 +370,5 @@ $('profile-confirm').addEventListener('click',()=>profileAction(()=>{
  if(state.session)loadProfile(pending.profile,state.session);else{if(state.reader)throw new Error('Đọc đủ cấu hình thiết bị trước khi đưa hồ sơ vào bản nháp.');installOfflineProfile(pending.profile);}
  clearProfilePreview();editors?.refresh();renderSelection();renderDraft();scheduleRecovery();profileStatus('Đã đưa vào bản nháp cục bộ. Chưa gửi thiết bị.');
 }));
-navigator.hid?.addEventListener('disconnect',async event=>{if(event.device===state.reader?.device){const reader=state.reader;state.reader=null;state.reading=false;state.activeBlock=null;state.applyAbort?.abort();render();message('Bàn phím đã ngắt kết nối. Kiểm tra cáp USB rồi kết nối lại.',true);await editors?.cancelCalibration();await reader.close().catch(()=>{});}});
+navigator.hid?.addEventListener('disconnect',async event=>{if(event.device===state.reader?.device){invalidateImports();const reader=state.reader;state.reader=null;state.reading=false;state.activeBlock=null;state.applyAbort?.abort();render();message('Bàn phím đã ngắt kết nối. Kiểm tra cáp USB rồi kết nối lại.',true);await editors?.cancelCalibration();await reader.close().catch(()=>{});}});
 makeKeyboard();checkBrowser();render();void refreshProfiles();

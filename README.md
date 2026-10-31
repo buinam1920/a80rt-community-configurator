@@ -1,11 +1,10 @@
-# A80RT Community Configurator ? 0.4.0-beta.1
+# A80RT Community Configurator — 0.4.0-beta.1
 
-Unofficial community configurator compatible with LEOBOG A80RT keyboards. Not affiliated with or endorsed by LEOBOG. Product names identify compatible hardware only.
+Công cụ cộng đồng không chính thức để cấu hình bàn phím LEOBOG A80RT. Dự án không liên kết với hoặc được LEOBOG bảo trợ. Tên sản phẩm chỉ dùng để xác định phần cứng tương thích.
 
-Download the Windows app from [Releases](https://github.com/buinam1920/a80rt-community-configurator/releases). Download `A80RT-Configurator-0.4.0-beta.1.exe`, then run it with Edge or Chrome installed. No Python installation is needed for the executable. Keep the app window open and connect/read the keyboard before using Ctrl+Alt+1 (LoL) or Ctrl+Alt+2 (Apex). Exit using the system tray menu.
+**[Tải ứng dụng Windows tại đây](https://github.com/buinam1920/a80rt-community-configurator/releases/tag/v0.4.0-beta.1)**. Chọn tệp `A80RT-Configurator-0.4.0-beta.1.exe`, rồi chạy trên máy đã cài Edge hoặc Chrome. Không cần cài Python. Giữ cửa sổ ứng dụng mở, kết nối và đọc cấu hình bàn phím trước khi dùng **Ctrl+Alt+1 (LoL)** hoặc **Ctrl+Alt+2 (Apex)**. Thoát hoàn toàn bằng menu ở khay hệ thống.
 
-This is a beta release. Live writes are qualified for the wired A80RT U, firmware 1.37; other variants are not established as writable. Fn changes remain local and block Apply. See the verification details below.
-
+Đây là **bản beta**. Chức năng ghi cấu hình được kiểm chứng trong phạm vi A80RT U có dây, firmware 1.37; chưa xác lập khả năng ghi trên các biến thể khác. Thay đổi lớp Fn chỉ lưu cục bộ và sẽ chặn Áp dụng. Xem phạm vi kiểm chứng bên dưới.
 
 Ứng dụng WebHID cục bộ để đọc đủ 9 nhóm cấu hình LEOBOG A80RT / A80RT U, chỉnh bản nháp RT, gán phím, Fn, đèn, màu từng phím, macro, phím nâng cao và thiết lập chung. Dữ liệu thiết bị và hồ sơ cấu hình được xử lý trong trình duyệt. [Bảng đối chiếu tính năng](docs/feature-parity.md) ghi riêng chức năng triển khai, kiểm thử mô phỏng, bằng chứng phần cứng và các mục phụ thuộc hãng.
 

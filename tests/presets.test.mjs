@@ -42,7 +42,7 @@ test('a failing preset is atomic and unknown ids are rejected',()=>{
   const s=session(),blocks=s.draft;blocks.rt[34*8]=9;// unknown switch: travel unproven
   const odd=new ConfigSession({identity:cap.identity,blocks,coverage:s.snapshot.coverage,provenance:{source:'sample'}},cap);
   assert.throws(()=>odd.transaction(presetEdits(cap,'game')));assert.equal(odd.diff().length,0);
-  assert.throws(()=>presetEdits(cap,'nope'),/không tồn tại/);
+  assert.throws(()=>presetEdits(cap,'nope'),/Unknown preset/);
   assert.deepEqual(RT_PRESETS.map(p=>p.id),['office','beginner','game','lol','apex']);
 });
 test('vendor default actuation for raw0 display is 1.2 mm on every A80RT model',()=>{

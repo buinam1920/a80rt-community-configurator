@@ -47,6 +47,9 @@ function createCapability(model) {
       macroSourceUiBudget:512,writeAckShape:null,
       switchIds:[0,1,2,3,4,5,6],switchTravelMm:{0:3.4,1:3.4,2:3.3,3:3.3,4:3.4,5:3.4,6:3.4},
       switchLabels:{0:'mặc định theo nguồn (Shape Meaning Switch)',1:'Shape Meaning Switch',2:'Magnetic Jade Pro',3:'Magneto Shaft',4:'White Jade Scroll',5:'Dream Blue Axis',6:'Ash wood shaft'},
+      // Driver hãng hiển thị điểm nhận raw0 bằng currentTrip/10 (setRTKey; A80RT U currentTrip:12).
+      // Đây là cách hãng hiển thị, chưa đo hành vi vật lý trên phần cứng.
+      vendorDefaultActuationMm:1.2,
       distanceStepMm:0.01,pollingValues:[3,5,6],lightingModes:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,128],
       functionCodes:Array.from({length:22},(_,i)=>i+1),
       fnLockedSlots:Array.from({length:12},(_,i)=>i+1),

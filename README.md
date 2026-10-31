@@ -1,6 +1,21 @@
-# A80RT Configurator — 0.3.5
+# A80RT Community Configurator ? 0.4.0-beta.1
+
+Unofficial community configurator compatible with LEOBOG A80RT keyboards. Not affiliated with or endorsed by LEOBOG. Product names identify compatible hardware only.
+
+Download the Windows app from [Releases](https://github.com/buinam1920/a80rt-community-configurator/releases). Download `A80RT-Configurator-0.4.0-beta.1.exe`, then run it with Edge or Chrome installed. No Python installation is needed for the executable. Keep the app window open and connect/read the keyboard before using Ctrl+Alt+1 (LoL) or Ctrl+Alt+2 (Apex). Exit using the system tray menu.
+
+This is a beta release. Live writes are qualified for the wired A80RT U, firmware 1.37; other variants are not established as writable. Fn changes remain local and block Apply. See the verification details below.
+
 
 Ứng dụng WebHID cục bộ để đọc đủ 9 nhóm cấu hình LEOBOG A80RT / A80RT U, chỉnh bản nháp RT, gán phím, Fn, đèn, màu từng phím, macro, phím nâng cao và thiết lập chung. Dữ liệu thiết bị và hồ sơ cấu hình được xử lý trong trình duyệt. [Bảng đối chiếu tính năng](docs/feature-parity.md) ghi riêng chức năng triển khai, kiểm thử mô phỏng, bằng chứng phần cứng và các mục phụ thuộc hãng.
+
+Bản 0.3.7: mỗi phím hiện điểm nhận và RT nhấn/nhả như driver hãng (điểm nhận gốc 0 hiện "1.2" in nghiêng, đúng cách hãng hiển thị `currentTrip/10`; byte gốc vẫn giữ nguyên). Thêm bốn chế độ cài sẵn Tùy chỉnh / Văn phòng / Người mới / Chơi game lấy từ `customInfo:x.getDefault()` của driver hãng (xem `dist/config/presets.js`), và thanh điểm nhận dọc kéo được hoặc chỉnh bằng phím mũi tên. Chế độ cài sẵn và thanh kéo chỉ đổi bản nháp; chỉ ghi khi bấm Áp dụng. Khác driver hãng, app không ghi đè switch ID và bit bottom/rtMode.
+
+Bản 0.4.0-beta.1: đóng gói thành file chạy độc lập **`A80RT-Configurator.exe`** (`npm run build` / `scripts/build-exe.mjs`) kèm `start.cmd` và `scripts/a80rt_local.py`: nhúng sẵn toàn bộ 22 file giao diện trong một file `.exe` duy nhất (~138 KB, không hiện cửa sổ CMD đen, có icon ở khay hệ thống System Tray, mở thẳng cửa sổ app riêng) và đăng ký **phím tắt toàn cục Windows Ctrl+Alt+1 (LoL) / Ctrl+Alt+2 (Apex)** dùng được cả trong game. Bấm phím: chương trình nền kêu "bíp" ngay, gửi sự kiện cho **đúng một** cửa sổ app đang mở (SSE `/hotkeys/events`; ưu tiên cửa sổ đã kết nối và đọc bàn phím, rồi cửa sổ dùng gần nhất; mỗi sự kiện có mã riêng và chỉ nhận một kết quả, quá 45 giây không có kết quả thì kêu tiếng lỗi); app đổi profile, tự Áp dụng nếu bản nháp trống, rồi báo kết quả về `/hotkeys/result` để phát 2 tiếng cao (thành công) hoặc tiếng trầm (lỗi), kèm thông báo trong app và thông báo Windows nếu đã bật. Chương trình nền không tự ghi USB; `/hotkeys/*` POST chỉ nhận đúng origin của app. Cần giữ một cửa sổ app (đã kết nối và đọc bàn phím) mở trong lúc chơi.
+
+Thêm hai profile game do app đề xuất (không phải dữ liệu hãng): **LoL** (Alt+1) — mọi phím 1,5 mm, Q W E R D F 1,0 mm, 1–6/B/Tab 1,4 mm, Space 1,8 mm, tắt RT; **Apex** (Alt+2) — W A S D 0,4 mm RT 0,15 mm toàn hành trình, Space/Shift 0,8 mm, Ctrl trái/C 0,6 mm RT 0,2 mm, Q Z E R G Tab 1,2 mm, còn lại 1,5 mm. Phím tắt chỉ chạy khi cửa sổ app đang được chọn (trình duyệt không bắt phím trong game; bàn phím không có chức năng đổi profile phần cứng). Khi đã đọc bàn phím thật và bản nháp đang trống, phím tắt tự Áp dụng qua đúng luồng preflight/đọc lại xác minh rồi hiện thông báo; nếu bản nháp có thay đổi khác thì chỉ đưa profile vào bản nháp và nhắc bấm Áp dụng.
+
+Bản 0.3.6: cài được thành app trên máy (PWA) từ Chrome/Edge, có icon và cửa sổ riêng; app đã cài vẫn mở được khi server local tắt. Không đổi logic đọc/ghi USB, codec hay phiên nháp so với 0.3.5.
 
 Bản 0.3.5: bỏ chọn macro vẫn giữ nguyên timeline chưa lưu, dừng ghi và khóa Xóa/Gán; Lưu tạo macro mới, chọn lại macro thật sẽ nạp nguồn đó. Đây là sửa trạng thái chọn cục bộ, không bổ sung kiểm chứng phần cứng.
 
@@ -65,19 +80,27 @@ Ma trận 10 phép mới là kiểm chứng cấu hình bằng công cụ USB g�
 
 ## Chạy tại máy và kiểm thử
 
-Không cần cài thư viện. Phục vụ thư mục `dist` qua localhost, ví dụ:
+Không cần cài thư viện, chỉ cần Python. Trên Windows bấm đúp `start.cmd` (mở `http://localhost:8787/`), hoặc chạy:
 
 ```text
-python -m http.server 8787 --bind 127.0.0.1 --directory dist
+npm start
 ```
 
-Mở localhost bằng Chrome/Edge, không mở qua file://. Chạy kiểm thử giao thức, codec, phiên giao dịch và giao diện:
+Mở localhost bằng Chrome/Edge, không mở qua file://.
+
+### Cài thành app
+
+1. Chạy `start.cmd` một lần, mở `http://localhost:8787/` trong Chrome/Edge.
+2. Bấm biểu tượng **Cài đặt ứng dụng** trên thanh địa chỉ (Edge: menu … → Ứng dụng → Cài đặt trang này dưới dạng ứng dụng).
+3. Sau đó mở **A80RT** từ Desktop/Start menu. Hồ sơ dùng chung kho với trang `localhost:8787`.
+
+Service worker luôn ưu tiên mạng: khi server chạy, app lấy đúng file mới nhất; khi server tắt, app mở từ bộ đệm của đúng phiên bản đã cài. Nó chỉ lưu file giao diện tĩnh, không chạm WebHID, IndexedDB hay dữ liệu cấu hình. Sau khi cập nhật mã nguồn, mở app một lần khi server đang chạy để nhận bản mới. Chạy kiểm thử giao thức, codec, phiên giao dịch và giao diện:
 
 ```text
 npm test
 ```
 
-HTML chứa một import map cho **toàn bộ 13** module JavaScript, dùng chung token phiên bản `0.3.5`; entry script và CSS dùng cùng token. Source imports giữ đường dẫn không query để browser có một registry/class và Node giữ cùng module identity. Mỗi lần phát hành thay module phải cập nhật phiên bản package, import map, entry/CSS và metadata cùng nhau; kiểm thử release graph kiểm tra đủ đường dẫn và các chu trình. Không dựa riêng vào `_headers` chưa xác minh trên Sites. Controller kiểm tra cache/CSP và triển khai lên Site hiện có.
+HTML chứa một import map cho **toàn bộ 14** module JavaScript, dùng chung token phiên bản `0.4.0-beta.1`; entry script và CSS dùng cùng token. Source imports giữ đường dẫn không query để browser có một registry/class và Node giữ cùng module identity. Mỗi lần phát hành thay module phải cập nhật phiên bản package, import map, entry/CSS, metadata và `VERSION` của `service-worker.js` cùng nhau; kiểm thử release graph kiểm tra đủ đường dẫn và các chu trình. Không dựa riêng vào `_headers` chưa xác minh trên Sites. Controller kiểm tra cache/CSP và triển khai lên Site hiện có.
 
 ## Giao thức và giới hạn
 

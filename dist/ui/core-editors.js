@@ -1,6 +1,7 @@
 import {decodeBlock} from '../config/codecs.js';
 import {KEYS,usageName} from '../layout.js';
 import {readPlan} from '../device/capabilities.js';
+import {RT_PRESETS,presetEdits,matchingPreset} from '../config/presets.js';
 
 const RT_FIELDS=['switchId','actuationMm','pressMm','releaseMm','whole','bottom','rtMode'];
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
@@ -96,6 +97,46 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
   };
   const option=(select,value,label)=>{const el=make('option',label);el.value=String(value);select.append(el);};
   const rtPanel=panels.get('rt');rtPanel.append(make('p','Chỉ trường bạn sửa được đổi cho vùng chọn. Điểm nhận raw0 đọc được được giữ nguyên và có thể khôi phục từ hồ sơ; chưa xác định ý nghĩa vật lý. Nhập điểm nhận thủ công tối thiểu 0,01 mm.','editor-hint'));
+  // Chế độ cài sẵn của hãng: một transaction cho cả bàn phím, chỉ vào bản nháp.
+  const presetBar=make('div',null,'preset-bar'),presetButtons=new Map(),presetNote=make('p','Chọn chế độ cài sẵn của hãng để đưa vào bản nháp; chỉ gửi bàn phím khi bấm Áp dụng.','editor-hint');
+  presetBar.setAttribute('role','group');presetBar.setAttribute('aria-label','Chế độ cài sẵn của hãng');
+  const presetsEnabled=()=>{const view=model.view();return view.complete&&!session?.applying&&!isBusy();};
+  for(const preset of [{id:null,label:'Tùy chỉnh',description:'Cấu hình hiện tại không trùng chế độ nào của hãng.'},...RT_PRESETS]){
+    const item=make('button',preset.shortcut?`${preset.label} · ${preset.shortcut}`:preset.label,`preset-button${preset.group==='game'?' preset-game':''}`);item.type='button';item.id=`core-preset-${preset.id??'custom'}`;item.title=`${preset.description}${preset.shortcut?` Phím tắt ${preset.shortcut} khi cửa sổ app đang mở.`:''}`;presetBar.append(item);presetButtons.set(preset.id,item);
+    listen(item,'click',()=>{onNavigate();
+      if(!preset.id){presetNote.textContent='Tùy chỉnh: giữ nguyên cấu hình đang chỉnh. Muốn quay về bản đọc từ bàn phím, bấm Hoàn tác bản nháp.';return;}
+      try{if(!presetsEnabled())throw new Error('Đọc đủ cấu hình và chờ giao dịch xong trước khi chọn chế độ.');
+        session.transaction(presetEdits(capability,preset.id));onEdit(session.diff());clearError();
+        presetNote.textContent=`Đã đưa chế độ ${preset.label} vào bản nháp: ${preset.description} Chưa gửi bàn phím.`;refresh();
+      }catch(problem){error.textContent=problem.message;error.hidden=false;}
+    });
+  }
+  // Thanh điểm nhận dọc như driver hãng: phần sáng là quãng nhấn tới điểm nhận.
+  const visual=make('div',null,'rt-visual'),gauge=make('div',null,'travel-gauge'),gaugeValue=make('strong',null,'travel-gauge-value'),track=make('div',null,'travel-gauge-track');
+  const pressPart=make('div',null,'travel-gauge-press'),restPart=make('div',null,'travel-gauge-rest'),marker=make('div',null,'travel-gauge-marker'),info=make('div',null,'rt-visual-info');
+  track.append(pressPart,restPart,marker);gauge.append(make('span','Điểm nhận','travel-gauge-caption'),gaugeValue,track);visual.append(gauge,info);
+  gauge.id='core-actuation-gauge';gauge.tabIndex=0;gauge.setAttribute('role','slider');gauge.setAttribute('aria-label','Điểm nhận (mm) · kéo hoặc dùng phím mũi tên');
+  let gaugeState={enabled:false,value:null,max:3.4,isDefault:false},dragging=null;
+  const drawGauge=(value,{isDefault=false,mixed=false}={})=>{
+    const max=gaugeState.max,shown=value??0,ratio=Math.min(1,Math.max(0,shown/max));
+    pressPart.style.height=`${ratio*100}%`;restPart.style.height=`${(1-ratio)*100}%`;marker.style.top=`calc(${ratio*100}% - 1px)`;marker.hidden=value==null;
+    gaugeValue.replaceChildren(make('span',mixed?'Khác nhau':value==null?'—':value.toFixed(2)+' '),make('small',mixed||value==null?'':isDefault?'mm · mặc định':'mm'));
+    gauge.classList.toggle('is-default',isDefault);gauge.setAttribute('aria-valuemin','0.01');gauge.setAttribute('aria-valuemax',String(max));
+    if(value!=null){gauge.setAttribute('aria-valuenow',String(value));gauge.setAttribute('aria-valuetext',`${value.toFixed(2)} mm${isDefault?' (mặc định hãng)':''}`);}else gauge.setAttribute('aria-valuetext',mixed?'Giá trị khác nhau':'Chưa có dữ liệu');
+  };
+  const valueAt=clientY=>{const box=track.getBoundingClientRect(),raw=(clientY-box.top)/box.height*gaugeState.max;return Math.min(gaugeState.max,Math.max(0.01,Math.round(raw*100)/100));};
+  listen(track,'pointerdown',event=>{if(!gaugeState.enabled)return;onNavigate();event.preventDefault();gauge.focus();track.setPointerCapture?.(event.pointerId);dragging=valueAt(event.clientY);drawGauge(dragging);});
+  listen(track,'pointermove',event=>{if(dragging===null)return;dragging=valueAt(event.clientY);drawGauge(dragging);});
+  // Chỉ cập nhật bản nháp khi thả chuột; không bao giờ tự gửi bàn phím.
+  const finish=()=>{if(dragging===null)return;const value=dragging;dragging=null;commit('rt','actuationMm',value);refresh();};
+  listen(track,'pointerup',finish);listen(track,'pointercancel',()=>{dragging=null;refresh();});
+  listen(gauge,'keydown',event=>{
+    if(!gaugeState.enabled||!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','PageUp','PageDown','Home','End'].includes(event.key))return;event.preventDefault();onNavigate();
+    const step=event.shiftKey||event.key.startsWith('Page')?0.1:0.01,base=gaugeState.value??0;
+    const next=event.key==='Home'?0.01:event.key==='End'?gaugeState.max:base+(['ArrowDown','ArrowRight','PageDown'].includes(event.key)?step:-step);
+    commit('rt','actuationMm',Math.min(gaugeState.max,Math.max(0.01,Math.round(next*100)/100)));
+  });
+  rtPanel.append(presetBar,presetNote,visual);
   if(capability?.fields.rt.switchId){
     const switchInput=field(rtPanel,'switchId','Loại switch · ID từng phím','select');option(switchInput,'','—');
     for(const id of capability.limits.switchIds)option(switchInput,id,`${id} · ${capability.limits.switchLabels[id]} · ${capability.limits.switchTravelMm[id]} mm`);
@@ -149,6 +190,20 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
       }
       if(range){input.max=range.max=String(view.limits.maxMm??3.4);range.disabled=!view.editable||data.mixed||data.value===undefined||data.value<Number(input.min)||data.value>Number(input.max);range.hidden=data.mixed||data.value===undefined;if(!range.disabled)range.value=String(data.value);}
     }
+    const presetActive=session?.draft&&capability?matchingPreset(capability,session.draft):null,canPreset=view.complete&&!session?.applying&&!isBusy();
+    for(const [id,item]of presetButtons){item.setAttribute('aria-pressed',String(view.complete&&id===presetActive));item.disabled=!canPreset;}
+    const actuation=view.rt.actuationMm,fallback=capability?.limits.vendorDefaultActuationMm??1.2;
+    gaugeState={enabled:view.editable&&(actuation.value!==undefined||actuation.mixed),value:actuation.value===0?fallback:actuation.value??null,max:view.limits.maxMm??3.4,isDefault:actuation.value===0};
+    gauge.setAttribute('aria-disabled',String(!gaugeState.enabled));
+    if(dragging===null)drawGauge(gaugeState.value,{isDefault:gaugeState.isDefault,mixed:actuation.mixed});
+    const press=view.rt.pressMm,release=view.rt.releaseMm,whole=view.rt.whole,fmt=data=>data.mixed?'khác nhau':data.value===undefined?'—':`${data.value.toFixed(2)} mm`;
+    const infoLine=(label,value)=>{const line=make('span',label);line.append(make('strong',value));return line;};
+    info.replaceChildren(...(view.slots.length?[
+      make('span',`${view.slots.length} phím đang chọn${actuation.mixed?' · điểm nhận khác nhau':''}`),
+      infoLine('Rapid Trigger: ',press.value===0&&release.value===0?'Tắt':`nhấn ${fmt(press)} · nhả ${fmt(release)}`),
+      ...(capability?.fields.rt.whole?[infoLine('RT toàn hành trình: ',whole.mixed?'khác nhau':whole.value?'Bật':'Tắt')]:[]),
+      ...(gaugeState.isDefault?[make('span',`Giá trị gốc 0: web hãng hiển thị mặc định ${fallback.toFixed(2)} mm. Kéo thanh để đặt giá trị cụ thể.`)]:[]),
+    ]:[make('span','Chọn phím để xem và kéo điểm nhận.')]));
     layer.disabled=false;layer.value=view.layer;binding.disabled=!view.editable||view.bindingLocked;
     const index=options.findIndex(item=>same(item.value,bindingValue(view.binding.value)));binding.value=index<0?'':String(index);
     binding.options[0].textContent=view.binding.mixed?'Giá trị khác nhau':index<0&&view.binding.value?`Giữ nguyên · ${view.binding.value.type} (mã ${view.binding.value.typeCode})`:'—';

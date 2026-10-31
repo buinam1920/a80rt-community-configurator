@@ -5,6 +5,7 @@ import {ConfigSession} from './config/session.js';
 import {mountCoreEditors} from './ui/core-editors.js';
 import {mountAdvancedEditors} from './ui/advanced-editors.js';
 import {mountDeviceSettings} from './ui/device-settings.js';
+import {RT_PRESETS,presetEdits} from './config/presets.js';
 import {createProfile,parseProfile,exportProfile,restoreProfile,previewProfile,profileSkippedFields,loadProfile,createIndexedDBStorage,saveProfile,listProfiles,duplicateProfile,deleteProfile,saveRecovery,readRecovery} from './config/profiles.js';
 const SAMPLE_CAPABILITY=identifyDevice({vendorId:VENDOR,productId:0x80a1,productName:'A80RT U'});
 const BLOCK_NAMES={device:'Thông tin thiết bị',settings:'Thiết lập chung',keymap:'Gán phím',lighting:'Thiết lập đèn',colors:'Màu từng phím',macro:'Macro',fn:'Lớp Fn',rt:'Rapid Trigger',dks:'DKS'};
@@ -28,7 +29,7 @@ function clearMessage(){message('');}
 function setText(id,text){$(id).textContent=text;}
 function mode(){return state.snapshot?.source??'empty';}
 function describeSource(){if(mode()==='demo')return 'Dữ liệu mẫu';if(mode()==='import')return 'Bản đã lưu';if(mode()==='device')return state.reader?'Bàn phím thật':Object.keys(state.snapshot.blocks).length?'Bản đọc trước':'Thông tin thiết bị';return 'Chưa có dữ liệu';}
-function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.3.5',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
+function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.4.0-beta.1',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
 function makeKeyboard(){
   for(const row of LAYOUT){
     const container=document.createElement('div');container.className='key-row';
@@ -36,14 +37,14 @@ function makeKeyboard(){
       const button=document.createElement('button');button.type='button';button.className='key';button.style.setProperty('--width',key.width);
       button.setAttribute('aria-label',`Phím ${key.label}, vị trí ${key.slot}`);button.setAttribute('aria-pressed','false');
       const label=document.createElement('span');label.textContent=key.label;button.append(label);
-      const value=document.createElement('small');value.textContent='';button.append(value);
+      const value=document.createElement('small');value.textContent='';const rtLine=document.createElement('small');rtLine.className='key-rt';button.append(value,rtLine);
       button.addEventListener('click',event=>{
         state.selected=key.slot;
         if(state.multi||event.ctrlKey||event.metaKey||event.shiftKey)state.selectedSlots=state.selectedSlots.includes(key.slot)?state.selectedSlots.filter(slot=>slot!==key.slot):[...state.selectedSlots,key.slot];
         else state.selectedSlots=[key.slot];
         renderSelection();editors?.setSelection(state.selectedSlots);
       });
-      buttons.set(key.slot,{button,value});container.append(button);
+      buttons.set(key.slot,{button,value,rtLine});container.append(button);
     }
     $('keyboard').append(container);
   }
@@ -60,31 +61,40 @@ function renderBlocks(){
     item.append(icon,copy,status);$('block-list').append(item);
   }
 }
+// Điểm nhận raw0: driver hãng hiển thị currentTrip/10 (1,2 mm). App hiện giống hãng
+// nhưng đánh dấu là mặc định, vì hành vi vật lý của raw0 chưa được đo.
+function keyTravel(rt){
+  const fallback=(state.capability??SAMPLE_CAPABILITY).limits.vendorDefaultActuationMm;
+  if(!rt)return {mm:null,isDefault:false,press:0,release:0};
+  return {mm:rt.actuationMm??fallback,isDefault:rt.actuationMm==null,press:rt.pressRaw/100,release:rt.releaseRaw/100};
+}
+const mmText=value=>value.toFixed(2).replace(/0$/,'');
 function renderSelection(){
   const blocks=state.session?.draft??state.snapshot?.blocks??{};
   const selected=KEYS.find(key=>key.slot===state.selected),decoded=decodeKey(blocks,state.selected),rt=decoded.rt;
   for(const key of KEYS){
-    const {button,value}=buttons.get(key.slot);const item=decodeKey(blocks,key.slot),chosen=state.selectedSlots.includes(key.slot);
+    const {button,value,rtLine}=buttons.get(key.slot);const item=decodeKey(blocks,key.slot),chosen=state.selectedSlots.includes(key.slot),travel=keyTravel(item.rt);
     button.classList.toggle('selected',chosen);button.classList.toggle('has-data',!!item.rt);button.setAttribute('aria-pressed',String(chosen));
-    value.textContent=item.rt?.actuationMm!=null?item.rt.actuationMm.toFixed(2):'';
+    value.textContent=travel.mm!=null?mmText(travel.mm):'';value.classList.toggle('is-default',travel.isDefault);
+    const rtOn=travel.press>0||travel.release>0;rtLine.textContent=!rtOn?'':travel.press===travel.release?`↕${mmText(travel.press)}`:`${mmText(travel.press)}/${mmText(travel.release)}`;button.classList.toggle('has-rt',rtOn);
     const rgb=blocks.colors?.slice(key.slot*4+1,key.slot*4+4);button.classList.toggle('has-color',!!rgb);if(rgb?.length===3)button.style.setProperty('--key-rgb',`rgb(${Array.from(rgb).join(',')})`);
-    button.title=`${key.label} · vị trí ${key.slot}${item.rt?.actuationMm!=null?` · ${item.rt.actuationMm.toFixed(2)} mm`:''}`;
+    button.title=`${key.label} · vị trí ${key.slot}${travel.mm!=null?` · điểm nhận ${travel.mm.toFixed(2)} mm${travel.isDefault?' (mặc định hãng)':''}`:''}${rtOn?` · RT nhấn ${travel.press.toFixed(2)} / nhả ${travel.release.toFixed(2)} mm`:''}`;
   }
   $('layer-base').setAttribute('aria-pressed',String(state.layer==='base'));$('layer-fn').setAttribute('aria-pressed',String(state.layer==='fn'));
   setText('selected-slot',`#${String(state.selected).padStart(3,'0')}`);setText('selected-key-name',selected.label);
   setText('key-layer',state.layer==='fn'?'Fn':'Mặc định');
-  const mm=rt?.actuationMm;
+  const selectedTravel=keyTravel(rt),mm=selectedTravel.mm;
   $('key-actuation').replaceChildren(document.createTextNode(mm!=null?mm.toFixed(2)+' ':'— '));const unit=document.createElement('small');unit.textContent='mm';$('key-actuation').append(unit);
   $('actuation-stat').replaceChildren(document.createTextNode(mm!=null?mm.toFixed(2)+' ':'— '));const statUnit=document.createElement('em');statUnit.textContent='mm';$('actuation-stat').append(statUnit);
-  setText('actuation-note',`Phím ${selected.label} · ${rt?'giải mã từ cấu hình':'chưa có dữ liệu'}`);
+  setText('actuation-note',`Phím ${selected.label} · ${!rt?'chưa có dữ liệu':selectedTravel.isDefault?'mặc định hãng (giá trị gốc 0)':'giải mã từ cấu hình'}`);
   const percent=mm!=null?Math.min(100,Math.max(0,mm/3.4*100)):0;
   $('travel-fill').style.width=`${percent}%`;$('travel-marker').style.left=`${percent}%`;$('travel-marker').style.display=mm!=null?'block':'none';
-  setText('key-state',!rt?'Đọc cấu hình để xem thông số thực.':mm==null?'Giá trị gốc là 0; chưa xác định ý nghĩa, được giữ nguyên.':mode()==='demo'?'Thông số minh họa, chưa đọc từ thiết bị.':'Điểm nhận được giải mã từ cấu hình; không phải hành trình nhấn trực tiếp.');
+  setText('key-state',!rt?'Đọc cấu hình để xem thông số thực.':selectedTravel.isDefault?'Giá trị gốc là 0: web hãng hiển thị mặc định 1,2 mm. App hiện giống hãng và giữ nguyên byte gốc.':mode()==='demo'?'Thông số minh họa, chưa đọc từ thiết bị.':'Điểm nhận được giải mã từ cấu hình; không phải hành trình nhấn trực tiếp.');
   setText('key-switch',rt?String(rt.switchId):'—');setText('key-flags',rt?`0x${rt.flags.toString(16).toUpperCase().padStart(2,'0')}`:'—');
   const mapping=state.layer==='fn'?decoded.fn:decoded.keymap;
   setText('key-mapping',mapping?bytesHex(mapping):'—');
   setText('key-rt-raw',rt?bytesHex(rt.raw):'Chưa có dữ liệu');setText('key-map-raw',mapping?bytesHex(mapping):'Chưa có dữ liệu');
-  setText('key-thresholds',rt?`${rt.pressRaw} / ${rt.releaseRaw}`:'—');
+  setText('key-thresholds',rt?(selectedTravel.press||selectedTravel.release?`${selectedTravel.press.toFixed(2)} / ${selectedTravel.release.toFixed(2)} mm`:'Tắt'):'—');
   setText('selection-count',`${state.selectedSlots.length} phím đã chọn`);
   editors?.setLayer(state.layer);
 }
@@ -94,6 +104,7 @@ function renderLog(){
   setText('log',packets.length?packets.slice(-80).map(p=>`${p.at}  ${p.direction==='out'?'TX →':'RX ←'}  ${bytesHex(p.bytes)}`).join('\n'):'Nhật ký xuất hiện khi bắt đầu đọc cấu hình.');
 }
 function render(){
+  reportHotkeyState();
   const connected=!!state.reader,source=mode(),hasData=!!state.snapshot&&Object.keys(state.snapshot.blocks).length>0;
   const responding=connected&&state.reader.getState().hasResponse;
   const busy=state.reading||state.connecting||state.applying||state.maintaining;
@@ -239,6 +250,7 @@ async function applyDraft(){
     }
   }
   state.applying=false;if(state.applyAbort===abort)state.applyAbort=null;editors?.refresh();render();
+  return result;
 }
 function exportData(){
   if(!state.snapshot)return;
@@ -371,4 +383,97 @@ $('profile-confirm').addEventListener('click',()=>profileAction(()=>{
  clearProfilePreview();editors?.refresh();renderSelection();renderDraft();scheduleRecovery();profileStatus('Đã đưa vào bản nháp cục bộ. Chưa gửi thiết bị.');
 }));
 navigator.hid?.addEventListener('disconnect',async event=>{if(event.device===state.reader?.device){invalidateImports();const reader=state.reader;state.reader=null;state.reading=false;state.activeBlock=null;state.applyAbort?.abort();render();message('Bàn phím đã ngắt kết nối. Kiểm tra cáp USB rồi kết nối lại.',true);await editors?.cancelCalibration();await reader.close().catch(()=>{});}});
-makeKeyboard();checkBrowser();render();void refreshProfiles();
+// Thông báo cho phím tắt profile: toast trong app + thông báo Windows (nếu đã cho
+// phép). Âm thanh do chương trình nền a80rt_local.py phát khi dùng phím tắt toàn cục.
+let toastTimer;
+function toast(text,kind='info'){
+  let el=$('toast');if(!el){el=document.createElement('div');el.id='toast';el.className='toast';el.setAttribute('role','status');el.setAttribute('aria-live','polite');document.body.append(el);}
+  el.textContent=text;el.dataset.kind=kind;el.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{el.hidden=true;},kind==='error'?7000:4000);
+}
+function systemNotify(text,kind){
+  if(typeof Notification==='undefined'||Notification.permission!=='granted')return;
+  try{new Notification(kind==='error'?'A80RT · Lỗi đổi profile':'A80RT',{body:text,tag:'a80rt-profile',silent:true,icon:'./icons/icon-192.png'});}catch{}
+}
+// Phím tắt chuyển profile game. Ctrl+Alt+1/2 trong app; khi chạy start.cmd,
+// a80rt_local.py đăng ký cùng tổ hợp này toàn cục nên dùng được cả trong game.
+// Chỉ tự Áp dụng khi bản nháp trước đó trống, để không gửi kèm thay đổi khác
+// người dùng chưa duyệt; vẫn đi qua preflight, chặn Fn và đọc lại xác minh.
+let presetSwitching=false,hotkeyBridge=null,hotkeyReadySent=null;
+// Mỗi cửa sổ app là một client của chương trình nền; nó chỉ gửi mỗi lần bấm phím cho MỘT cửa sổ
+// (ưu tiên cửa sổ sẵn sàng ghi, rồi cửa sổ được dùng gần nhất) kèm mã sự kiện để chống xử lý trùng.
+const hotkeyClient=globalThis.crypto?.randomUUID?.()??`c${Date.now().toString(36)}${Math.random().toString(36).slice(2,12)}`;
+const hotkeyHandled=new Set();
+function hotkeyReady(){const session=state.session;return mode()==='device'&&!!state.reader&&!!session&&!session.invalidated;}
+function reportHotkeyState(active=false){
+  if(!hotkeyBridge||typeof fetch==='undefined')return;
+  const ready=hotkeyReady();if(!active&&ready===hotkeyReadySent)return;hotkeyReadySent=ready;
+  fetch('./hotkeys/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client:hotkeyClient,ready,active})})
+    .then(response=>response.json()).then(body=>{if(!body?.known)hotkeyReadySent=null;}).catch(()=>{hotkeyReadySent=null;});
+}
+async function switchPreset(preset,{global=false,event=null}={}){
+  const finish=(status,text,kind)=>{
+    toast(text,kind);if(global||document.hidden||!document.hasFocus?.())systemNotify(text,kind);
+    if(global)fetch('./hotkeys/result',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client:hotkeyClient,event,preset:preset.id,label:preset.label,status,message:text})}).catch(()=>{});
+    return status;
+  };
+  if(presetSwitching)return finish('busy',`Đang đổi profile, bỏ qua ${preset.label}.`,'warning');
+  const session=state.session;
+  if(!session)return finish('error',`Chưa có cấu hình. Kết nối và đọc bàn phím trước khi chuyển sang ${preset.label}.`,'error');
+  if(state.reading||state.connecting||state.applying||state.maintaining||session.invalidated)return finish('error','Đang có giao dịch hoặc phiên cần đọc lại; chưa chuyển profile.','error');
+  presetSwitching=true;
+  try{
+    const hadChanges=session.diff().length>0;
+    editors?.stopRecording();invalidateImports();
+    session.transaction(presetEdits(state.capability??SAMPLE_CAPABILITY,preset.id));
+    clearProfilePreview();editors?.refresh();renderSelection();renderDraft();scheduleRecovery();
+    const pending=session.diff().length;
+    if(mode()!=='device'||!state.reader)return finish('staged',`Đã chuyển sang ${preset.label} trong bản nháp (${mode()==='demo'?'dữ liệu mẫu':'ngoại tuyến'}, không ghi bàn phím).`,'info');
+    if(!pending)return finish('already',`Bàn phím đã ở profile ${preset.label}.`,'success');
+    if(hadChanges)return finish('staged',`Đã đưa ${preset.label} vào bản nháp. Bản nháp có thay đổi khác nên chưa tự ghi; kiểm tra rồi bấm Áp dụng.`,'warning');
+    if($('apply-button').disabled)return finish('error',`Đã đưa ${preset.label} vào bản nháp nhưng thiết bị chưa đủ điều kiện ghi; xem thông báo trên trang.`,'error');
+    toast(`Đang ghi profile ${preset.label} xuống bàn phím…`);
+    const result=await applyDraft();
+    if(result?.status==='verified')return finish('verified',`✓ Đã chuyển sang profile ${preset.label}. Bàn phím đã đọc lại khớp.`,'success');
+    return finish('error',`Chưa chuyển được sang ${preset.label}: ${result?.error??'xem thông báo trên trang'}`,'error');
+  }catch(error){return finish('error',`Không chuyển được sang ${preset.label}: ${error.message}`,'error');}
+  finally{presetSwitching=false;}
+}
+window.addEventListener?.('keydown',event=>{
+  if(!event.altKey||!event.ctrlKey||event.metaKey||event.shiftKey||event.repeat)return;
+  const preset=RT_PRESETS.find(item=>item.shortcut&&item.shortcut===`Ctrl+Alt+${event.code.replace(/^Digit/,'')}`);
+  if(!preset)return;event.preventDefault();void switchPreset(preset);
+});
+function renderHotkeyStatus(){
+  const box=$('hotkey-status');if(!box)return;
+  const keys=RT_PRESETS.filter(item=>item.shortcut).map(item=>`${item.shortcut} → ${item.label}`).join(' · ');
+  const text=$('hotkey-status-text'),button=$('notify-enable');
+  text.textContent=hotkeyBridge?.registered?.length?`Phím tắt toàn cục (cả trong game): ${keys}. Có tiếng báo khi bấm và khi ghi xong.`
+    :hotkeyBridge?`Phím tắt chỉ trong cửa sổ app: ${keys}. Chương trình nền chưa đăng ký được phím toàn cục.`
+    :`Phím tắt chỉ trong cửa sổ app: ${keys}. Mở bằng A80RT-Configurator.exe (hoặc start.cmd) để dùng được cả trong game.`;
+  const canAsk=typeof Notification!=='undefined'&&Notification.permission==='default';
+  if(typeof Notification!=='undefined'&&Notification.permission==='denied')text.textContent+=' Thông báo Windows đang bị chặn trong cài đặt trang của trình duyệt; vẫn có tiếng báo và thông báo trong app.';
+  button.hidden=!canAsk;box.hidden=false;
+}
+async function connectHotkeyBridge(){
+  if(typeof EventSource==='undefined'||typeof fetch==='undefined')return renderHotkeyStatus();
+  try{
+    const response=await fetch('./hotkeys/config',{cache:'no-store'});
+    if(!response.ok)return renderHotkeyStatus();
+    hotkeyBridge=await response.json();renderHotkeyStatus();
+    const events=new EventSource(`./hotkeys/events?client=${encodeURIComponent(hotkeyClient)}`);
+    // Mỗi lần (nối lại) kết nối, chương trình nền có thể đã khởi động lại: báo lại trạng thái.
+    events.onopen=()=>{hotkeyReadySent=null;reportHotkeyState(!document.hidden&&!!document.hasFocus?.());};
+    events.onmessage=event=>{
+      let data;try{data=JSON.parse(event.data);}catch{return;}
+      if(typeof data?.event!=='string'||hotkeyHandled.has(data.event))return;
+      hotkeyHandled.add(data.event);if(hotkeyHandled.size>64)hotkeyHandled.delete(hotkeyHandled.values().next().value);
+      const preset=RT_PRESETS.find(item=>item.id===data.preset);if(preset)void switchPreset(preset,{global:true,event:data.event});
+    };
+    window.addEventListener?.('focus',()=>reportHotkeyState(true));
+    document.addEventListener?.('visibilitychange',()=>{if(!document.hidden)reportHotkeyState(true);});
+  }catch{renderHotkeyStatus();}
+}
+$('notify-enable')?.addEventListener('click',async()=>{try{await Notification.requestPermission();}catch{}renderHotkeyStatus();});
+makeKeyboard();checkBrowser();render();void refreshProfiles();void connectHotkeyBridge();
+// Cho phép cài thành app (PWA). Service worker chỉ phục vụ file giao diện tĩnh.
+if('serviceWorker' in navigator&&window.isSecureContext)navigator.serviceWorker.register('./service-worker.js').catch(()=>{});

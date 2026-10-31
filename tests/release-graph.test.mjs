@@ -9,11 +9,11 @@ test('release import map resolves every cyclic module edge to one versioned iden
   const mapText=html.match(/<script type="importmap">([\s\S]*?)<\/script>/);
   assert.ok(mapText,'a complete release import map must precede entry execution');
   const map=JSON.parse(mapText[1]).imports,base=new URL('https://example.test/prefix/'),release=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url))).version;
-  assert.equal(release,'0.3.5');
+  assert.equal(release,'0.4.0-beta.1');
   assert.ok(html.includes(`<title>A80RT Configurator · ${release}</title>`));
   assert.equal(fs.readFileSync(path.join(root,'app.js'),'utf8').match(/appVersion:'([^']+)'/)[1],release);
   const mappings=new Map(Object.entries(map).map(([key,value])=>[new URL(key,base).href,new URL(value,base).href]));
-  const files=fs.readdirSync(root,{recursive:true}).filter(file=>file.endsWith('.js')).map(file=>file.replaceAll('\\','/'));
+  const files=fs.readdirSync(root,{recursive:true}).filter(file=>file.endsWith('.js')&&file!=='service-worker.js').map(file=>file.replaceAll('\\','/'));
   const targets=new Set();
   for(const file of files){
     const canonical=new URL(file,base).href,target=mappings.get(canonical);assert.ok(target,`cache coverage: ${file}`);assert.equal(target,`${canonical}?v=${release}`);targets.add(target);

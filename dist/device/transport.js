@@ -9,21 +9,41 @@ const running=()=>new Error('Một giao dịch đang chạy.');
 // Command38 ACKed but retained the original Fn bytes in app/vendor tests;
 // physical Fn+U also remained PrintScreen. Cause unresolved, scope exact U1.37.
 // ACK payload is deliberately not interpreted. Local staging is independent.
+// The write ACK echoes header 55/command/count/offset/00/last/00; the payload
+// is never interpreted. Report length is part of the measured shape.
+const ackParser=reportLength=>function parseAck(bytes,{command,offset,length,last}){
+  if(bytes[0]!==0x55||bytes[1]!==command)return null;
+  if(bytes.length<5)throw new Error('Malformed matching write ACK header.');
+  if((bytes[3]|bytes[4]<<8)!==offset)return null;
+  if(bytes.length!==reportLength||bytes[2]!==length||bytes[5]!==0||bytes[6]!==last||bytes[7]!==0)throw new Error('Malformed matching write ACK count, flags or report length; no retry was sent.');
+  return {acknowledged:true};
+};
 const WIRED_CONFIG_POLICY=Object.freeze({
   evidence:'Native wired A80RT U 1.37 color/control roundtrip, 2026-10-22; ten config readback/restore cases, 2026-10-25 (source9697747). Fn38 unavailable after measured failures; UI/key-output/persistence not established for the new cases.',
-  parseAck(bytes,{command,offset,length,last}){
-    if(bytes[0]!==0x55||bytes[1]!==command)return null;
-    if(bytes.length<5)throw new Error('Malformed matching write ACK header.');
-    if((bytes[3]|bytes[4]<<8)!==offset)return null;
-    if(bytes.length!==64||bytes[2]!==length||bytes[5]!==0||bytes[6]!==last||bytes[7]!==0)throw new Error('Malformed matching write ACK count, flags or report length; no retry was sent.');
-    return {acknowledged:true};
-  },
+  parseAck:ackParser(64),
+});
+// Native A80RT U Dongle (FF80/1, 32-byte reports) to an A80RT U at firmware
+// 1.37, 2026-10-31: RT 0x27 W actuation raw 120→121→120 and settings 0x21 top
+// dead zone 30→31→30, each followed by control0. Readback matched and all nine
+// blocks restored byte-for-byte; 94 ACKs, no link loss, ≤32 ms. Only those two
+// commands are measured over the receiver; others still require the cable.
+const DONGLE_CONFIG_POLICY=Object.freeze({
+  evidence:'Native A80RT U Dongle → A80RT U 1.37 RT(0x27)/settings(0x21) readback/restore, 2026-10-31 (a80rt-inspect native-dongle-*-roundtrip-20261031). Other commands unmeasured over the receiver.',
+  commands:Object.freeze([0x27,0x21]),
+  parseAck:ackParser(32),
 });
 function measuredWiredInterface(device,selected){
   if(device.vendorId!==0x0c45||device.productId!==0x80a1||device.productName?.trim().replace(/\s+/g,' ').toLowerCase()!=='a80rt u')return false;
   if(selected.usagePage!==0xff68||selected.usage!==0x61||selected.reportId!==0||selected.packetSize!==64)return false;
   const report64=reports=>(reports??[]).some(report=>report.reportId===0&&(report.items??[]).reduce((sum,item)=>sum+item.reportSize*item.reportCount,0)===512);
   const matches=collection=>(collection.usagePage===0xff68&&collection.usage===0x61&&report64(collection.inputReports)&&report64(collection.outputReports))||(collection.children??[]).some(matches);
+  return (device.collections??[]).some(matches);
+}
+function measuredDongleInterface(device,selected){
+  if(device.vendorId!==0x0c45||device.productId!==0xfefc||device.productName?.trim().replace(/\s+/g,' ').toLowerCase()!=='a80rt u dongle')return false;
+  if(selected.usagePage!==0xff80||selected.usage!==1||selected.reportId!==0||selected.packetSize!==32)return false;
+  const report32=reports=>(reports??[]).some(report=>report.reportId===0&&(report.items??[]).reduce((sum,item)=>sum+item.reportSize*item.reportCount,0)===256);
+  const matches=collection=>(collection.usagePage===0xff80&&collection.usage===1&&report32(collection.inputReports)&&report32(collection.outputReports))||(collection.children??[]).some(matches);
   return (device.collections??[]).some(matches);
 }
 
@@ -108,6 +128,8 @@ export class A80Transport {
             // listener can attest firmware. Imported snapshots cannot mint it.
             if(!pending.parse&&pending.command===0x10&&pending.offset===0&&pending.length===32&&bytes.length===64&&reply.length===32&&bytes[5]===0&&bytes[6]===1&&bytes[7]===0)
               this.#versionReadSession=reply[8]===55&&reply[9]===1?sessionId:null;
+            else if(!pending.parse&&pending.command===0x10&&pending.offset===0&&pending.length===24&&bytes.length===32&&reply.length===24&&bytes[5]===0&&bytes[6]===0&&bytes[7]===0&&this.device.productId===0xfefc)
+              this.#versionReadSession=reply[8]===55&&reply[9]===1&&reply[4]===0x45&&reply[5]===0x0c&&reply[6]===0xa1&&reply[7]===0x80?sessionId:null;
             this._hasResponse=true;pending.finish(null,reply);
           }
         }catch(error){pending.finish(error);}
@@ -158,7 +180,10 @@ export class A80Transport {
     });
   }
   _getWriteQualification(){
-    return this.getState().opened&&this.#versionReadSession===this._sessionId&&measuredWiredInterface(this.device,this.interface)?WIRED_CONFIG_POLICY:null;
+    if(!this.getState().opened||this.#versionReadSession!==this._sessionId)return null;
+    if(measuredWiredInterface(this.device,this.interface))return WIRED_CONFIG_POLICY;
+    if(measuredDongleInterface(this.device,this.interface))return DONGLE_CONFIG_POLICY;
+    return null;
   }
   // Source100/101/15 framing is known, but NO real maintenance ACK is measured.
   // This is independent from the ordinary config write qualification boundary.
@@ -192,8 +217,9 @@ export class A80Transport {
     if(qualified&&command!==undefined){
       if(policy===WIRED_CONFIG_POLICY&&command===0x26)return {qualified:false,ready:false,evidence:policy.evidence,reason:'Ghi lớp Fn trên A80RT U có dây firmware 1.37 chưa khả dụng theo phép đo: ACK có phản hồi nhưng đọc lại vẫn giữ gán gốc. Bản nháp Fn vẫn sửa, lưu và xuất cục bộ; toàn bộ Áp dụng bị chặn nếu có thay đổi Fn.'};
       if(command!==0&&!Object.values(identifyDevice(this.device).blocks).some(block=>block.writeCommand===command))return {qualified:false,ready:false,evidence:policy.evidence,reason:'Unknown write command/opcode.'};
+      if(policy===DONGLE_CONFIG_POLICY&&command!==0&&!policy.commands.includes(command))return {qualified:false,ready:false,evidence:policy.evidence,reason:'Qua đầu thu 2.4 GHz mới đo được ghi Rapid Trigger và thiết lập chung (gồm vùng chết). Nhóm này cần cắm cáp USB để ghi.'};
     }
-    return {qualified,ready:qualified&&this.getState().opened&&this._hasResponse,evidence:qualified?policy.evidence:null,reason:qualified?null:'Cần A80RT U có dây, giao diện 64 byte và đọc mới firmware 1.37 trong kết nối hiện tại.'};
+    return {qualified,ready:qualified&&this.getState().opened&&this._hasResponse,evidence:qualified?policy.evidence:null,reason:qualified?null:'Cần A80RT U firmware 1.37 qua cáp USB (giao diện 64 byte) hoặc đầu thu A80RT U Dongle (giao diện 32 byte), và đọc lại cấu hình trong kết nối hiện tại.'};
   }
   writeBlock(command,bytes,options={}){return this._writeBlock(command,bytes,options);}
   _writeBlock(command,bytes,{signal}={},owner){
@@ -287,7 +313,9 @@ export class A80Transport {
     return this._exchange(command,offset,length,last,signal,sessionId);
   }
   _exchange(command,offset,length,last,signal,sessionId=this._sessionId,owner){
-    if(command===0x10)this.#versionReadSession=null;
+    // Only a new read from offset 0 revokes attestation; the receiver reads the
+    // info block as 24+8 and its follow-up chunk must not erase the first proof.
+    if(command===0x10&&offset===0)this.#versionReadSession=null;
     try{this._assertOwner(owner);}catch(error){return Promise.reject(error);}
     if(signal?.aborted||sessionId!==this._sessionId)return Promise.reject(stopped());
     if(!this.getState().opened)return Promise.reject(new Error('Thiết bị chưa mở kết nối.'));

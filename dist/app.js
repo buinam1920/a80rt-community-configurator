@@ -6,6 +6,7 @@ import {mountCoreEditors} from './ui/core-editors.js';
 import {mountAdvancedEditors} from './ui/advanced-editors.js';
 import {mountDeviceSettings} from './ui/device-settings.js';
 import {RT_PRESETS,presetEdits} from './config/presets.js';
+import {localize} from './i18n.js';
 import {createProfile,parseProfile,exportProfile,restoreProfile,previewProfile,profileSkippedFields,loadProfile,createIndexedDBStorage,saveProfile,listProfiles,duplicateProfile,deleteProfile,saveRecovery,readRecovery} from './config/profiles.js';
 const SAMPLE_CAPABILITY=identifyDevice({vendorId:VENDOR,productId:0x80a1,productName:'A80RT U'});
 const BLOCK_NAMES={device:'Thông tin thiết bị',settings:'Thiết lập chung',keymap:'Gán phím',lighting:'Thiết lập đèn',colors:'Màu từng phím',macro:'Macro',fn:'Lớp Fn',rt:'Rapid Trigger',dks:'DKS'};
@@ -29,7 +30,7 @@ function clearMessage(){message('');}
 function setText(id,text){$(id).textContent=text;}
 function mode(){return state.snapshot?.source??'empty';}
 function describeSource(){if(mode()==='demo')return 'Dữ liệu mẫu';if(mode()==='import')return 'Bản đã lưu';if(mode()==='device')return state.reader?'Bàn phím thật':Object.keys(state.snapshot.blocks).length?'Bản đọc trước':'Thông tin thiết bị';return 'Chưa có dữ liệu';}
-function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.4.0-beta.1',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
+function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.4.0-beta.3',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
 function makeKeyboard(){
   for(const row of LAYOUT){
     const container=document.createElement('div');container.className='key-row';
@@ -121,6 +122,7 @@ function render(){
   setText('device-sub',source==='demo'?'DỮ LIỆU MẪU · MINH HỌA':connected?transportName(device).toLocaleUpperCase('vi-VN'):source==='import'?'BẢN ĐỌC TỪ TỆP JSON':'LEOBOG A80RT / A80RT U');
   const fields=connected?[
     ['Kết nối',transportName(device)],['VID / PID',`${hex(device.vendorId)} / ${hex(device.productId)}`],['Gói tin',`${state.reader.interface.packetSize} byte`],['Trạng thái',responding?'Đã nhận phản hồi':'Đã mở · chưa có phản hồi'],
+    ...(isReceiver()?[['Pin',state.battery==null?'Đọc cấu hình để xem':`${state.battery}%`]]:[]),
   ]:[['Kết nối','USB / 2.4 GHz'],['Trạng thái',source==='demo'?'Dữ liệu mẫu':hasData?'Bản đã lưu':'Đang chờ']];
   $('device-meta').replaceChildren();for(const [label,value]of fields){const dt=document.createElement('dt');dt.textContent=label;const dd=document.createElement('dd');dd.textContent=value;$('device-meta').append(dt,dd);}
   $('connection-pill').className=`pill${connected?' connected':source==='demo'?' sample':''}`;
@@ -141,13 +143,26 @@ function addPacket(direction,bytes){
   if(snapshot.packets.length>500)snapshot.packets.shift();
   if($('diagnostics').open)renderLog();
 }
-async function connect(){
+// Chỉ một cửa sổ app được giữ bàn phím: hai cửa sổ cùng đọc sẽ lẫn gói trả lời.
+let releaseDeviceLock=null;
+function acquireDeviceLock(){
+  if(releaseDeviceLock||!navigator.locks?.request)return Promise.resolve(true);
+  return new Promise(resolve=>{navigator.locks.request('a80rt-keyboard',{ifAvailable:true},lock=>{
+    if(!lock){resolve(false);return;}resolve(true);return new Promise(release=>{releaseDeviceLock=release;});
+  }).catch(()=>resolve(true));});
+}
+function dropDeviceLock(){releaseDeviceLock?.();releaseDeviceLock=null;}
+// Cáp trước đầu thu: qua cáp ghi được mọi nhóm đã đo.
+const devicePriority=device=>device.productId===0x80a1?0:device.productId===0xfefc?1:2;
+async function connect(permitted=null){
   if(!supported||state.connecting||state.reading)return;
   invalidateImports();
   clearMessage();state.connecting=true;render();let reader;
   try{
-    const devices=await navigator.hid.requestDevice({filters:DEVICE_FILTERS.map(filter=>({...filter}))});
-    if(!devices.length){message('Chưa chọn thiết bị. Với kết nối 2.4 GHz, chọn “A80RT U Dongle”; nếu danh sách trống, bật bàn phím ở chế độ 2.4 GHz rồi thử cắm lại đầu thu.');return;}
+    if(!await acquireDeviceLock()){message('Một cửa sổ A80RT khác đang giữ bàn phím. Dùng cửa sổ đó, hoặc đóng nó rồi kết nối lại ở đây.',true);return;}
+    const devices=Array.isArray(permitted)?permitted:await navigator.hid.requestDevice({filters:DEVICE_FILTERS.map(filter=>({...filter}))});
+    devices.sort((a,b)=>devicePriority(a)-devicePriority(b));
+    if(!devices.length){dropDeviceLock();message('Chưa chọn thiết bị. Với kết nối 2.4 GHz, chọn “A80RT U Dongle”; nếu danh sách trống, bật bàn phím ở chế độ 2.4 GHz rồi thử cắm lại đầu thu.');return;}
     state.session=null;state.capability=null;state.snapshot=deviceSnapshot(devices[0]);
     let lastError;
     for(const device of devices){try{reader=new A80Reader(device,{onPacket:(direction,bytes)=>{if(state.reader===reader)addPacket(direction,bytes);}});break;}catch(error){lastError=error;}}
@@ -156,7 +171,7 @@ async function connect(){
     await reader.open();state.reader=reader;
     try{state.capability=identifyDevice(reader.device);}catch{state.capability=null;}state.progress=0;state.snapshot.session=reader.getState();
     message(`Đã mở kết nối qua ${transportName(reader.device).toLocaleLowerCase('vi-VN')}; chưa có phản hồi cấu hình. Chọn “Đọc cấu hình” để lấy dữ liệu.`);
-  }catch(error){if(reader)await reader.close().catch(()=>{});message(error.name==='NotAllowedError'?'Trình duyệt chưa cấp quyền kết nối. Hãy mở trang trực tiếp trong Chrome/Edge rồi thử lại.':`Kết nối chưa thành công: ${error.message}`,true);}
+  }catch(error){if(reader)await reader.close().catch(()=>{});if(!state.reader)dropDeviceLock();message(error.name==='NotAllowedError'?'Trình duyệt chưa cấp quyền kết nối. Hãy mở trang trực tiếp trong Chrome/Edge rồi thử lại.':`Kết nối chưa thành công: ${error.message}`,true);}
   finally{state.connecting=false;render();}
 }
 async function disconnect(){
@@ -164,6 +179,7 @@ async function disconnect(){
   await editors?.cancelCalibration();
   const reader=state.reader;state.reader=null;state.reading=false;state.activeBlock=null;state.applyAbort?.abort();
   if(reader)await reader.close().catch(()=>{});
+  dropDeviceLock();setBattery(null);autoConnectPaused=true;
   render();
 }
 async function read(){
@@ -178,7 +194,7 @@ async function read(){
   state.reading=true;state.progress=0;clearMessage();render();
   try{
     const captured=await reader.readConfiguration(state.capability,{onProgress:progress=>{if(!current())return;state.activeBlock=progress.block;state.progress=100*progress.completed/progress.total;render();}});
-    if(current()){state.session=new ConfigSession(captured,state.capability);snapshot.blocks=captured.blocks;snapshot.complete=true;message(reader.transport.getWriteState().qualified?'Đã đọc đủ 9 nhóm cấu hình. Chỉnh bản nháp rồi bấm Áp dụng để gửi và đọc lại xác minh.':'Đã đọc đủ 9 nhóm cấu hình. Có thể chỉnh bản nháp; model hoặc firmware này chưa được mở ghi.');}
+    if(current()){state.session=new ConfigSession(captured,state.capability);snapshot.blocks=captured.blocks;snapshot.complete=true;if(isReceiver())setBattery(batteryOf(captured.blocks.device));message(reader.transport.getWriteState().qualified?'Đã đọc đủ 9 nhóm cấu hình. Chỉnh bản nháp rồi bấm Áp dụng để gửi và đọc lại xác minh.':'Đã đọc đủ 9 nhóm cấu hình. Có thể chỉnh bản nháp; model hoặc firmware này chưa được mở ghi.');}
   }catch(error){if(ownsRead())message(error.name==='AbortError'?'Đã dừng đọc. Chưa có snapshot hoàn chỉnh để chỉnh sửa.':`Đọc chưa hoàn tất: ${error.message}`,error.name!=='AbortError');}
   finally{if(ownsRead()){snapshot.session=reader.getState();state.reading=false;state.activeBlock=null;render();}}
 }
@@ -382,23 +398,23 @@ $('profile-confirm').addEventListener('click',()=>profileAction(()=>{
  if(state.session)loadProfile(pending.profile,state.session);else{if(state.reader)throw new Error('Đọc đủ cấu hình thiết bị trước khi đưa hồ sơ vào bản nháp.');installOfflineProfile(pending.profile);}
  clearProfilePreview();editors?.refresh();renderSelection();renderDraft();scheduleRecovery();profileStatus('Đã đưa vào bản nháp cục bộ. Chưa gửi thiết bị.');
 }));
-navigator.hid?.addEventListener('disconnect',async event=>{if(event.device===state.reader?.device){invalidateImports();const reader=state.reader;state.reader=null;state.reading=false;state.activeBlock=null;state.applyAbort?.abort();render();message('Bàn phím đã ngắt kết nối. Kiểm tra cáp USB rồi kết nối lại.',true);await editors?.cancelCalibration();await reader.close().catch(()=>{});}});
+navigator.hid?.addEventListener('disconnect',async event=>{if(event.device===state.reader?.device){invalidateImports();const reader=state.reader;state.reader=null;dropDeviceLock();setBattery(null);state.reading=false;state.activeBlock=null;state.applyAbort?.abort();render();message('Bàn phím đã ngắt kết nối. Kiểm tra cáp USB rồi kết nối lại.',true);await editors?.cancelCalibration();await reader.close().catch(()=>{});}});
 // Thông báo cho phím tắt profile: toast trong app + thông báo Windows (nếu đã cho
 // phép). Âm thanh do chương trình nền a80rt_local.py phát khi dùng phím tắt toàn cục.
 let toastTimer;
 function toast(text,kind='info'){
   let el=$('toast');if(!el){el=document.createElement('div');el.id='toast';el.className='toast';el.setAttribute('role','status');el.setAttribute('aria-live','polite');document.body.append(el);}
-  el.textContent=text;el.dataset.kind=kind;el.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{el.hidden=true;},kind==='error'?7000:4000);
+  el.textContent=text;if(el.dataset)el.dataset.kind=kind;el.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{el.hidden=true;},kind==='error'?7000:4000);
 }
 function systemNotify(text,kind){
   if(typeof Notification==='undefined'||Notification.permission!=='granted')return;
-  try{new Notification(kind==='error'?'A80RT · Lỗi đổi profile':'A80RT',{body:text,tag:'a80rt-profile',silent:true,icon:'./icons/icon-192.png'});}catch{}
+  try{new Notification(localize(kind==='error'?'A80RT · Lỗi đổi profile':'A80RT'),{body:localize(text),tag:'a80rt-profile',silent:true,icon:'./icons/icon-192.png'});}catch{}
 }
 // Phím tắt chuyển profile game. Ctrl+Alt+1/2 trong app; khi chạy start.cmd,
 // a80rt_local.py đăng ký cùng tổ hợp này toàn cục nên dùng được cả trong game.
 // Chỉ tự Áp dụng khi bản nháp trước đó trống, để không gửi kèm thay đổi khác
 // người dùng chưa duyệt; vẫn đi qua preflight, chặn Fn và đọc lại xác minh.
-let presetSwitching=false,hotkeyBridge=null,hotkeyReadySent=null;
+let presetSwitching=false,hotkeyBridge=null,hotkeyReadySent=null,hotkeyBatterySent=null;
 // Mỗi cửa sổ app là một client của chương trình nền; nó chỉ gửi mỗi lần bấm phím cho MỘT cửa sổ
 // (ưu tiên cửa sổ sẵn sàng ghi, rồi cửa sổ được dùng gần nhất) kèm mã sự kiện để chống xử lý trùng.
 const hotkeyClient=globalThis.crypto?.randomUUID?.()??`c${Date.now().toString(36)}${Math.random().toString(36).slice(2,12)}`;
@@ -406,8 +422,8 @@ const hotkeyHandled=new Set();
 function hotkeyReady(){const session=state.session;return mode()==='device'&&!!state.reader&&!!session&&!session.invalidated;}
 function reportHotkeyState(active=false){
   if(!hotkeyBridge||typeof fetch==='undefined')return;
-  const ready=hotkeyReady();if(!active&&ready===hotkeyReadySent)return;hotkeyReadySent=ready;
-  fetch('./hotkeys/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client:hotkeyClient,ready,active})})
+  const ready=hotkeyReady(),battery=state.battery??-1;if(!active&&ready===hotkeyReadySent&&battery===hotkeyBatterySent)return;hotkeyReadySent=ready;hotkeyBatterySent=battery;
+  fetch('./hotkeys/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client:hotkeyClient,ready,active,battery})})
     .then(response=>response.json()).then(body=>{if(!body?.known)hotkeyReadySent=null;}).catch(()=>{hotkeyReadySent=null;});
 }
 async function switchPreset(preset,{global=false,event=null}={}){
@@ -474,6 +490,57 @@ async function connectHotkeyBridge(){
   }catch{renderHotkeyStatus();}
 }
 $('notify-enable')?.addEventListener('click',async()=>{try{await Notification.requestPermission();}catch{}renderHotkeyStatus();});
-makeKeyboard();checkBrowser();render();void refreshProfiles();void connectHotkeyBridge();
+// ---------- Pin (chỉ khi không dây) ----------
+// Driver hãng: Electricity = byte 17 của khối thông tin (0x10), đọc lại 5 giây/lần
+// khi packLen==32. App đọc lại 30 giây/lần, chỉ lệnh đọc, bỏ qua khi đang bận.
+const BASE_TITLE=document.title;
+const isReceiver=()=>state.reader?.device?.productId===0xfefc;
+function batteryOf(bytes){const value=bytes?.[17];return Number.isInteger(value)&&value<=100?value:null;}
+let batteryWarned=101;
+function setBattery(value){
+  syncBatteryPolling();
+  const previous=state.battery??null;state.battery=value;
+  const chip=$('battery-chip'),fill=chip?.querySelector?.('i'),label=chip?.querySelector?.('b');
+  if(chip){chip.hidden=value==null;if(value!=null){if(chip.dataset)chip.dataset.level=value<=20?'low':value<=50?'mid':'ok';if(fill)fill.style.width=`${value}%`;if(label)label.textContent=`${value}%`;chip.title=`Pin bàn phím ${value}% (đầu thu 2.4 GHz)`;}}
+  document.title=value==null?BASE_TITLE:`🔋${value}% · ${BASE_TITLE}`;
+  try{if(value==null)navigator.clearAppBadge?.();else navigator.setAppBadge?.(value);}catch{}
+  if(value!=null){
+    for(const threshold of [20,10])if(value<=threshold&&batteryWarned>threshold){batteryWarned=threshold;const text=`Pin bàn phím còn ${value}%. Cắm sạc sớm để không mất kết nối khi đang chơi.`;toast(text,'warning');systemNotify(text,'warning');}
+    if(value>25)batteryWarned=101;
+  }
+  if(previous!==value){reportHotkeyState();render();}
+}
+let batteryPolling=false,batteryTimer=null;
+// Chỉ chạy khi đang nối qua đầu thu; dừng khi ngắt để không giữ tài nguyên vô ích.
+function syncBatteryPolling(){
+  const want=!!state.reader&&isReceiver();
+  if(want&&!batteryTimer){batteryTimer=setInterval(pollBattery,30000);batteryTimer?.unref?.();}
+  else if(!want&&batteryTimer){clearInterval(batteryTimer);batteryTimer=null;}
+}
+async function pollBattery(){
+  const reader=state.reader;
+  if(batteryPolling||!reader||!isReceiver()||!state.session||state.reading||state.connecting||state.applying||state.maintaining||presetSwitching)return;
+  batteryPolling=true;
+  try{const bytes=await reader.transport.readBlock(0x10,32);if(state.reader===reader)setBattery(batteryOf(bytes));}
+  catch{/* bàn phím ngủ hoặc mất sóng: thử lại lần sau */}
+  finally{batteryPolling=false;}
+}
+// ---------- Tự kết nối ----------
+// Thiết bị đã cho phép một lần được trình duyệt nhớ: mở và đọc (chỉ đọc) mà không
+// cần hộp chọn. Không tự kết nối khi bản nháp có thay đổi, vì kết nối mới bỏ bản nháp.
+let autoConnectPaused=false;
+async function autoConnect(reason){
+  if(!supported||autoConnectPaused||state.reader||state.connecting||state.reading||state.applying||state.maintaining)return;
+  if(state.session&&state.session.diff().length&&!state.session.invalidated){if(reason==='plug')toast('Đã thấy bàn phím. Bản nháp đang có thay đổi chưa áp dụng nên chưa tự kết nối; lưu hoặc hoàn tác rồi bấm Kết nối.','warning');return;}
+  if(mode()==='demo')return;
+  let devices=[];try{devices=(await navigator.hid.getDevices()).filter(device=>DEVICE_FILTERS.some(filter=>filter.vendorId===device.vendorId&&filter.productId===device.productId));}catch{return;}
+  // Quyền WebHID cấp riêng cho từng thiết bị: cáp (A80RT U) và đầu thu (A80RT U Dongle)
+  // là hai thiết bị khác nhau, mỗi cái cần được chọn một lần trong hộp chọn.
+  if(!devices.length){if(reason==='start'&&!state.snapshot)message('Chưa thấy bàn phím đã được cho phép. Lần đầu dùng cáp USB hoặc đầu thu 2.4 GHz, bấm “Kết nối bàn phím” và chọn đúng thiết bị (“A80RT U” cho cáp, “A80RT U Dongle” cho đầu thu). Từ lần sau app tự kết nối.');return;}
+  await connect(devices);
+  if(state.reader&&state.capability&&!state.session)await read();
+}
+navigator.hid?.addEventListener('connect',()=>{autoConnectPaused=false;setTimeout(()=>void autoConnect('plug'),800);});
+makeKeyboard();checkBrowser();render();void refreshProfiles();void connectHotkeyBridge();void autoConnect('start');
 // Cho phép cài thành app (PWA). Service worker chỉ phục vụ file giao diện tĩnh.
 if('serviceWorker' in navigator&&window.isSecureContext)navigator.serviceWorker.register('./service-worker.js').catch(()=>{});

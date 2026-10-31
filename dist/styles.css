@@ -61,3 +61,15 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
 .key small.is-default{opacity:.7}
 .key.has-data:after{display:none}
 .hotkey-status{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-8px 0 20px;padding:10px 20px;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:6px;background:var(--surface);font-size:12px;color:var(--muted)}
+/* Pin bàn phím (không dây) */
+.topbar-right{display:flex;align-items:center;gap:12px}
+.battery-chip{display:inline-flex;align-items:center;gap:7px;font:600 12px var(--mono);color:var(--text);padding:3px 10px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.battery-shell{position:relative;width:24px;height:11px;border:1.5px solid currentColor;border-radius:3px;overflow:hidden;opacity:.9}
+.battery-shell:after{content:'';position:absolute;right:-4px;top:2px;width:2px;height:5px;background:currentColor;border-radius:1px}
+.battery-shell i{position:absolute;inset:1px auto 1px 1px;background:#7bd88f;border-radius:1px;max-width:calc(100% - 2px)}
+.battery-chip[data-level=mid] .battery-shell i{background:#f0a35e}
+.battery-chip[data-level=low]{color:#ff8b7b;border-color:#78463e}.battery-chip[data-level=low] .battery-shell i{background:#ff6b5b}
+/* Chuyển ngôn ngữ VI / EN */
+.lang-switch{display:inline-flex;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.lang-switch button{border:0;background:transparent;color:var(--muted);font:600 11px var(--mono);padding:4px 9px;cursor:pointer}
+.lang-switch button[aria-pressed=true]{background:var(--accent);color:#19270a}

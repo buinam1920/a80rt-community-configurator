@@ -1,0 +1,3 @@
+Microsoft.Web.WebView2 1.0.4314.35 (NuGet, nupkg SHA256 90778DEB1B77E36292828B4B5833C9255C27533F40E0DDD55891AE718944EDC4).
+DLLs copied unmodified from lib/net462 and runtimes/win-{x64,x86}/native; Authenticode: Microsoft Corporation, valid (checked 2026-10-31).
+Embedded into A80RT-Configurator.exe by scripts/build-exe.mjs. See LICENSE.txt and NOTICE.txt.

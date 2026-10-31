@@ -5,3 +5,6 @@ node_modules/
 
 # Generated Windows release binaries
 A80RT-Configurator*.exe
+
+# Python bytecode
+__pycache__/

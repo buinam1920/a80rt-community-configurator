@@ -16,7 +16,9 @@ Profiles are stored in the browser on this machine, not inside the executable. E
 
 ## Beta status and compatibility
 
-Live writes are qualified for the **wired A80RT U, firmware 1.37**, using interface FF68/61, report ID 0, 64-byte reports. A80RT, the 2.4 GHz receiver, and other firmware/interface variants are not enabled for live writes.
+Live writes are qualified for the **wired A80RT U, firmware 1.37**, using interface FF68/61, report ID 0, 64-byte reports.
+
+Through the **A80RT U Dongle** (2.4 GHz receiver, FEFC, interface FF80/1, 32-byte reports) only **Rapid Trigger (0x27)** and **general settings (0x21, including dead zones)** are writable, after a fresh read that attests an inner A80RT U at firmware 1.37. This covers every RT preset and the LoL/Apex profiles, so hotkey profile switching works wirelessly. It is based on a native measurement on 2026-10-31: W actuation raw 120→121→120 and top dead zone 30→31→30, each verified by readback and followed by a byte-for-byte match of all nine blocks; ACKs have the wired header shape in 32-byte reports. Other groups (key bindings, colors, lighting, macros, DKS) still require the USB cable, and a mixed draft is blocked before any byte is sent. Plain A80RT and other firmware/interface variants are not enabled for live writes.
 
 **Fn writes are blocked.** Fn mappings can be edited and saved locally, but any draft with Fn changes blocks the entire Apply operation before transmission. Revert those changes to apply supported blocks.
 
@@ -31,7 +33,8 @@ The executable is unsigned. Physical in-game hotkeys and a complete preset write
 - Base/Fn mappings, lighting, per-key colors, macros, DKS, MT, TGL, RS/SOCD, and general settings, subject to model capabilities and write restrictions.
 - Vendor-derived Office, Beginner, and Gaming presets; community LoL and Apex presets.
 - Local profiles, JSON import/export, draft previews, and session recovery.
-- A standalone Windows executable with embedded interface assets and system tray controls.
+- A standalone Windows executable with embedded interface assets and system tray controls. Since 0.4.0-beta.3 it opens its **own window (WebView2)** instead of a browser: the exe talks to the keyboard through the Windows HID API and exposes the same `navigator.hid` surface to the app (`scripts/native/hid-shim.js`, `scripts/native/NativeShell.cs`). Report bytes pass through unchanged, so every measured protocol rule is still enforced by the same JavaScript; the host never builds, alters, retries or originates a report. No device chooser is needed and the keyboard is detected automatically. Closing the window keeps the app in the tray (hotkeys, battery); use the tray menu to exit. `--browser` forces the previous Edge/Chrome app window, which is also the automatic fallback when WebView2 is unavailable. Profiles saved in the browser version live in that browser's storage: export them as JSON there and import them in the window. WebView2 SDK 1.0.4314.35 is redistributed under its license (`vendor/webview2/`).
+- English or Vietnamese interface (VI/EN switch in the top bar; follows the system language by default).
 - Global profile shortcuts with sound feedback and optional Windows notifications.
 - Single-window event dispatch: the bridge selects one app window, prioritizes a connected/read session, and accepts only the first matching result for each event. Events time out after 45 seconds.
 - Installable browser app (PWA) with an offline interface cache.
@@ -107,7 +110,7 @@ Alternatively, run `start.cmd`. It prefers the executable when available and oth
 
 To install the PWA, start the local server, open the page, and use the browser's install-app option. Its profiles share storage with the same browser/origin. The service worker uses network-first loading and a versioned offline cache of static interface files. It does not cache the hotkey bridge or manage WebHID/profile data. Open the app with the server running after source updates to receive the new interface.
 
-All 14 JavaScript modules, the entry script, and CSS use the same release token through an import map. Update package version, import map, entry/CSS tokens, snapshot metadata, and service worker VERSION together. Release-graph tests check module coverage and cycles.
+All 16 JavaScript modules, the entry script, and CSS use the same release token through an import map. Update package version, import map, entry/CSS tokens, snapshot metadata, and service worker VERSION together. Release-graph tests check module coverage and cycles.
 
 ## Protocol and limits
 
@@ -129,4 +132,4 @@ Manufacturer cloud libraries, music sync, calibration, reset, and firmware updat
 - **0.3.6:** installable PWA and offline interface caching.
 - **0.3.5:** draft context, macro ownership, DKS/profile validation, and import-race fixes. See the [historical correctness notes](docs/0.3.5-correctness.md).
 
-These older version numbers describe project history. The current release is **0.4.0-beta.1**.
+These older version numbers describe project history. The current release is **0.4.0-beta.3**; see the [0.4.0-beta.3 release notes](docs/release-0.4.0-beta.3.md).

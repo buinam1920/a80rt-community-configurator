@@ -64,6 +64,8 @@ function packAssets() {
 }
 
 const buildDir = path.join(root, '.build-exe');
+const nativeDir = path.join(root, 'scripts', 'native');
+const webview2Dir = path.join(root, 'vendor', 'webview2');
 fs.mkdirSync(buildDir, {recursive: true});
 
 const icoPath = path.join(buildDir, 'app.ico');
@@ -173,13 +175,35 @@ namespace A80RT {
         private static bool _testTrigger = false;
         private static HotkeyWindow _hotkeyWin;
         private static NotifyIcon _tray;
+        private static bool _forceBrowser;
+        private static Control _invoker;
+        private static Icon _appIcon;
+
+        public static void TrayHint(string text) {
+            try { if (_tray != null) _tray.ShowBalloonTip(3500, "A80RT Configurator", text, ToolTipIcon.Info); } catch {}
+        }
+        // Pin bàn phím do cửa sổ app báo qua /hotkeys/state (byte 17 khối 0x10, chỉ khi đầu thu).
+        private static int _battery = -1;
+        private static long _batteryTicks = 0;
+        private static int _batteryShown = -2;
+        private static int _batteryWarned = 101;
+        private static Icon _baseIcon;
+        private static IntPtr _batteryHicon = IntPtr.Zero;
+        private const string BaseTrayText = "A80RT Configurator (Ctrl+Alt+1 LoL · Ctrl+Alt+2 Apex)";
+        [DllImport("user32.dll")] private static extern bool DestroyIcon(IntPtr handle);
 
         [STAThread]
         private static int Main(string[] args) {
             bool noHotkeys = false;
             bool noBrowser = false;
+            string selfTestOut = null;
+            EmbeddedAssemblies.Install();
             for (int i = 0; i < args.Length; i++) {
                 string a = args[i];
+                if (a == "--browser") { _forceBrowser = true; continue; }
+                if (a == "--user-data" && i + 1 < args.Length) { NativeShell.UserDataFolder = args[++i]; continue; }
+                if (a == "--remote-debugging" && i + 1 < args.Length) { int dbg; if (int.TryParse(args[++i], out dbg)) NativeShell.RemoteDebuggingPort = dbg; continue; }
+                if (a == "--hid-selftest" && i + 1 < args.Length) { selfTestOut = args[++i]; continue; }
                 if (a == "--port" && i + 1 < args.Length) int.TryParse(args[++i], out _port);
                 else if (a == "--no-hotkeys") noHotkeys = true;
                 else if (a == "--no-sound") _sound = false;
@@ -188,11 +212,23 @@ namespace A80RT {
                 else if (a == "--test-trigger") { _testTrigger = true; noBrowser = true; }
             }
 
+            if (selfTestOut != null) {
+                using (var w = new StreamWriter(selfTestOut, false, new UTF8Encoding(false))) {
+                    Console.SetOut(w);
+                    try { return HidSelfTest.Run(); } catch (Exception ex) { Console.WriteLine("error: " + ex); return 1; }
+                }
+            }
             string mutexName = "Local\\\\A80RTConfigurator_" + _port;
+            string showEventName = "Local\\\\A80RTConfigurator_show_" + _port;
             bool createdNew;
             using (Mutex mutex = new Mutex(true, mutexName, out createdNew)) {
                 if (!createdNew && !_testTrigger) {
-                    OpenAppWindow("http://localhost:" + _port + "/");
+                    // Another instance owns the keyboard: ask it to show its window.
+                    try {
+                        EventWaitHandle show;
+                        if (EventWaitHandle.TryOpenExisting(showEventName, out show)) { show.Set(); show.Dispose(); return 0; }
+                    } catch {}
+                    OpenBrowserWindow("http://localhost:" + _port + "/");
                     return 0;
                 }
 
@@ -210,7 +246,7 @@ namespace A80RT {
                     server.Start();
                 } catch (Exception ex) {
                     if (!_testTrigger) {
-                        OpenAppWindow("http://localhost:" + _port + "/");
+                        OpenBrowserWindow("http://localhost:" + _port + "/");
                         return 0;
                     }
                     Console.Error.WriteLine(ex.Message);
@@ -223,6 +259,14 @@ namespace A80RT {
                 string url = "http://localhost:" + _port + "/";
                 if (!_testTrigger) {
                     SetupTray(url);
+                    _invoker = new Control();
+                    IntPtr invokerHandle = _invoker.Handle;
+                    var showEvent = new EventWaitHandle(false, EventResetMode.AutoReset, showEventName);
+                    new Thread(() => {
+                        while (showEvent.WaitOne()) {
+                            try { _invoker.BeginInvoke((MethodInvoker)delegate { OpenAppWindow(url); }); } catch {}
+                        }
+                    }) { IsBackground = true }.Start();
                     if (!noBrowser) OpenAppWindow(url);
                 }
 
@@ -261,6 +305,8 @@ namespace A80RT {
             using (Stream s = Assembly.GetExecutingAssembly().GetManifestResourceStream("app.ico")) {
                 ico = s != null ? new Icon(s) : SystemIcons.Application;
             }
+            _baseIcon = ico;
+            _appIcon = ico;
             ContextMenuStrip menu = new ContextMenuStrip();
             var titleItem = new ToolStripMenuItem("A80RT Configurator ${pkg.version}") { Enabled = false };
             var hkStatus = _hotkeyWin.Registered.Count > 0
@@ -271,7 +317,7 @@ namespace A80RT {
             var soundItem = new ToolStripMenuItem("Tiếng báo khi bấm phím tắt") { Checked = _sound, CheckOnClick = true };
             soundItem.CheckedChanged += (s, e) => _sound = soundItem.Checked;
             var shortcutItem = new ToolStripMenuItem("Tạo lối tắt ngoài Desktop", null, (s, e) => CreateDesktopShortcut(true));
-            var exitItem = new ToolStripMenuItem("Thoát hoàn toàn", null, (s, e) => Application.Exit());
+            var exitItem = new ToolStripMenuItem("Thoát hoàn toàn", null, (s, e) => { NativeShell.ExitRequested(); Application.Exit(); });
 
             menu.Items.Add(titleItem);
             menu.Items.Add(hkItem);
@@ -284,14 +330,77 @@ namespace A80RT {
 
             _tray = new NotifyIcon {
                 Icon = ico,
-                Text = "A80RT Configurator (Ctrl+Alt+1 LoL · Ctrl+Alt+2 Apex)",
+                Text = BaseTrayText,
                 ContextMenuStrip = menu,
                 Visible = true
             };
             _tray.DoubleClick += (s, e) => OpenAppWindow(url);
+            // Timer chạy trên luồng giao diện: đổi icon khay an toàn, không cần Invoke.
+            var batteryTimer = new System.Windows.Forms.Timer { Interval = 2000 };
+            batteryTimer.Tick += (s, e) => RefreshBatteryTray();
+            batteryTimer.Start();
         }
 
+        private static void RefreshBatteryTray() {
+            if (_tray == null) return;
+            int b = Thread.VolatileRead(ref _battery);
+            long ticks = Interlocked.Read(ref _batteryTicks);
+            // Không có báo cáo mới trong 2 phút (đóng cửa sổ app, rút đầu thu): bỏ số pin cũ.
+            if (b >= 0 && (ticks == 0 || DateTime.UtcNow.Ticks - ticks > TimeSpan.FromMinutes(2).Ticks)) b = -1;
+            if (b == _batteryShown) return;
+            _batteryShown = b;
+            IntPtr old = _batteryHicon;
+            if (b < 0) {
+                _tray.Icon = _baseIcon;
+                _tray.Text = BaseTrayText;
+                _batteryHicon = IntPtr.Zero;
+            } else {
+                _batteryHicon = DrawBatteryIcon(b);
+                _tray.Icon = Icon.FromHandle(_batteryHicon);
+                _tray.Text = "A80RT · Pin " + b + "% · Ctrl+Alt+1 LoL · Ctrl+Alt+2 Apex";
+                if (b <= 10 && _batteryWarned > 10) { _batteryWarned = 10; ShowLowBattery(b); }
+                else if (b <= 20 && _batteryWarned > 20) { _batteryWarned = 20; ShowLowBattery(b); }
+                if (b > 25) _batteryWarned = 101;
+            }
+            if (old != IntPtr.Zero) DestroyIcon(old);
+        }
+
+        private static void ShowLowBattery(int b) {
+            try { _tray.ShowBalloonTip(4000, "A80RT · Pin yếu", "Pin bàn phím còn " + b + "%. Cắm sạc sớm để không mất kết nối khi đang chơi.", ToolTipIcon.Warning); } catch {}
+        }
+
+        // Icon khay 32x32: nền màu theo mức pin, số phần trăm ở giữa.
+        private static IntPtr DrawBatteryIcon(int b) {
+            using (Bitmap bmp = new Bitmap(32, 32))
+            using (Graphics g = Graphics.FromImage(bmp)) {
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+                g.Clear(Color.Transparent);
+                Color fill = b <= 20 ? Color.FromArgb(229, 72, 77) : b <= 50 ? Color.FromArgb(240, 163, 94) : Color.FromArgb(70, 167, 88);
+                using (SolidBrush brush = new SolidBrush(fill)) g.FillRectangle(brush, 0, 0, 32, 32);
+                string text = b >= 100 ? "99" : b.ToString();
+                using (Font font = new Font("Segoe UI", 15f, FontStyle.Bold, GraphicsUnit.Pixel))
+                using (StringFormat format = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+                    g.DrawString(text, font, Brushes.White, new RectangleF(0, 1, 32, 32), format);
+                return bmp.GetHicon();
+            }
+        }
+
+        private static int ExtractJsonInt(string json, string key) {
+            Match m = Regex.Match(json, "\\"" + Regex.Escape(key) + "\\"\\\\s*:\\\\s*(-?\\\\d{1,4})");
+            int value;
+            return m.Success && int.TryParse(m.Groups[1].Value, out value) ? value : int.MinValue;
+        }
+
+        // Standalone window (WebView2 + native HID). Falls back to a browser app
+        // window when WebView2 is unavailable or --browser was given.
         private static void OpenAppWindow(string url) {
+            if (!_forceBrowser && NativeShell.Show(url, _appIcon)) return;
+            if (!_forceBrowser && NativeShell.LastError != null) TrayHint("Không mở được cửa sổ riêng (" + NativeShell.LastError + "); dùng trình duyệt thay thế.");
+            OpenBrowserWindow(url);
+        }
+
+        private static void OpenBrowserWindow(string url) {
             string[] candidates = new string[] {
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"Microsoft\Edge\Application\msedge.exe"),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), @"Microsoft\Edge\Application\msedge.exe"),
@@ -501,6 +610,11 @@ namespace A80RT {
                         }
 
                         if (path == "/hotkeys/state") {
+                            int battery = ExtractJsonInt(trimmed, "battery");
+                            if (battery >= -1 && battery <= 100) {
+                                Interlocked.Exchange(ref _battery, battery);
+                                Interlocked.Exchange(ref _batteryTicks, DateTime.UtcNow.Ticks);
+                            }
                             string cid = ExtractJsonString(trimmed, "client");
                             bool ready = ExtractJsonBool(trimmed, "ready");
                             bool active = ExtractJsonBool(trimmed, "active");
@@ -667,11 +781,20 @@ const res = spawnSync(csc, [
   `/win32icon:${icoPath}`,
   `/resource:${bundlePath},assets.bin`,
   `/resource:${icoPath},app.ico`,
+  `/resource:${path.join(nativeDir, 'hid-shim.js')},hid-shim.js`,
+  `/resource:${path.join(webview2Dir, 'Microsoft.Web.WebView2.Core.dll')},Microsoft.Web.WebView2.Core.dll`,
+  `/resource:${path.join(webview2Dir, 'Microsoft.Web.WebView2.WinForms.dll')},Microsoft.Web.WebView2.WinForms.dll`,
+  `/resource:${path.join(webview2Dir, 'WebView2Loader.x64.dll')},WebView2Loader.x64.dll`,
+  `/resource:${path.join(webview2Dir, 'WebView2Loader.x86.dll')},WebView2Loader.x86.dll`,
+  `/reference:${path.join(webview2Dir, 'Microsoft.Web.WebView2.Core.dll')}`,
+  `/reference:${path.join(webview2Dir, 'Microsoft.Web.WebView2.WinForms.dll')}`,
+  '/reference:System.Web.Extensions.dll',
   '/reference:System.dll',
   '/reference:System.Core.dll',
   '/reference:System.Drawing.dll',
   '/reference:System.Windows.Forms.dll',
   csPath,
+  path.join(nativeDir, 'NativeShell.cs'),
 ], {encoding: 'utf8'});
 
 fs.rmSync(buildDir, {recursive: true, force: true});

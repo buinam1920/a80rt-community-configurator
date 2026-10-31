@@ -1,113 +1,132 @@
 # A80RT Community Configurator — 0.4.0-beta.1
 
-Công cụ cộng đồng không chính thức để cấu hình bàn phím LEOBOG A80RT. Dự án không liên kết với hoặc được LEOBOG bảo trợ. Tên sản phẩm chỉ dùng để xác định phần cứng tương thích.
+An unofficial community configurator compatible with LEOBOG A80RT keyboards. This project is not affiliated with or endorsed by LEOBOG. Product names identify compatible hardware only.
 
-**[Tải ứng dụng Windows tại đây](https://github.com/buinam1920/a80rt-community-configurator/releases/tag/v0.4.0-beta.1)**. Chọn tệp `A80RT-Configurator-0.4.0-beta.1.exe`, rồi chạy trên máy đã cài Edge hoặc Chrome. Không cần cài Python. Giữ cửa sổ ứng dụng mở, kết nối và đọc cấu hình bàn phím trước khi dùng **Ctrl+Alt+1 (LoL)** hoặc **Ctrl+Alt+2 (Apex)**. Thoát hoàn toàn bằng menu ở khay hệ thống.
+**[Download the Windows beta](https://github.com/buinam1920/a80rt-community-configurator/releases/tag/v0.4.0-beta.1)** — choose `A80RT-Configurator-0.4.0-beta.1.exe` under Assets.
 
-Đây là **bản beta**. Chức năng ghi cấu hình được kiểm chứng trong phạm vi A80RT U có dây, firmware 1.37; chưa xác lập khả năng ghi trên các biến thể khác. Thay đổi lớp Fn chỉ lưu cục bộ và sẽ chặn Áp dụng. Xem phạm vi kiểm chứng bên dưới.
+## Getting started
 
-Ứng dụng WebHID cục bộ để đọc đủ 9 nhóm cấu hình LEOBOG A80RT / A80RT U, chỉnh bản nháp RT, gán phím, Fn, đèn, màu từng phím, macro, phím nâng cao và thiết lập chung. Dữ liệu thiết bị và hồ sơ cấu hình được xử lý trong trình duyệt. [Bảng đối chiếu tính năng](docs/feature-parity.md) ghi riêng chức năng triển khai, kiểm thử mô phỏng, bằng chứng phần cứng và các mục phụ thuộc hãng.
+1. Install Microsoft Edge or Google Chrome, then run the executable. Python is not required for the executable.
+2. Close the manufacturer's configuration page. In the app, connect the keyboard and read its configuration. All nine configuration blocks must be read before editing.
+3. Edit the draft, review the changes, then click Apply. Sliders and preset buttons only change the local draft.
+4. Keep the app window open while using global shortcuts: **Ctrl+Alt+1 → LoL**, **Ctrl+Alt+2 → Apex**. A shortcut applies its preset automatically only when the existing draft has no changes. Otherwise, review the staged preset and click Apply.
+5. Use the system tray menu to reopen the window, toggle sound, create a desktop shortcut, or exit completely.
 
-Bản 0.3.7: mỗi phím hiện điểm nhận và RT nhấn/nhả như driver hãng (điểm nhận gốc 0 hiện "1.2" in nghiêng, đúng cách hãng hiển thị `currentTrip/10`; byte gốc vẫn giữ nguyên). Thêm bốn chế độ cài sẵn Tùy chỉnh / Văn phòng / Người mới / Chơi game lấy từ `customInfo:x.getDefault()` của driver hãng (xem `dist/config/presets.js`), và thanh điểm nhận dọc kéo được hoặc chỉnh bằng phím mũi tên. Chế độ cài sẵn và thanh kéo chỉ đổi bản nháp; chỉ ghi khi bấm Áp dụng. Khác driver hãng, app không ghi đè switch ID và bit bottom/rtMode.
+Profiles are stored in the browser on this machine, not inside the executable. Export profile JSON files to keep separate backups. Changing the browser, origin, or clearing site data can make existing profiles unavailable.
 
-Bản 0.4.0-beta.1: đóng gói thành file chạy độc lập **`A80RT-Configurator.exe`** (`npm run build` / `scripts/build-exe.mjs`) kèm `start.cmd` và `scripts/a80rt_local.py`: nhúng sẵn toàn bộ 22 file giao diện trong một file `.exe` duy nhất (~138 KB, không hiện cửa sổ CMD đen, có icon ở khay hệ thống System Tray, mở thẳng cửa sổ app riêng) và đăng ký **phím tắt toàn cục Windows Ctrl+Alt+1 (LoL) / Ctrl+Alt+2 (Apex)** dùng được cả trong game. Bấm phím: chương trình nền kêu "bíp" ngay, gửi sự kiện cho **đúng một** cửa sổ app đang mở (SSE `/hotkeys/events`; ưu tiên cửa sổ đã kết nối và đọc bàn phím, rồi cửa sổ dùng gần nhất; mỗi sự kiện có mã riêng và chỉ nhận một kết quả, quá 45 giây không có kết quả thì kêu tiếng lỗi); app đổi profile, tự Áp dụng nếu bản nháp trống, rồi báo kết quả về `/hotkeys/result` để phát 2 tiếng cao (thành công) hoặc tiếng trầm (lỗi), kèm thông báo trong app và thông báo Windows nếu đã bật. Chương trình nền không tự ghi USB; `/hotkeys/*` POST chỉ nhận đúng origin của app. Cần giữ một cửa sổ app (đã kết nối và đọc bàn phím) mở trong lúc chơi.
+## Beta status and compatibility
 
-Thêm hai profile game do app đề xuất (không phải dữ liệu hãng): **LoL** (Alt+1) — mọi phím 1,5 mm, Q W E R D F 1,0 mm, 1–6/B/Tab 1,4 mm, Space 1,8 mm, tắt RT; **Apex** (Alt+2) — W A S D 0,4 mm RT 0,15 mm toàn hành trình, Space/Shift 0,8 mm, Ctrl trái/C 0,6 mm RT 0,2 mm, Q Z E R G Tab 1,2 mm, còn lại 1,5 mm. Phím tắt chỉ chạy khi cửa sổ app đang được chọn (trình duyệt không bắt phím trong game; bàn phím không có chức năng đổi profile phần cứng). Khi đã đọc bàn phím thật và bản nháp đang trống, phím tắt tự Áp dụng qua đúng luồng preflight/đọc lại xác minh rồi hiện thông báo; nếu bản nháp có thay đổi khác thì chỉ đưa profile vào bản nháp và nhắc bấm Áp dụng.
+Live writes are qualified for the **wired A80RT U, firmware 1.37**, using interface FF68/61, report ID 0, 64-byte reports. A80RT, the 2.4 GHz receiver, and other firmware/interface variants are not enabled for live writes.
 
-Bản 0.3.6: cài được thành app trên máy (PWA) từ Chrome/Edge, có icon và cửa sổ riêng; app đã cài vẫn mở được khi server local tắt. Không đổi logic đọc/ghi USB, codec hay phiên nháp so với 0.3.5.
+**Fn writes are blocked.** Fn mappings can be edited and saved locally, but any draft with Fn changes blocks the entire Apply operation before transmission. Revert those changes to apply supported blocks.
 
-Bản 0.3.5: bỏ chọn macro vẫn giữ nguyên timeline chưa lưu, dừng ghi và khóa Xóa/Gán; Lưu tạo macro mới, chọn lại macro thật sẽ nạp nguồn đó. Đây là sửa trạng thái chọn cục bộ, không bổ sung kiểm chứng phần cứng.
+A successful Apply means the changed fields matched a fresh readback. It does not establish persistence after power loss, visible lighting behavior, key output, or gameplay behavior. Unconfirmed writes preserve the draft and lock editing, Apply, and Revert until a fresh complete read. Export the draft first if needed.
 
-Bản này cũng sửa lệch lớp sau lỗi RT; tái sử dụng an toàn vùng macro do phiên tạo khi lưu tăng dần; bảo vệ mẫu DKS của Fn khóa/vị trí không vật lý khi nhập hồ sơ; và ngăn kết quả đọc JSON cũ ghi đè phiên mới. Mẫu DKS dùng chung với vị trí phải giữ sẽ từ chối giao dịch thay mẫu, có lý do rõ. [Thiết kế và regression 0.3.5](docs/0.3.5-correctness.md) ghi vòng đời ownership và phạm vi bằng chứng.
+The executable is unsigned. Physical in-game hotkeys and a complete preset write have not been validated on hardware for this beta. Automated tests do not replace hardware measurements.
 
-## Sử dụng
+## Features
 
-1. Mở trang trực tiếp trong Chrome hoặc Edge trên máy tính. Nếu khung xem không cho phép USB, mở URL của trang trong tab trình duyệt riêng. Đóng tab driver hãng.
-2. Chọn **Kết nối bàn phím**, rồi **Đọc cấu hình**. Chỉ sau khi đọc đủ 9 nhóm mới chỉnh được bản nháp. Không thay dữ liệu thiếu bằng cấu hình mặc định.
-3. Chọn phím và chỉnh các mục cần thiết. Mọi thay đổi chỉ ở bản nháp; thanh trượt không tự gửi USB.
-4. Với **A80RT U có dây, firmware 1.37**, giao diện input/output report ID0, 64 byte, usage FF68/61, bấm **Áp dụng** để gửi. **Ghi lớp Fn (0x26/38) chưa khả dụng theo phép đo trên đúng phạm vi này.** Bản nháp có thay đổi Fn sẽ khóa toàn bộ Áp dụng trước khi gửi bất kỳ nhóm nào; vẫn sửa, lưu/xuất hồ sơ, xuất JSON và hoàn tác cục bộ được. Bỏ thay đổi Fn để áp dụng các nhóm được hỗ trợ. Ứng dụng chỉ báo đã áp dụng khi đọc lại khớp các trường đã sửa. Nếu đã gửi mà ghi chưa được xác nhận, ứng dụng giữ bản nháp và lỗi, khóa chỉnh sửa/Áp dụng/Hoàn tác cho tới khi đọc mới đủ 9 nhóm. Có thể xuất JSON bản nháp trước khi đọc lại; số thay đổi cục bộ không chứng minh thiết bị đã khôi phục.
-5. Dữ liệu mẫu và JSON mở lại chỉ dùng cho bản nháp cục bộ. Kể cả JSON có nhãn nguồn thiết bị và firmware phù hợp cũng không cấp quyền ghi. Sau khi kết nối lại cần đọc mới. A80RT, đầu thu 2.4 GHz, firmware/giao diện khác vẫn chưa mở ghi.
-6. Xuất JSON để lưu bản đang xem hoặc bản nháp. Tệp có thể chứa cấu hình cá nhân và macro; tự chọn nơi lưu/chia sẻ. Nhật ký giữ tối đa 500 gói cấu hình, không ghi nội dung gõ phím thông thường.
+- Read all nine configuration blocks, with raw data inspection.
+- Per-key actuation, Rapid Trigger press/release thresholds, and whole-travel RT.
+- Base/Fn mappings, lighting, per-key colors, macros, DKS, MT, TGL, RS/SOCD, and general settings, subject to model capabilities and write restrictions.
+- Vendor-derived Office, Beginner, and Gaming presets; community LoL and Apex presets.
+- Local profiles, JSON import/export, draft previews, and session recovery.
+- A standalone Windows executable with embedded interface assets and system tray controls.
+- Global profile shortcuts with sound feedback and optional Windows notifications.
+- Single-window event dispatch: the bridge selects one app window, prioritizes a connected/read session, and accepts only the first matching result for each event. Events time out after 45 seconds.
+- Installable browser app (PWA) with an offline interface cache.
 
-Các mục hiệu chuẩn và khôi phục vẫn bị khóa do chưa đo được ACK bảo trì. Firmware chỉ mở web hãng, không flash trong ứng dụng; chọn đúng model khi dùng công cụ ngoài.
+See the [feature comparison](docs/feature-parity.md) for implementation coverage, simulation tests, hardware evidence, and manufacturer-dependent features. Linked technical documents may be in Vietnamese.
 
-## RT và vùng chết toàn bàn phím
+## Rapid Trigger and presets
 
-Trong **Rapid Trigger**, chọn một hoặc nhiều phím để chỉnh điểm nhận, ngưỡng nhấn/nhả và **RT trên toàn hành trình** (whole, bit 0). Theo mô tả hãng, bật whole để RT duy trì hoạt động; tắt để RT có hiệu lực sau khi phím đạt điểm nhận. Đây là ngữ nghĩa từ nguồn hãng, chưa phải kết quả đo hành vi riêng. Bottom Optimization (bit 1) và Rampage Mode (bit 2) vẫn đọc được trong dữ liệu gốc nhưng không có bộ chỉnh đã chứng minh áp dụng cho cả ba model A80RT; sửa cờ khác hoặc tải hồ sơ giữ nguyên hai bit này.
+Actuation raw value 0 is preserved. The interface displays the manufacturer's 1.2 mm fallback for it, but its physical meaning has not been measured. Manual actuation input starts at 0.01 mm. Positive raw distances use units of 0.01 mm.
 
-Trong **Thiết lập & bảo trì → Thiết lập**, A80RT, A80RT U và U Dongle có **Vùng chết phía trên/phía dưới · toàn bàn phím**: 0,00–0,50 mm, bước 0,01 mm. Đây là settings byte 8/9, độc lập vùng phím đang chọn; nhập số chỉ tạo bản nháp, bấm **Hoàn tác bản nháp** để bỏ. Số 0 và giá trị gốc chưa nhận diện được giữ nguyên cho tới khi bạn sửa đúng trường. Không suy ra một bit bật/tắt firmware riêng từ hai giá trị này.
+Whole-travel RT uses bit 0. According to the manufacturer's source, enabling it keeps RT active throughout travel; otherwise RT becomes active after actuation. This is source-derived behavior, not a separate physical measurement. Bottom Optimization and Rampage Mode remain readable and preserved but have no qualified editor for all supported variants.
 
-Bộ chọn switch từng phím mở cho A80RT và A80RT U có dây theo điều kiện giao diện hãng; dongle ẩn theo timeValue; tên giữ theo bản dịch nguồn, ID lạ/hành trình lạ được hiển thị rõ và bảo toàn. Thay switch cần hiệu chuẩn bằng công cụ hãng, không đồng nghĩa ứng dụng đã hiệu chuẩn. Catalog A80RT PID80A2 và các gate render đã xác minh hỗ trợ chỉnh cục bộ whole/switch/vùng chết cùng giới hạn như U có dây. Đây là bằng chứng nguồn, không mở ghi cho 80A2. Với ID lạ chưa biết hành trình, sửa khoảng cách bị từ chối và bản nháp giữ nguyên; không đoán mặc định 3,4 mm. Dữ liệu mẫu là A80RT U tổng hợp, không phải dữ liệu USB.
+Global top/bottom dead zones are settings bytes 8/9, with a range of 0.00–0.50 mm in 0.01 mm steps. They are independent of the current key selection. Zero and unknown stored values remain unchanged until the corresponding field is edited; no separate firmware enable flag is inferred.
 
-Macro đang nhập được giữ nguyên khi Hoàn tác hoặc tải hồ sơ thay macro nguồn. Ghi bàn phím dừng; cần lưu lại hoặc chọn macro hiện tại trước khi gán. Lưu tiếp sau lần lưu thành công vẫn cập nhật macro đã chọn. Bốn bộ chọn phím DKS có **— Không dùng —** (usage0); mẫu mới vẫn mặc định phím A (usage4), MT/TGL không có lựa chọn0.
+Per-key switch selection is available for wired A80RT/A80RT U under source-derived capability gates and hidden for the dongle. Unknown switch IDs are preserved. Distance edits are rejected if switch travel is unknown. Changing a switch does not calibrate it; use the manufacturer's calibration tool.
 
-## Hồ sơ cục bộ và phục hồi
+Vendor-derived presets preserve switch IDs and the bottom/rtMode bits. Only Office resets both global dead zones to zero. Preset values and source notes are in [presets.js](dist/config/presets.js).
 
-Trong **Hồ sơ cấu hình**, đặt tên rồi **Lưu bản nháp thành hồ sơ**. Hồ sơ được lưu trong IndexedDB của trình duyệt và phân theo đủ danh tính model, cổng kết nối, VID/PID và tên sản phẩm. Chọn hồ sơ để đổi tên, nhân bản, xóa hoặc xuất JSON v2. Mỗi lần lưu bản nháp tạo một hồ sơ mới. Đổi thư viện model để xem hồ sơ của model khác.
+Community presets are starting points, not manufacturer data:
 
-**Xem trước đã chọn**, **Nhập hồ sơ JSON** và **Khôi phục phiên gần nhất** luôn mở bản xem trước. Bấm **Đưa vào bản nháp** để xác nhận. Khi đã có phiên chỉnh sửa, chỉ các trường được hỗ trợ được chuyển trong một giao dịch nguyên tử; byte chưa giải mã ngoài bản ghi gán phím được thay, marker màu, bit dành riêng, thông tin thiết bị và Fn F1–F12 giữ theo bản nháp hiện tại. Thay gán phím rỗng/phím/chuột/media sở hữu đủ 4 byte và đặt byte cuối bằng 0 theo bộ mã hóa hãng; chức năng sở hữu đủ 4 byte mã chức năng. Bản ghi không sửa giữ nguyên. Liên kết macro/DKS/RS/SOCD được kiểm tra; lỗi giữ nguyên toàn bộ bản nháp. Hồ sơ khác model, thiếu một trong 9 vùng, byte sai hoặc con trỏ macro lỗi bị từ chối.
+- **LoL:** default 1.5 mm; Q/W/E/R/D/F at 1.0 mm; 1–6/B/Tab at 1.4 mm; Space at 1.8 mm; RT off.
+- **Apex:** W/A/S/D at 0.4 mm with 0.15 mm whole-travel RT; Space/Shift at 0.8 mm; left Ctrl/C at 0.6 mm with 0.2 mm RT; Q/Z/E/R/G/Tab at 1.2 mm; remaining keys at 1.5 mm.
 
-Xem trước liệt kê các trường chưa hỗ trợ bị bỏ qua, gồm bottom/rtMode và switch của dongle. Các trường này giữ giá trị hiện tại, kể cả bit từ hồ sơ cũ khác giá trị đang đọc. Mở hồ sơ khi chưa có phiên tạo baseline ngoại tuyến giữ nguyên byte đã lưu, kể cả giá trị gốc ngoài phạm vi editor, ID switch lạ hoặc byte Fn bị khóa; không tạo quyền ghi thiết bị. Khi kết nối, phiên ngoại tuyến được bỏ và cần đọc mới đủ 9 nhóm; đưa hồ sơ vào phiên hiện tại vẫn kiểm tra các thay đổi ngữ nghĩa, giữ byte opaque/Fn khóa hiện tại. Ví dụ độ sáng thay đổi phải trong 1–5; raw255 được giữ khi mở ngoại tuyến nhưng bị từ chối khi chuyển thành thay đổi độ sáng.
+## Profiles and recovery
 
-Hồ sơ có điểm nhận raw0 có thể xem trước và đưa lại giá trị đã lưu vào bản nháp sau khi sửa sang giá trị dương. Raw0 là giá trị được bảo toàn; chưa xác định ý nghĩa vật lý và không suy ra khoảng cách mặc định. Nhập điểm nhận thủ công vẫn tối thiểu 0,01 mm; tải hồ sơ chỉ sửa hai byte điểm nhận qua trường ngữ nghĩa hiện có, giữ nguyên byte khác và kiểm tra giao dịch/đọc lại.
+Profiles are stored in IndexedDB and separated by model identity, connection type, VID/PID, and product name. Saving a draft creates a new profile. Profiles can be renamed, duplicated, deleted, previewed, and exported as JSON v2.
 
-Sau thay đổi hợp lệ, bản nháp được giữ cục bộ sau khoảng 350 ms; đợi thông báo **Đã giữ bản nháp để phục hồi sau tải lại** trước khi tải lại trang. Chọn thư viện model rồi **Khôi phục phiên gần nhất** để mở lại. Bản phục hồi mở ngoại tuyến; cần kết nối và đọc mới trước khi chuyển hồ sơ vào phiên thiết bị để áp dụng. Sự kiện macro còn ở trình nhập và chưa bấm **Lưu macro vào bản nháp** không thuộc bản phục hồi. Lỗi dung lượng/quyền lưu không xóa bản nháp đang mở hoặc bản lưu trước.
+Import, selected-profile preview, and recovery always open a preview first. Confirm before moving changes into the draft. Supported fields are transferred in one atomic transaction; unsupported fields are listed as skipped. Reserved bits, color markers, device information, and locked Fn F1–F12 fields retain their current draft values. Changed binding records own all four bytes according to the manufacturer's encoding. Unchanged records remain intact.
 
-JSON v1 cũ vẫn chỉ để xem, kể cả đủ 9 vùng; nhãn nguồn/firmware trong tệp không tạo quyền ghi USB. Xuất hồ sơ không gửi dữ liệu đi đâu. Xóa dữ liệu trang hoặc đổi trình duyệt/origin sẽ không còn thấy IndexedDB cũ; xuất JSON để có bản sao riêng. Chưa có đồng bộ đám mây của hãng, backend/tài khoản mới hay chuyển ngân hàng cấu hình trên phần cứng.
+Macro, DKS, RS, and SOCD references are validated. A different model, missing block, invalid byte, or malformed macro pointer rejects the transfer without changing the draft. Unsupported bottom/rtMode fields and dongle switch fields keep their current values.
 
-Hồ sơ chứa Fn vẫn được đưa đầy đủ vào bản nháp theo các quy tắc trường cục bộ. Nếu Fn khác bản đọc hiện tại, toàn bộ Áp dụng bị chặn ở bước kiểm tra lệnh; không tự bỏ qua Fn hoặc gửi trước các nhóm khác. Kiểm tra bị chặn trước khi gửi giữ nguyên baseline mới, bản nháp và quyền hoàn tác. Metadata trong hồ sơ hoặc fixture không tạo xác thực firmware hay quyền ghi trực tiếp.
+Opening a profile without an active session creates an offline baseline that preserves its stored bytes, including unknown values. It grants no device-write permission. Connecting discards the offline session and requires a fresh nine-block read. Moving a profile into a live session validates semantic edits and preserves current opaque/locked fields. For example, a stored brightness value of 255 can be preserved offline but cannot be applied as a brightness edit; editable brightness is 1–5.
 
-Thư viện/chia sẻ đám mây, đồng bộ âm nhạc, công cụ phụ trợ và cập nhật firmware phụ thuộc dịch vụ hãng: [mở driver LEOBOG](https://leobog.driveall.cn/), chọn đúng model và làm theo hướng dẫn của hãng. Liên kết chỉ mở công cụ ngoài; không báo đã đồng bộ, hiệu chuẩn, reset hay flash trong ứng dụng.
+Stored raw-zero actuation can be restored from a profile after a positive edit. Only the corresponding actuation bytes are changed, with normal validation and readback.
 
-## Đã đo được gì
+Valid draft changes are saved for recovery after roughly 350 ms. Wait for the recovery confirmation before reloading. Recovery opens offline; connect/read again before transferring it into a device session. Unsaved macro input is not included. Storage failures do not erase the open draft or previous saved recovery.
 
-Ngày 22/10/2026, công cụ USB gốc đọc đủ 9 nhóm (4688 byte) trên A80RT U 0C45:80A1, FF68/61, report0/64, firmware bytes [55,1] = 1.37. Phép thử được cho phép thay RGB lưu của W (slot34, offsets137–139), đọc lại khớp, rồi khôi phục; cả 9 nhóm cuối khớp dữ liệu ban đầu.
+Macro input survives Revert and profile replacement of its source macro. Recording stops, and the macro must be saved again or reselected before assignment. DKS selectors support an unused usage 0; new patterns default to A (usage 4). MT/TGL do not offer usage 0.
 
-Đã đo 22 ACK ghi màu (0x24) và gói điều khiển sau ghi (0). Header phản hồi gồm 55/command/count/offset/00/final/00, report64, count56 và final8 cho màu; control0 count56/final1. Không giả định payload ACK lặp payload đọc. Kiểm thử có dùng bản sao header đã loại dữ liệu riêng; phần đệm trong thiết bị giả là dữ liệu tổng hợp, không phải capture phần cứng.
+Legacy JSON v1 is view-only, even when it contains all nine blocks. Source/firmware labels in JSON cannot grant write authority. Export stays local. There is no manufacturer cloud sync, account backend, or hardware profile-bank switching.
 
-Các lệnh cấu hình 0x21–0x28 dùng cùng tuyến sendReportSuper/buildPkt_final/getStoreData trong mã nguồn hãng. Bản này cho phép các lệnh đã ánh xạ **trừ Fn 0x26/38** trên đúng giao diện và firmware có dây nêu trên, áp dụng chính sách header nghiêm ngặt và đọc lại các trường đã đổi. Giữ nguyên không retry ghi, kiểm tra nguồn phiên đọc mới, interface và write epoch. Không mở opcode tùy ý hay lệnh bảo trì compact.
+## Hardware evidence
 
-Ngày 23/10/2026, phép thử trên chính trang riêng tư đã triển khai trong trình duyệt đã đạt: đọc 9/9 nhóm trên A80RT U có dây firmware 1.37, đổi riêng RGB lưu của W từ #000000 sang #1b80ff, **Áp dụng** báo đọc lại khớp rồi khôi phục #000000 bằng một lần Áp dụng được xác minh nữa. Chế độ đèn toàn bàn phím giữ nguyên 11. Bằng chứng này xác nhận luồng trình duyệt cho màu W; không mở rộng thành kiểm thử các nhóm khác, màu đèn nhìn thấy hoặc lưu sau mất điện. Kiểm tra mô phỏng không thay thế bằng chứng USB.
+Measurements below apply only to the stated device and procedure:
 
-Ngày 24/10/2026, controller đo thêm trên cùng U có dây: ngưỡng nhấn RT của W 0→0,01→0 mm; vùng chết phía trên toàn bàn phím 0,30→0,31→0,30 mm; base W [0,0,0,0]→[2,0,26,0]→[0,0,0,0]. Mỗi phép có hai lần Áp dụng và đọc lại ngữ nghĩa khớp, gồm lần khôi phục. Đây là xác nhận cấu hình đọc lại, chưa đo cảm giác RT, ký tự phát ra hoặc lưu sau mất điện.
+- **2026-10-22:** native USB tooling read nine blocks (4,688 bytes) from A80RT U 0C45:80A1, FF68/61, report 0/64, firmware bytes [55,1] = 1.37. An authorized W color edit was read back and restored; all nine final blocks matched the original. Twenty-two color-write/control ACKs were measured. Test fixtures contain sanitized headers and synthetic padding, not private USB captures.
+- **2026-10-23:** the deployed browser app read nine blocks, changed W's stored RGB from #000000 to #1b80ff, verified Apply, then restored #000000 with verified Apply. Lighting mode stayed at 11. This establishes that browser workflow for stored W color only.
+- **2026-10-24:** browser Apply/readback verified W RT press threshold 0→0.01→0 mm, global top dead zone 0.30→0.31→0.30 mm, and base W mapping [0,0,0,0]→[2,0,26,0]→[0,0,0,0], including restoration.
+- **2026-10-25:** native USB tooling using production codec commit `9697747` passed ten write/readback/restoration cases: unassigned macro, assigned macro, TGL, MT, RS, SOCD, DKS, polling, brightness, and actuation. The run used 6,036 frames; all nine blocks matched the original after each case. Assignments used Print slot 99 and Insert slot 103; DKS used empty pattern 1 with [16,30,30,16]. Polling codes were 6→3→6, brightness 5→4→5, and Print actuation raw 0→120→0. See the [sanitized fixture](tests/fixtures/a80rt-wired-feature-qualification.json).
 
-Ngày 25/10/2026, công cụ USB gốc dùng codec production `9697747` (0.3.1) đạt **10/10 phép ghi/đọc lại và khôi phục**, tổng 6036 khung: macro chưa gán; gán macro; TGL; MT; RS; SOCD; DKS; polling; độ sáng; điểm nhận. Mỗi phép kết thúc với cả 9 nhóm khớp từng byte bản gốc, không có thay đổi ngoài phạm vi. Macro A nhấn/nhả có delay 0/20 ms; các gán dùng Print slot99 và RS/SOCD thêm Insert slot103; DKS dùng mẫu trống1 với mốc [16,30,30,16]. Polling mã6→3→6 (8k→1k→8k), sáng5→4→5, điểm nhận Print raw0→120→0. ACK0/33/34/35/37/39/40 được đo, gồm settings32, lighting16 và đầu/cuối nhóm dài; không giả định ACK lặp payload. [Fixture tóm tắt đã loại dữ liệu riêng](tests/fixtures/a80rt-wired-feature-qualification.json) giữ sourceCommit lịch sử `9697747`, không chứa raw capture hoặc macro cá nhân.
+Those ten native USB cases have **not** all been exercised through browser Apply. Key output, timing, visible lighting, power-cycle persistence, full-profile Apply, maintenance operations, receivers, and other model/firmware combinations remain unverified.
 
-Fn W/U vẫn không đổi được qua app 0.3.0/0.3.1; thử USB gốc không có control0 cũng thất bại. Driver hãng đổi UI Fn+U từ Print sang U, nhưng đọc USB mới vẫn là Prt và người dùng bấm Fn+U vẫn bật PrintScreen. Đã trả UI hãng về Print, đóng tab hãng và đọc cuối 9 nhóm khớp bản gốc. Vì vậy 0.3.2 chặn ghi Fn trước TX trên đúng A80RT U có dây firmware1.37; codec đủ4byte và chỉnh Fn cục bộ vẫn giữ ([ghi chú](docs/binding-source-evidence.md)). Chưa xác định nguyên nhân riêng firmware hay driver, không suy rộng sang mọi model/phiên bản.
+Fn W/U changes failed in app versions 0.3.0/0.3.1 and in a native USB attempt without control 0. The manufacturer UI changed Fn+U visually, but a fresh USB read still showed Print and the user's Fn+U press still produced PrintScreen. The original state was restored and all nine blocks matched. Fn writes have therefore been blocked since 0.3.2 for this qualified device/firmware. The cause is not established; do not generalize to other models. See [binding evidence](docs/binding-source-evidence.md).
 
-Ma trận 10 phép mới là kiểm chứng cấu hình bằng công cụ USB gốc, **chưa thử Apply qua UI** cho các phép đó. Bằng chứng hosted browser màu W và RTpress/topDZ/base W trước đó giữ phạm vi riêng. Chưa đo key output/gameplay của các chức năng mới (ngoại trừ phép Fn+U âm tính do người dùng bấm), timing, màu đèn nhìn thấy, giữ sau mất điện, Apply toàn profile, bảo trì, đầu thu hoặc model/firmware khác.
+## Build and test
 
-## Chạy tại máy và kiểm thử
+The Windows executable embeds the interface assets and is built with the Windows .NET Framework C# compiler. Node.js is required for the build script:
 
-Không cần cài thư viện, chỉ cần Python. Trên Windows bấm đúp `start.cmd` (mở `http://localhost:8787/`), hoặc chạy:
+```text
+npm run build
+npm test
+```
+
+The beta passed **229 automated tests**, including an executable bridge test. To build without overwriting an executable that is already running, set `A80RT_BUILD_OUTPUT`. Set `A80RT_TEST_EXE` to test that specific output.
+
+For source-based serving, Python's standard library is sufficient:
 
 ```text
 npm start
 ```
 
-Mở localhost bằng Chrome/Edge, không mở qua file://.
+Alternatively, run `start.cmd`. It prefers the executable when available and otherwise uses Python. Open `http://localhost:8787/` in Edge/Chrome, not a file URL.
 
-### Cài thành app
+To install the PWA, start the local server, open the page, and use the browser's install-app option. Its profiles share storage with the same browser/origin. The service worker uses network-first loading and a versioned offline cache of static interface files. It does not cache the hotkey bridge or manage WebHID/profile data. Open the app with the server running after source updates to receive the new interface.
 
-1. Chạy `start.cmd` một lần, mở `http://localhost:8787/` trong Chrome/Edge.
-2. Bấm biểu tượng **Cài đặt ứng dụng** trên thanh địa chỉ (Edge: menu … → Ứng dụng → Cài đặt trang này dưới dạng ứng dụng).
-3. Sau đó mở **A80RT** từ Desktop/Start menu. Hồ sơ dùng chung kho với trang `localhost:8787`.
+All 14 JavaScript modules, the entry script, and CSS use the same release token through an import map. Update package version, import map, entry/CSS tokens, snapshot metadata, and service worker VERSION together. Release-graph tests check module coverage and cycles.
 
-Service worker luôn ưu tiên mạng: khi server chạy, app lấy đúng file mới nhất; khi server tắt, app mở từ bộ đệm của đúng phiên bản đã cài. Nó chỉ lưu file giao diện tĩnh, không chạm WebHID, IndexedDB hay dữ liệu cấu hình. Sau khi cập nhật mã nguồn, mở app một lần khi server đang chạy để nhận bản mới. Chạy kiểm thử giao thức, codec, phiên giao dịch và giao diện:
+## Protocol and limits
 
-```text
-npm test
-```
+Protocol observations came from the [manufacturer's browser tool](https://leobog.driveall.cn/), bundle `static/js/app.3086f769.js`, observed on 2026-10-22. This is a separate implementation based on those observations. [Protocol facts](dist/device/protocol-facts.json) distinguish source evidence from measurements.
 
-HTML chứa một import map cho **toàn bộ 14** module JavaScript, dùng chung token phiên bản `0.4.0-beta.1`; entry script và CSS dùng cùng token. Source imports giữ đường dẫn không query để browser có một registry/class và Node giữ cùng module identity. Mỗi lần phát hành thay module phải cập nhật phiên bản package, import map, entry/CSS, metadata và `VERSION` của `service-worker.js` cùng nhau; kiểm thử release graph kiểm tra đủ đường dẫn và các chu trình. Không dựa riêng vào `_headers` chưa xác minh trên Sites. Controller kiểm tra cache/CSP và triển khai lên Site hiện có.
+- VID 0C45; PID 80A1 for wired A80RT U, 80A2 for A80RT, FEFC for A80RT U Dongle. Product identity must also match; shared PIDs alone are insufficient.
+- Read blocks: device 0x10/32, settings 0x11/32, keymap 0x12/512, lighting 0x13/16, colors 0x14/512, macro 0x15/1024, Fn 0x16/512, RT 0x17/1024, DKS 0x18/1024. Physical macro capacity has not been measured; 1,024 bytes is the source-derived read region.
+- Request header: AA/command/count/offsetLE/00/final/00, payload at byte 8. Reads may retry once; writes and controls never retry. Unrelated command/offset replies are ignored. Matching write replies with invalid count, flags, or length fail closed. ACK payload echo is not assumed.
+- Only one transaction owns a transport at a time. Genuine device snapshots carry provenance that JSON cannot recreate. Session/write epochs prevent stale snapshots after writes or reconnects. Firmware attestation requires a complete current-session device response.
+- Mapped configuration commands 0x21–0x28, except Fn 0x26, use strict header validation and changed-field readback on the qualified wired interface. Arbitrary opcodes and compact maintenance commands remain blocked.
+- Codecs preserve unknown bytes and reject invalid fields/references. Physical slots are non-contiguous: W 34, Backspace 92, PgDn 108.
+- Post-write control 0 follows the observed manufacturer sequence; it is not proof of permanent storage.
 
-## Giao thức và giới hạn
+Manufacturer cloud libraries, music sync, calibration, reset, and firmware updates remain external. Use the [manufacturer's tool](https://leobog.driveall.cn/) for the correct model. Opening that link does not mean this app performed those operations.
 
-Nguồn: mã trình duyệt [driver LEOBOG](https://leobog.driveall.cn/), bundle `static/js/app.3086f769.js`, quan sát 22/10/2026; bản triển khai riêng từ các quan sát này. `dist/device/protocol-facts.json` ghi ánh xạ chi tiết và phân biệt bằng chứng nguồn với phép đo.
+## Earlier versions
 
-- VID0C45, PID80A1 A80RT U có dây, PID80A2 A80RT, PIDFEFC A80RT U Dongle; tên model phải khớp, không suy từ PID dùng chung.
-- Đọc: device0x10/32, settings0x11/32, keymap0x12/512, lighting0x13/16, colors0x14/512, macro0x15/1024, Fn0x16/512, RT0x17/1024, DKS0x18/1024. Dung lượng macro vật lý chưa được đo; 1024 là vùng đọc theo nguồn.
-- Request AA/command/count/offsetLE/00/final/00, payload từ byte8. Đọc có thể thử lại một lần; ghi/control không thử lại. Phản hồi khác command/offset bị bỏ qua; phản hồi ghi trùng command/offset nhưng sai count/flags/report length gây lỗi đóng.
-- Chỉ một giao dịch giữ transport tại một thời điểm. Snapshot thực có provenance không thể phục hồi từ JSON; session và write epoch ngăn dùng bản đọc cũ sau ghi/kết nối lại. Firmware được xác thực qua phản hồi đọc đầy đủ trong phiên hiện tại; mẫu/import không tạo được attestation.
-- Codec giữ byte chưa giải mã, từ chối trường và liên kết không hợp lệ. RT raw dương/100 là mm; điểm nhận raw0 được giữ nguyên, chưa xác định ý nghĩa vật lý. Các slot vật lý không liên tục, W34, Backspace92, PgDn108.
-- “Đã áp dụng” chỉ xác nhận các trường đã sửa khớp đọc lại. Control0 là bước sau ghi theo nguồn, chưa phải bằng chứng lưu vĩnh viễn.
+- **0.3.7:** per-key actuation/RT display, vendor-derived presets, and an actuation drag control.
+- **0.3.6:** installable PWA and offline interface caching.
+- **0.3.5:** draft context, macro ownership, DKS/profile validation, and import-race fixes. See the [historical correctness notes](docs/0.3.5-correctness.md).
+
+These older version numbers describe project history. The current release is **0.4.0-beta.1**.

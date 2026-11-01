@@ -132,4 +132,4 @@ Manufacturer cloud libraries, music sync, calibration, reset, and firmware updat
 - **0.3.6:** installable PWA and offline interface caching.
 - **0.3.5:** draft context, macro ownership, DKS/profile validation, and import-race fixes. See the [historical correctness notes](docs/0.3.5-correctness.md).
 
-These older version numbers describe project history. The current release is **0.4.0-beta.3**; see the [0.4.0-beta.3 release notes](docs/release-0.4.0-beta.3.md).
+These older version numbers describe project history. The current release is **0.4.0-beta.4** ([release notes](docs/release-0.4.0-beta.4.md)); see also the [0.4.0-beta.3 release notes](docs/release-0.4.0-beta.3.md).

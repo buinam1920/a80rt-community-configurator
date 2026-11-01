@@ -3,7 +3,7 @@
 // Luôn ưu tiên mạng: khi server chạy, app luôn lấy đúng file mới nhất; chỉ khi
 // không kết nối được mới dùng bộ đệm của đúng phiên bản này (không trộn bản).
 // Bộ đệm offline nạp thẳng từ server (cache:'reload'), không lấy bản HTTP cũ.
-const VERSION='0.4.0-beta.3',CACHE=`a80rt-app-${VERSION}`,V=`?v=${VERSION}`;
+const VERSION='0.4.0-beta.4',CACHE=`a80rt-app-${VERSION}`,V=`?v=${VERSION}`;
 const MODULES=['app.js','layout.js','protocol.js','device/capabilities.js','device/transport.js','config/session.js','config/codecs.js','config/macros.js','config/advanced.js','config/profiles.js','config/presets.js','i18n.js','i18n-en.js','ui/core-editors.js','ui/advanced-editors.js','ui/device-settings.js'];
 const ASSETS=['./','./index.html',`./styles.css${V}`,...MODULES.map(file=>`./${file}${V}`),'./manifest.json','./icons/icon-192.png','./icons/icon-512.png','./icons/icon-maskable-512.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS.map(url=>new Request(url,{cache:'reload'})))).then(()=>self.skipWaiting()));});

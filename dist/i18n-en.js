@@ -97,6 +97,7 @@ export const EXACT = {
   'Đã dừng đọc.': 'Reading stopped.',
   'Thời gian chờ không hợp lệ.': 'Invalid timeout.',
   'Thiết bị chưa mở kết nối.': 'The device connection is not open.',
+  'Đầu thu 2.4 GHz vẫn cắm nhưng mất liên lạc với bàn phím (bàn phím ngủ, tắt hoặc chưa ghép). Bấm một phím trên bàn phím để đánh thức; app tự kết nối lại. Bản nháp chưa áp dụng vẫn được giữ.': 'The 2.4 GHz receiver is still plugged in but lost contact with the keyboard (asleep, off or not paired). Press a key to wake the keyboard; the app reconnects by itself. Unapplied draft changes are kept.',
   'Đầu thu báo mất liên kết với bàn phím. Đánh thức bàn phím ở chế độ 2.4 GHz rồi kết nối và đọc lại.': 'The receiver lost its link to the keyboard. Wake the keyboard in 2.4 GHz mode, then connect and read again.',
   'Phạm vi đọc không hợp lệ.': 'Invalid read range.',
   'Thiết bị đã ngắt kết nối.': 'The device has disconnected.',

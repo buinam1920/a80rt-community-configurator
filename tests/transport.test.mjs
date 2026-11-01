@@ -160,8 +160,10 @@ test('receiver link-loss reaches the actual read controller and clears its busy 
     reading=get('read-button').trigger('click');await new Promise(resolve=>setImmediate(resolve));
     const captured=JSON.parse(readFileSync(new URL('./fixtures/a80rt-link-loss-header.json',import.meta.url),'utf8'));
     const event=new Event('inputreport');event.reportId=0;event.data=new DataView(Uint8Array.from(captured.capturedHeader).buffer);device.dispatchEvent(event);
-    await reading;assert.match(get('message').textContent,/mất liên kết/);
-    assert.equal(get('read-button').hidden,false);assert.equal(get('progress-wrap').hidden,true);assert.equal(get('disconnect-button').disabled,false);
+    await reading;for(let i=0;i<20;i++)await new Promise(resolve=>setImmediate(resolve));
+    // The stale reader is released (receiver still enumerated) so a reconnect is possible at once.
+    assert.match(get('message').textContent,/mất liên lạc với bàn phím/);
+    assert.equal(get('progress-wrap').hidden,true);assert.equal(get('connect-button').disabled,false);assert.equal(device.opened,false);
     await get('disconnect-button').trigger('click');assert.equal(get('connect-button').disabled,false);
     device.respond=packet=>queueMicrotask(()=>device.emit(packet));await get('connect-button').trigger('click');
     await get('read-button').trigger('click');assert.match(get('message').textContent,/Đã đọc đủ 9/);

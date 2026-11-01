@@ -30,7 +30,7 @@ function clearMessage(){message('');}
 function setText(id,text){$(id).textContent=text;}
 function mode(){return state.snapshot?.source??'empty';}
 function describeSource(){if(mode()==='demo')return 'Dữ liệu mẫu';if(mode()==='import')return 'Bản đã lưu';if(mode()==='device')return state.reader?'Bàn phím thật':Object.keys(state.snapshot.blocks).length?'Bản đọc trước':'Thông tin thiết bị';return 'Chưa có dữ liệu';}
-function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.4.0-beta.3',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
+function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.4.0-beta.4',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
 function makeKeyboard(){
   for(const row of LAYOUT){
     const container=document.createElement('div');container.className='key-row';
@@ -169,6 +169,7 @@ async function connect(permitted=null){
     if(!reader)throw lastError??new Error('Không tìm thấy giao diện cấu hình A80RT. Thử cắm lại đầu thu 2.4 GHz hoặc cáp USB.');
     state.snapshot=deviceSnapshot(reader.device,reader.interface);
     await reader.open();state.reader=reader;
+    reader.transport.onSessionEnd(()=>{if(state.reader===reader&&reader.getState().linkLost)void onLinkLost(reader);});
     try{state.capability=identifyDevice(reader.device);}catch{state.capability=null;}state.progress=0;state.snapshot.session=reader.getState();
     message(`Đã mở kết nối qua ${transportName(reader.device).toLocaleLowerCase('vi-VN')}; chưa có phản hồi cấu hình. Chọn “Đọc cấu hình” để lấy dữ liệu.`);
   }catch(error){if(reader)await reader.close().catch(()=>{});if(!state.reader)dropDeviceLock();message(error.name==='NotAllowedError'?'Trình duyệt chưa cấp quyền kết nối. Hãy mở trang trực tiếp trong Chrome/Edge rồi thử lại.':`Kết nối chưa thành công: ${error.message}`,true);}
@@ -179,7 +180,7 @@ async function disconnect(){
   await editors?.cancelCalibration();
   const reader=state.reader;state.reader=null;state.reading=false;state.activeBlock=null;state.applyAbort?.abort();
   if(reader)await reader.close().catch(()=>{});
-  dropDeviceLock();setBattery(null);autoConnectPaused=true;
+  dropDeviceLock();setBattery(null);autoConnectPaused=true;clearTimeout(relinkTimer);relinkTimer=null;
   render();
 }
 async function read(){
@@ -194,7 +195,7 @@ async function read(){
   state.reading=true;state.progress=0;clearMessage();render();
   try{
     const captured=await reader.readConfiguration(state.capability,{onProgress:progress=>{if(!current())return;state.activeBlock=progress.block;state.progress=100*progress.completed/progress.total;render();}});
-    if(current()){state.session=new ConfigSession(captured,state.capability);snapshot.blocks=captured.blocks;snapshot.complete=true;if(isReceiver())setBattery(batteryOf(captured.blocks.device));message(reader.transport.getWriteState().qualified?'Đã đọc đủ 9 nhóm cấu hình. Chỉnh bản nháp rồi bấm Áp dụng để gửi và đọc lại xác minh.':'Đã đọc đủ 9 nhóm cấu hình. Có thể chỉnh bản nháp; model hoặc firmware này chưa được mở ghi.');}
+    if(current()){state.session=new ConfigSession(captured,state.capability);snapshot.blocks=captured.blocks;snapshot.complete=true;relinkDelay=0;if(isReceiver())setBattery(batteryOf(captured.blocks.device));message(reader.transport.getWriteState().qualified?'Đã đọc đủ 9 nhóm cấu hình. Chỉnh bản nháp rồi bấm Áp dụng để gửi và đọc lại xác minh.':'Đã đọc đủ 9 nhóm cấu hình. Có thể chỉnh bản nháp; model hoặc firmware này chưa được mở ghi.');}
   }catch(error){if(ownsRead())message(error.name==='AbortError'?'Đã dừng đọc. Chưa có snapshot hoàn chỉnh để chỉnh sửa.':`Đọc chưa hoàn tất: ${error.message}`,error.name!=='AbortError');}
   finally{if(ownsRead()){snapshot.session=reader.getState();state.reading=false;state.activeBlock=null;render();}}
 }
@@ -398,7 +399,7 @@ $('profile-confirm').addEventListener('click',()=>profileAction(()=>{
  if(state.session)loadProfile(pending.profile,state.session);else{if(state.reader)throw new Error('Đọc đủ cấu hình thiết bị trước khi đưa hồ sơ vào bản nháp.');installOfflineProfile(pending.profile);}
  clearProfilePreview();editors?.refresh();renderSelection();renderDraft();scheduleRecovery();profileStatus('Đã đưa vào bản nháp cục bộ. Chưa gửi thiết bị.');
 }));
-navigator.hid?.addEventListener('disconnect',async event=>{if(event.device===state.reader?.device){invalidateImports();const reader=state.reader;state.reader=null;dropDeviceLock();setBattery(null);state.reading=false;state.activeBlock=null;state.applyAbort?.abort();render();message('Bàn phím đã ngắt kết nối. Kiểm tra cáp USB rồi kết nối lại.',true);await editors?.cancelCalibration();await reader.close().catch(()=>{});}});
+navigator.hid?.addEventListener('disconnect',async event=>{if(event.device===state.reader?.device||event.device?.productId===0xfefc){clearTimeout(relinkTimer);relinkTimer=null;}if(event.device===state.reader?.device){invalidateImports();const reader=state.reader;state.reader=null;dropDeviceLock();setBattery(null);state.reading=false;state.activeBlock=null;state.applyAbort?.abort();render();message('Bàn phím đã ngắt kết nối. Kiểm tra cáp USB rồi kết nối lại.',true);await editors?.cancelCalibration();await reader.close().catch(()=>{});}});
 // Thông báo cho phím tắt profile: toast trong app + thông báo Windows (nếu đã cho
 // phép). Âm thanh do chương trình nền a80rt_local.py phát khi dùng phím tắt toàn cục.
 let toastTimer;
@@ -539,6 +540,30 @@ async function autoConnect(reason){
   if(!devices.length){if(reason==='start'&&!state.snapshot)message('Chưa thấy bàn phím đã được cho phép. Lần đầu dùng cáp USB hoặc đầu thu 2.4 GHz, bấm “Kết nối bàn phím” và chọn đúng thiết bị (“A80RT U” cho cáp, “A80RT U Dongle” cho đầu thu). Từ lần sau app tự kết nối.');return;}
   await connect(devices);
   if(state.reader&&state.capability&&!state.session)await read();
+}
+// ---------- Mất liên lạc qua đầu thu ----------
+// Đầu thu vẫn cắm (Windows không báo ngắt) nhưng báo 55 FC 04: bàn phím ngủ, tắt hoặc
+// mất ghép. Transport đã đóng phiên; bỏ reader cũ để tự kết nối lại được, giữ bản nháp.
+// Thử lại thưa dần (3→30 s), chỉ gửi lệnh đọc; không bao giờ tự phát lại một lần Áp dụng.
+let relinkTimer=null,relinkDelay=0;
+async function onLinkLost(reader){
+  if(state.reader!==reader)return;
+  invalidateImports();
+  state.reader=null;state.reading=false;state.activeBlock=null;state.applyAbort?.abort();
+  dropDeviceLock();setBattery(null);render();
+  message('Đầu thu 2.4 GHz vẫn cắm nhưng mất liên lạc với bàn phím (bàn phím ngủ, tắt hoặc chưa ghép). Bấm một phím trên bàn phím để đánh thức; app tự kết nối lại. Bản nháp chưa áp dụng vẫn được giữ.',true);
+  await editors?.cancelCalibration();await reader.close().catch(()=>{});
+  scheduleRelink();
+}
+function scheduleRelink(){
+  clearTimeout(relinkTimer);
+  relinkDelay=Math.min(relinkDelay?relinkDelay*2:3000,30000);
+  relinkTimer=setTimeout(async()=>{
+    relinkTimer=null;if(autoConnectPaused||state.reader)return;
+    await autoConnect('relink');
+    if(!state.reader&&!autoConnectPaused&&!relinkTimer)scheduleRelink();
+  },relinkDelay);
+  relinkTimer?.unref?.();
 }
 navigator.hid?.addEventListener('connect',()=>{autoConnectPaused=false;setTimeout(()=>void autoConnect('plug'),800);});
 makeKeyboard();checkBrowser();render();void refreshProfiles();void connectHotkeyBridge();void autoConnect('start');

@@ -76,3 +76,39 @@ test('no permitted device leaves the app idle and never opens the chooser by its
   try{assert.equal(chooser,0);assert.doesNotMatch(get('message').textContent,/Đã đọc/);assert.match(get('message').textContent,/chọn đúng thiết bị.*A80RT U/);}
   finally{await restore();}
 });
+
+// The receiver stays enumerated while the keyboard sleeps; it answers with the
+// measured link-loss header 55 FC 04 instead of a reply.
+class SleepyReceiver extends Receiver {
+  asleep=false;
+  linkLoss(){const event=new Event('inputreport');event.reportId=0;event.data=new DataView(Uint8Array.from([0x55,0xfc,4,0,0,...new Array(27).fill(0)]).buffer);this.dispatchEvent(event);}
+  async sendReport(reportId,packet){if(!this.asleep)return super.sendReport(reportId,packet);this.sent.push(packet.slice());queueMicrotask(()=>this.linkLoss());}
+}
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+
+test('a receiver link loss releases the stale reader and reconnects by reading once the keyboard wakes',async()=>{
+  const device=new SleepyReceiver(80),{get,meta,restore}=await host('relink',{permitted:[device]});
+  try{
+    assert.equal(meta()['Pin'],'80%');
+    device.asleep=true;device.linkLoss();await settle();
+    assert.match(get('message').textContent,/mất liên lạc với bàn phím/);
+    assert.equal(get('battery-chip').hidden,true,'stale battery cleared');
+    assert.equal(device.opened,false,'stale HID handle closed');
+    device.asleep=false;const before=device.sent.length;
+    await wait(3300);await settle();
+    assert.ok(device.sent.length>before,'retried after the first back-off');
+    assert.ok(device.sent.every(packet=>packet[0]===0xaa&&packet[1]>=0x10&&packet[1]<=0x18),'recovery only reads');
+    assert.match(get('message').textContent,/Đã đọc đủ 9/);
+    assert.equal(meta()['Pin'],'80%');
+  }finally{await restore();}
+});
+
+test('a manual disconnect after a link loss stops automatic reconnection',async()=>{
+  const device=new SleepyReceiver(80),{get,restore}=await host('relink-stop',{permitted:[device]});
+  try{
+    device.asleep=true;device.linkLoss();await settle();
+    await get('disconnect-button').trigger('click');device.asleep=false;
+    const before=device.sent.length;await wait(3300);await settle();
+    assert.equal(device.sent.length,before,'no traffic after the user disconnected');
+  }finally{await restore();}
+});

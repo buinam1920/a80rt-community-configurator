@@ -1,3 +1,4 @@
+import {withIcon} from './icons.js';
 import {decodeBlock} from '../config/codecs.js';
 import {KEYS,usageName} from '../layout.js';
 import {readPlan} from '../device/capabilities.js';
@@ -30,7 +31,7 @@ export function createCoreEditorModel({session,capability,selectedSlots=[],onEdi
     const travels=slots.map(slot=>capability?.limits.switchTravelMm[rtRecords[slot]?.switchId]);
     const source=snapshot?.provenance.source;
     return {slots:[...slots],layer,complete,editable:complete&&slots.length>0&&!session?.applying&&!isBusy(),
-      canApply:false,reason:!complete?'Đọc đủ snapshot 9 nhóm để chỉnh sửa.':source==='sample'?'Dữ liệu mẫu · chỉ sửa bản nháp trong trình duyệt, không gửi thiết bị.':source!=='device'?'Bản đã lưu · không có quyền ghi thiết bị.':'Bản nháp · chỉ gửi khi bấm Áp dụng và thiết bị đủ điều kiện.',
+      canApply:false,reason:!complete?'Đọc đủ snapshot 9 nhóm để chỉnh sửa.':source==='sample'?'Dữ liệu mẫu · không gửi thiết bị':source!=='device'?'Bản đã lưu · không có quyền ghi thiết bị.':'Bản nháp · gửi khi bấm Áp dụng',
       rt,limits:{maxMm:travels.length&&travels.every(value=>value!==undefined)?Math.min(...travels):undefined,stepMm:capability?.limits.distanceStepMm},
       binding:common(slots.map(slot=>bindings[slot]?.binding)),bindingLocked:layer==='fn'&&slots.some(slot=>capability?.limits.fnLockedSlots.includes(slot)),
       rgb:common(slots.map(slot=>colors[slot]&&Object.fromEntries(['red','green','blue'].map(channel=>[channel,colors[slot][channel]])))),
@@ -159,34 +160,34 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
     wrap.append(caption,input);panel.append(wrap);controls.set(key,{input,wrap});return input;
   };
   const option=(select,value,label)=>{const el=make('option',label);el.value=String(value);select.append(el);};
-  const rtPanel=panels.get('rt');rtPanel.append(make('p','Chỉ trường bạn sửa được đổi cho vùng chọn. Điểm nhận raw0 đọc được được giữ nguyên và có thể khôi phục từ hồ sơ; chưa xác định ý nghĩa vật lý. Nhập điểm nhận thủ công tối thiểu 0,01 mm.','editor-hint'));
+  const rtPanel=panels.get('rt');rtPanel.append(make('p','Chỉ đổi trường bạn sửa. Điểm nhận tối thiểu 0,01 mm.','editor-hint'));
   // Profile Rapid Trigger: cài sẵn của hãng, gợi ý của app và profile bạn tự lưu. Mỗi lần
   // chọn là một transaction cho cả bàn phím, chỉ vào bản nháp; gửi khi bấm Áp dụng.
-  const presetBar=make('div',null,'preset-bar'),presetButtons=new Map(),presetNote=make('p','Chọn profile để đưa vào bản nháp; chỉ gửi bàn phím khi bấm Áp dụng.','editor-hint');
+  const presetBar=make('div',null,'preset-bar'),presetButtons=new Map(),presetNote=make('p','Chọn profile → bản nháp → Áp dụng','editor-hint');
   presetBar.setAttribute('role','group');presetBar.setAttribute('aria-label','Profile Rapid Trigger');
   const presetsEnabled=()=>{const view=model.view();return view.complete&&!session?.applying&&!isBusy();};
   const presetSave=make('div',null,'preset-save'),presetName=make('input',null,'preset-name'),presetSaveButton=make('button','Lưu thành profile','preset-tool'),presetManageButton=make('button','Quản lý profile & phím tắt','preset-tool');
   presetName.type='text';presetName.id='core-preset-name';presetName.placeholder='Tên profile mới (vd. Valorant)';presetName.maxLength=MAX_PRESET_LABEL;presetName.setAttribute('aria-label','Tên profile mới');
-  presetSaveButton.type='button';presetSaveButton.id='core-preset-save';presetManageButton.type='button';presetManageButton.id='core-preset-manage';presetManageButton.setAttribute('aria-expanded','false');
+  presetSaveButton.type='button';presetSaveButton.id='core-preset-save';withIcon(presetSaveButton,'save');presetManageButton.type='button';presetManageButton.id='core-preset-manage';presetManageButton.setAttribute('aria-expanded','false');
   presetSave.append(presetName,presetSaveButton,presetManageButton);
-  const presetUndo=make('button','Hoàn tác','preset-tool undo-button');presetUndo.type='button';presetUndo.id='core-preset-undo';presetUndo.hidden=true;let undoToken=null,undoTimer=null;
+  const presetUndo=make('button','Hoàn tác','preset-tool undo-button');presetUndo.type='button';presetUndo.id='core-preset-undo';withIcon(presetUndo,'undo');presetUndo.hidden=true;let undoToken=null,undoTimer=null;
   const offerUndo=token=>{undoToken=token;presetUndo.hidden=!token;clearTimeout(undoTimer);if(token){undoTimer=setTimeout(()=>offerUndo(null),10000);undoTimer?.unref?.();}};
   const presetManage=make('div',null,'preset-manage');presetManage.id='core-preset-manage-panel';presetManage.hidden=true;
   // Nhập/xuất file profile: file JSON dễ đọc, dán JSON từ AI, chép hướng dẫn cho AI.
   const ioTools=make('div',null,'preset-io'),importFile=make('input'),importButton=make('button','Nhập file JSON','preset-tool'),pasteButton=make('button','Dán JSON','preset-tool'),aiButton=make('button','Chép hướng dẫn cho AI','preset-tool');
   importFile.type='file';importFile.accept='.json,application/json';importFile.hidden=true;importFile.id='core-preset-import-file';
-  for(const [el,id]of [[importButton,'core-preset-import'],[pasteButton,'core-preset-paste'],[aiButton,'core-preset-ai']]){el.type='button';el.id=id;}
+  for(const [el,id,name]of [[importButton,'core-preset-import','upload'],[pasteButton,'core-preset-paste',null],[aiButton,'core-preset-ai','copy']]){el.type='button';el.id=id;withIcon(el,name);}
   pasteButton.setAttribute('aria-expanded','false');
   const pasteBox=make('div',null,'preset-paste'),pasteText=make('textarea',null,'preset-paste-text'),pasteImport=make('button','Nhập profile từ JSON','preset-tool');
   pasteBox.hidden=true;pasteBox.id='core-preset-paste-box';pasteText.id='core-preset-paste-text';pasteText.rows=8;pasteText.spellcheck=false;pasteText.setAttribute('aria-label','JSON profile Rapid Trigger');
-  pasteText.placeholder='Dán JSON profile ở đây (từ file hoặc từ AI), rồi bấm “Nhập profile từ JSON”.';pasteImport.type='button';pasteImport.id='core-preset-paste-import';
+  pasteText.placeholder='Dán JSON profile (từ file hoặc AI)';pasteImport.type='button';pasteImport.id='core-preset-paste-import';
   pasteBox.append(pasteText,pasteImport);ioTools.append(importButton,pasteButton,aiButton,importFile);
   const importProfileText=text=>{
     try{
       const parsed=parseRtProfile(text,capability),saved=library.save(parsed.label,parsed.preset),notes=[...parsed.warnings];
       if(parsed.shortcut){const owner=library.list().find(item=>item.shortcut===parsed.shortcut&&item.id!==saved.id);
         if(owner)notes.push(`Phím tắt ${parsed.shortcut} đang thuộc ${owner.label} nên chưa gán.`);else library.setShortcut(saved.id,parsed.shortcut);}
-      clearError();presetNote.textContent=`Đã nhập profile ${saved.label} (${parsed.preset.keys.length} phím khác mặc định). Bấm nút ${saved.label} để đưa vào bản nháp.${notes.length?` ${notes.join(' ')}`:''}`;
+      clearError();presetNote.textContent=`Đã nhập profile ${saved.label}.${notes.length?` ${notes.join(' ')}`:''}`;
       return true;
     }catch(problem){showPresetError(problem);return false;}
   };
@@ -198,23 +199,23 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
   listen(aiButton,'click',async()=>{onNavigate();
     let current=null;try{if(model.view().complete)current=exportRtProfile({...presetFromDraft(capability,session.draft),label:'Current'},capability);}catch{}
     const guide=rtProfileAiGuide(capability,current);
-    try{await globalThis.navigator.clipboard.writeText(guide);presetNote.textContent='Đã chép hướng dẫn cho AI. Dán vào ChatGPT/Claude/Gemini, mô tả game và cách chơi, rồi dán JSON AI trả về vào “Dán JSON”.';}
-    catch{pasteBox.hidden=false;pasteButton.setAttribute('aria-expanded','true');pasteText.value=guide;pasteText.select?.();presetNote.textContent='Chưa chép được tự động: hướng dẫn đã hiện trong ô bên dưới, hãy tự chép (Ctrl+C) rồi xóa ô trước khi dán JSON từ AI.';}
+    try{await globalThis.navigator.clipboard.writeText(guide);presetNote.textContent='Đã chép. Dán vào AI, mô tả game, rồi dán JSON trả về vào “Dán JSON”.';}
+    catch{pasteBox.hidden=false;pasteButton.setAttribute('aria-expanded','true');pasteText.value=guide;pasteText.select?.();presetNote.textContent='Không tự chép được — chép (Ctrl+C) từ ô bên dưới.';}
   });
   const downloadProfile=preset=>{
     const data=exportRtProfile(preset,capability),name=`${preset.label.replace(/[^\p{L}\p{N}_-]+/gu,'-').replace(/^-+|-+$/g,'')||'profile'}.a80rt-rt.json`;
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');
     link.href=url;link.download=name;link.click?.();setTimeout(()=>URL.revokeObjectURL(url),1000);
-    presetNote.textContent=`Đã xuất ${name}. Gửi file này cho người khác hoặc nhập lại bằng “Nhập file JSON”.`;return data;
+    presetNote.textContent=`Đã xuất ${name}.`;return data;
   };
   let dynamic=[],capturing=null,confirmDelete=null,confirmTimer=null;
   const dlisten=(el,type,fn)=>{el.addEventListener(type,fn);dynamic.push(()=>el.removeEventListener(type,fn));};
   const showPresetError=problem=>{error.textContent=problem.message;error.hidden=false;};
   const choosePreset=preset=>{onNavigate();
-    if(!preset.id){presetNote.textContent='Tùy chỉnh: giữ nguyên cấu hình đang chỉnh. Đặt tên rồi bấm “Lưu thành profile” để giữ nó thành một nút như các profile khác.';presetName.focus?.();return;}
-    try{if(!presetsEnabled())throw new Error('Đọc đủ cấu hình và chờ giao dịch xong trước khi chọn profile.');
+    if(!preset.id){presetNote.textContent='Đặt tên rồi bấm Lưu để giữ cấu hình này thành profile.';presetName.focus?.();return;}
+    try{if(!presetsEnabled())throw new Error('Đọc cấu hình trước và chờ thao tác đang chạy xong.');
       session.transaction(presetEdits(capability,preset));onEdit(session.diff());clearError();
-      presetNote.textContent=`Đã đưa profile ${preset.label} vào bản nháp: ${preset.description} Chưa gửi bàn phím.`;refresh();
+      presetNote.textContent=`Đã đưa ${preset.label} vào bản nháp.`;refresh();
     }catch(problem){showPresetError(problem);}
   };
   const stopCapture=()=>{capturing=null;};
@@ -241,22 +242,22 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
     const rows=library.list().map(preset=>{
       const row=make('div',null,'preset-row'),name=make('span',preset.label,'preset-row-name'),kind=make('span',preset.group==='user'?'Của bạn':preset.group==='game'?'Gợi ý của app':'Của hãng','preset-row-kind');
       const keys=make('button',capturing===preset.id?'Bấm tổ hợp phím… (Esc hủy)':preset.shortcut??'Gán phím tắt','preset-tool preset-keys');keys.type='button';keys.id=`core-preset-keys-${preset.id}`;
-      keys.title='Bấm rồi nhấn tổ hợp mới, vd. Ctrl+Alt+3. Esc để hủy, Backspace để bỏ phím tắt.';
+      keys.title='Nhấn tổ hợp mới · Esc hủy · Backspace xóa';
       dlisten(keys,'click',()=>{onNavigate();capturing=capturing===preset.id?null:preset.id;renderPresets();});
       dlisten(keys,'keydown',captureKeys(preset,keys));dlisten(keys,'blur',()=>{if(capturing===preset.id){stopCapture();renderPresets();}});
       const drop=make('button',confirmDelete===preset.id?'Bấm lần nữa để xóa':'Xóa','preset-tool preset-delete');drop.type='button';drop.id=`core-preset-delete-${preset.id}`;
-      drop.title=preset.builtin?'Ẩn profile cài sẵn này; khôi phục được bằng nút bên dưới.':'Xóa hẳn profile của bạn khỏi máy này.';
+      drop.title=preset.builtin?'Ẩn (khôi phục được)':'Xóa hẳn';if(confirmDelete!==preset.id)withIcon(drop,'trash',{iconOnly:true});
       dlisten(drop,'click',()=>{onNavigate();clearTimeout(confirmTimer);
         if(confirmDelete!==preset.id){confirmDelete=preset.id;confirmTimer=setTimeout(()=>{confirmDelete=null;if(!destroyed)renderPresets();},3000);renderPresets();return;}
         confirmDelete=null;try{const token=library.remove(preset.id);presetNote.textContent=`Đã xóa profile ${preset.label}.`;offerUndo(token);}catch(problem){showPresetError(problem);}
       });
-      const out=make('button','Xuất','preset-tool');out.type='button';out.id=`core-preset-export-${preset.id}`;out.title='Tải profile này về dạng file JSON để chia sẻ hoặc lưu trữ.';
+      const out=make('button','Xuất','preset-tool');out.type='button';out.id=`core-preset-export-${preset.id}`;out.title='Tải file JSON';withIcon(out,'download',{iconOnly:true});
       dlisten(out,'click',()=>{onNavigate();downloadProfile(preset);});
       row.append(name,kind,keys,out,drop);return row;
     });
-    const hidden=library.hiddenCount(),restore=make('button',`Khôi phục profile cài sẵn đã xóa (${hidden})`,'preset-tool');restore.type='button';restore.id='core-preset-restore';restore.hidden=!hidden;
-    dlisten(restore,'click',()=>{onNavigate();library.restoreDefaults();presetNote.textContent='Đã khôi phục các profile cài sẵn.';});
-    presetManage.replaceChildren(make('p','Profile của bạn và phím tắt được lưu trên máy này. Phím tắt chạy cả khi đang trong game nếu mở bằng A80RT-Configurator.exe.','editor-hint'),ioTools,pasteBox,...rows,restore);
+    const hidden=library.hiddenCount(),restore=make('button',`Khôi phục profile cài sẵn đã xóa (${hidden})`,'preset-tool');restore.type='button';restore.id='core-preset-restore';withIcon(restore,'history');restore.hidden=!hidden;
+    dlisten(restore,'click',()=>{onNavigate();library.restoreDefaults();presetNote.textContent='Đã khôi phục profile cài sẵn.';});
+    presetManage.replaceChildren(make('p','Lưu trên máy này · phím tắt chạy cả trong game','editor-hint'),ioTools,pasteBox,...rows,restore);
     if(capturing)document.getElementById?.(`core-preset-keys-${capturing}`)?.focus?.();
     if(!destroyed)syncPresetState();
   }
@@ -269,7 +270,7 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
   const savePreset=()=>{onNavigate();
     try{if(!model.view().complete)throw new Error('Đọc đủ cấu hình trước khi lưu profile.');
       const saved=library.save(presetName.value,presetFromDraft(capability,session.draft));presetName.value='';clearError();
-      presetNote.textContent=`Đã lưu profile ${saved.label} từ bản nháp hiện tại (Rapid Trigger mọi phím + vùng chết). Mở “Quản lý profile & phím tắt” để gán phím tắt.`;
+      presetNote.textContent=`Đã lưu profile ${saved.label}.`;
     }catch(problem){showPresetError(problem);}
   };
   listen(presetSaveButton,'click',savePreset);
@@ -308,8 +309,8 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
     const switchInput=field(rtPanel,'switchId','Loại switch · ID từng phím','select');option(switchInput,'','—');
     for(const id of capability.limits.switchIds)option(switchInput,id,`${id} · ${capability.limits.switchLabels[id]} · ${capability.limits.switchTravelMm[id]} mm`);
     listen(switchInput,'change',()=>{if(switchInput.value!=='')commit('rt','switchId',Number(switchInput.value));});
-    rtPanel.append(make('p','Tên switch giữ theo bản dịch hãng. Đổi loại switch cần hiệu chuẩn các phím bằng công cụ hãng; chọn ID không xác nhận tương thích hay đã hiệu chuẩn.','editor-hint'));
-  }else rtPanel.append(make('p',capability?.transport==='dongle'?'Loại switch: nguồn hãng ẩn bộ chọn trên đầu thu. Giữ nguyên ID đọc được.':'Loại switch và RT toàn hành trình: chưa xác minh phạm vi áp dụng cho A80RT trong nguồn đã lưu. Giữ nguyên ID và cờ gốc.','editor-hint'));
+    rtPanel.append(make('p','Đổi loại switch xong cần hiệu chuẩn bằng công cụ hãng.','editor-hint'));
+  }else rtPanel.append(make('p',capability?.transport==='dongle'?'Đầu thu: không đổi được loại switch.':'Model này: giữ nguyên loại switch và cờ RT.','editor-hint'));
   for(const [key,label]of [['actuationMm','Điểm nhận (mm)'],['pressMm','Ngưỡng nhấn RT (mm)'],['releaseMm','Ngưỡng nhả RT (mm)']]){
     const input=field(rtPanel,key,label);input.step='0.01';input.min=key==='actuationMm'?'0.01':'0';
     const range=make('input');range.type='range';range.setAttribute('aria-label',`${label} · thanh trượt`);range.step=input.step;range.min=input.min;controls.get(key).wrap.append(range);controls.get(key).range=range;
@@ -318,8 +319,8 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
   for(const [key,label]of [['whole','RT trên toàn hành trình']].filter(([key])=>capability?.fields.rt[key])){
     const input=field(rtPanel,key,label,'checkbox');listen(input,'change',()=>commit('rt',key,input.checked));
   }
-  if(capability?.fields.rt.whole)rtPanel.append(make('p','Theo hãng: bật để RT duy trì hoạt động; tắt để RT có hiệu lực sau khi phím đạt điểm nhận. Chi tiết: Full Distance Fast Trigger · whole, bit 0. Hành vi này chưa được đo riêng trên phần cứng.','editor-hint'));
-  rtPanel.append(make('p','Bottom Optimization (bottom, bit 1) và Rampage Mode (rtMode, bit 2) chỉ được xem trong dữ liệu gốc: nguồn chưa chứng minh bộ chỉnh cho model này. Các bit được giữ nguyên. Vùng chết toàn bàn phím nằm trong Thiết lập & bảo trì.','editor-hint'));
+  if(capability?.fields.rt.whole)rtPanel.append(make('p','Bật: RT hoạt động suốt hành trình. Tắt: chỉ sau điểm nhận.','editor-hint'));
+  rtPanel.append(make('p','Vùng chết: xem Thiết lập & bảo trì.','editor-hint'));
   const bindingPanel=panels.get('binding'),layer=field(bindingPanel,'layer','Lớp chỉnh sửa','select');option(layer,'base','Mặc định');option(layer,'fn','Fn');
   listen(layer,'change',()=>{model.setLayer(layer.value);onLayerChange(layer.value);refresh();});
   const binding=field(bindingPanel,'binding','Gán cho các phím đã chọn','select'),bindingNote=make('p',null,'editor-hint');bindingPanel.append(bindingNote);
@@ -333,7 +334,7 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
   const picker=make('div',null,'binding-picker');picker.id='core-binding-picker';
   const pickerTop=make('div',null,'binding-picker-top'),bindingCurrent=make('p',null,'binding-current'),bindingSearch=make('input',null,'binding-search'),bindingEmpty=make('button','Bỏ gán (Trống)','preset-tool');
   bindingCurrent.id='core-binding-current';bindingSearch.type='search';bindingSearch.id='core-binding-search';bindingSearch.placeholder='Tìm phím hoặc chức năng (vd. F5, Mute, Bluetooth)';bindingSearch.setAttribute('aria-label','Tìm gán phím');bindingSearch.autocomplete='off';
-  bindingEmpty.type='button';bindingEmpty.id='core-binding-empty';
+  bindingEmpty.type='button';bindingEmpty.id='core-binding-empty';withIcon(bindingEmpty,'close');
   const bindingTabs=make('div',null,'binding-tabs'),bindingGrid=make('div',null,'binding-grid');bindingTabs.setAttribute('role','tablist');bindingTabs.setAttribute('aria-label','Nhóm gán phím');bindingGrid.id='core-binding-grid';
   pickerTop.append(bindingCurrent,bindingSearch,bindingEmpty);picker.append(pickerTop,bindingTabs,bindingGrid);bindingPanel.append(picker);
   const BINDING_GROUPS=[['key','Phím'],['modifier','Modifier'],['media','Media'],['mouse','Chuột'],['function','Chức năng']];
@@ -382,7 +383,7 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
   for(const [key,label,min,max]of [['brightness','Độ sáng (1–5)',1,5],['speed','Tốc độ (1–5)',1,5],['colorMode','Chế độ màu (0 / 1)',0,1],['direction','Hướng (0 / 1)',0,1]]){
     const input=field(rgbPanel,key,label);input.min=String(min);input.max=String(max);input.step='1';listen(input,'change',()=>commit('lighting',key,input.value.trim()===''?NaN:Number(input.value)));
   }
-  rgbPanel.append(make('p','Màu vùng chọn nằm trong nhóm màu riêng; chọn hiệu ứng 128 để dùng màu từng phím. Hiệu ứng đồng bộ âm nhạc cần dịch vụ hãng, chưa tích hợp.','editor-hint'));
+  rgbPanel.append(make('p','Màu từng phím cần hiệu ứng 128.','editor-hint'));
   root.replaceChildren(intro,reason,tabbar,...panels.values(),error);
   function refresh(){
     if(destroyed)return;const view=model.view();
@@ -417,7 +418,7 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
     const index=options.findIndex(item=>same(item.value,bindingValue(view.binding.value)));binding.value=index<0?'':String(index);
     binding.options[0].textContent=view.binding.mixed?'Giá trị khác nhau':index<0&&view.binding.value?`Giữ nguyên · ${view.binding.value.type} (mã ${view.binding.value.typeCode})`:'—';
     renderBindingPicker();
-    bindingNote.textContent=view.bindingLocked?'Fn F1–F12 bị khóa trong driver A80RT hãng. Chọn vùng không chứa các phím này để gán.':`Đang sửa lớp ${view.layer==='fn'?'Fn':'mặc định'}. Chọn một gán phím để đổi toàn vùng chọn; lớp còn lại được giữ nguyên.`;
+    bindingNote.textContent=view.bindingLocked?'Fn F1–F12 bị khóa.':'';
     for(const key of ['mode','brightness','speed','colorMode','direction'])controls.get(key).input.value=view.lighting[key]===undefined?'':String(view.lighting[key]);
     const colorEnabled=![0,6,8].includes(view.lighting.mode),speedEnabled=![0,1,128].includes(view.lighting.mode),directionEnabled=[10,11,12,16,18].includes(view.lighting.mode);
     for(const key of ['primaryColor','secondaryColor','colorMode'])controls.get(key).input.disabled=!view.editable||!colorEnabled;

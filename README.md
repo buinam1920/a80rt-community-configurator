@@ -1,8 +1,8 @@
-# A80RT Community Configurator — 0.4.0-beta.11
+# A80RT Community Configurator — 0.4.0-beta.12
 
 An unofficial community configurator compatible with LEOBOG A80RT keyboards. This project is not affiliated with or endorsed by LEOBOG. Product names identify compatible hardware only.
 
-**[Download the Windows beta](https://github.com/buinam1920/a80rt-community-configurator/releases/tag/v0.4.0-beta.11)** — choose `A80RT-Configurator-0.4.0-beta.11.exe` under Assets.
+**[Download the Windows beta](https://github.com/buinam1920/a80rt-community-configurator/releases/tag/v0.4.0-beta.12)** — choose `A80RT-Configurator-0.4.0-beta.12.exe` under Assets.
 
 ## Getting started
 
@@ -117,7 +117,7 @@ Alternatively, run `start.cmd`. It prefers the executable when available and oth
 
 To install the PWA, start the local server, open the page, and use the browser's install-app option. Its profiles share storage with the same browser/origin. The service worker uses network-first loading and a versioned offline cache of static interface files. It does not cache the hotkey bridge or manage WebHID/profile data. Open the app with the server running after source updates to receive the new interface.
 
-All 16 JavaScript modules, the entry script, and CSS use the same release token through an import map. Update package version, import map, entry/CSS tokens, snapshot metadata, and service worker VERSION together. Release-graph tests check module coverage and cycles.
+All 17 JavaScript modules, the entry script, and CSS use the same release token through an import map. Update package version, import map, entry/CSS tokens, snapshot metadata, and service worker VERSION together. Release-graph tests check module coverage and cycles.
 
 ## Protocol and limits
 
@@ -139,4 +139,4 @@ Manufacturer cloud libraries, music sync, calibration, reset, and firmware updat
 - **0.3.6:** installable PWA and offline interface caching.
 - **0.3.5:** draft context, macro ownership, DKS/profile validation, and import-race fixes. See the [historical correctness notes](docs/0.3.5-correctness.md).
 
-These older version numbers describe project history. The current release is **0.4.0-beta.11** ([release notes](docs/release-0.4.0-beta.11.md)); see also the notes for [0.4.0-beta.10](docs/release-0.4.0-beta.10.md), [0.4.0-beta.9](docs/release-0.4.0-beta.9.md), [0.4.0-beta.8](docs/release-0.4.0-beta.8.md), [0.4.0-beta.7](docs/release-0.4.0-beta.7.md), [0.4.0-beta.6](docs/release-0.4.0-beta.6.md), [0.4.0-beta.5](docs/release-0.4.0-beta.5.md), [0.4.0-beta.4](docs/release-0.4.0-beta.4.md) and [0.4.0-beta.3](docs/release-0.4.0-beta.3.md).
+These older version numbers describe project history. The current release is **0.4.0-beta.12** ([release notes](docs/release-0.4.0-beta.12.md)); see also the notes for [0.4.0-beta.11](docs/release-0.4.0-beta.11.md), [0.4.0-beta.10](docs/release-0.4.0-beta.10.md), [0.4.0-beta.9](docs/release-0.4.0-beta.9.md), [0.4.0-beta.8](docs/release-0.4.0-beta.8.md), [0.4.0-beta.7](docs/release-0.4.0-beta.7.md), [0.4.0-beta.6](docs/release-0.4.0-beta.6.md), [0.4.0-beta.5](docs/release-0.4.0-beta.5.md), [0.4.0-beta.4](docs/release-0.4.0-beta.4.md) and [0.4.0-beta.3](docs/release-0.4.0-beta.3.md).

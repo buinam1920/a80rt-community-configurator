@@ -1,3 +1,4 @@
+import {withIcon} from './icons.js';
 import {identifyDevice} from '../device/capabilities.js';
 import {A80Transport} from '../device/transport.js';
 import {decodeBlock} from '../config/codecs.js';
@@ -7,11 +8,11 @@ const result=(status,requiresReload,reason,extra={})=>({status,requiresReload,re
 const complete=(snapshot,id,capability)=>snapshot?.coverage?.[id]?.complete===true&&snapshot.coverage[id].receivedBytes===capability.blocks[id].length&&snapshot.coverage[id].expectedBytes===capability.blocks[id].length&&snapshot.blocks?.[id]?.length===capability.blocks[id].length;
 const FIELDS=[
  {id:'polling',label:'Tần số phản hồi',options:[{value:3,label:'1.000 Hz'},{value:5,label:'4.000 Hz'},{value:6,label:'8.000 Hz'}]},
- {id:'sleep',label:'Tắt đèn khi không sử dụng (phút)',min:0,max:30,hint:'0: luôn bật đèn · 1–30 phút. Đây là thời gian tắt đèn, chưa xác minh chế độ ngủ sâu.'},
+ {id:'sleep',label:'Tắt đèn khi không sử dụng (phút)',min:0,max:30,hint:'Tắt đèn sau 1–30 phút · 0 = luôn bật'},
  {id:'stability',label:'Ổn định tín hiệu',options:[{value:0,label:'Tắt'},{value:1,label:'Bật'}]},
- {id:'autoCalibration',label:'Hiệu chuẩn thích ứng (Beta)',options:[{value:0,label:'Tắt'},{value:1,label:'Bật'}],hint:'Hiệu chuẩn động trong lúc sử dụng; khác với phiên hiệu chuẩn thủ công.'},
- {id:'topDeadZone',label:'Vùng chết phía trên · toàn bàn phím (mm)',min:0,max:0.5,step:0.01,scale:100,hint:'Top Dead Zone · 0,00–0,50 mm, bước 0,01 mm. Không phụ thuộc vùng phím đang chọn.'},
- {id:'bottomDeadZone',label:'Vùng chết phía dưới · toàn bàn phím (mm)',min:0,max:0.5,step:0.01,scale:100,hint:'Bottom Dead Zone · 0,00–0,50 mm. Số 0 được giữ nguyên; không suy ra trạng thái bật/tắt riêng.'},
+ {id:'autoCalibration',label:'Hiệu chuẩn thích ứng (Beta)',options:[{value:0,label:'Tắt'},{value:1,label:'Bật'}],hint:'Tự hiệu chuẩn khi đang dùng.'},
+ {id:'topDeadZone',label:'Vùng chết phía trên · toàn bàn phím (mm)',min:0,max:0.5,step:0.01,scale:100,hint:'Vùng chết trên · 0–0,50 mm · cả bàn phím'},
+ {id:'bottomDeadZone',label:'Vùng chết phía dưới · toàn bàn phím (mm)',min:0,max:0.5,step:0.01,scale:100,hint:'Vùng chết dưới · 0–0,50 mm'},
 ];
 
 export function settingsView(capability,snapshot){
@@ -90,12 +91,13 @@ export function mountDeviceSettings(root,context){
  const element=(tag,id,text,cls)=>{const el=make(tag,text,cls);el.id=id;return el;};
  const heading=make('div',undefined,'editor-heading');heading.append(make('h2','Thiết lập & bảo trì'),make('p',modelLabel));
  const tabbar=make('div',undefined,'editor-tabs');tabbar.setAttribute('role','tablist');tabbar.setAttribute('aria-label','Thiết lập thiết bị');
- const status=element('p','settings-status','Thay đổi thiết lập được thêm vào bản nháp; chỉ gửi khi bấm Áp dụng.','editor-hint');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+ const status=element('p','settings-status','Bản nháp · gửi khi bấm Áp dụng','editor-hint');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
  const view=()=>settingsView(capability,session?.snapshot);
  const editable=()=>!!session&&!session.invalidated&&!session.applying&&!busy&&!context.isBusy?.()&&Object.keys(capability.blocks).every(id=>complete(session.snapshot,id,capability));
  const setBusy=value=>{busy=value;if(!value)calibrating=false;context.onBusyChange?.(value);refresh();};
  const show=value=>{if(!destroyed){status.textContent=value;refresh();}};
- const button=(parent,id,label,handler)=>{const el=element('button',id,label,'button quiet small');el.type='button';listen(el,'click',()=>{if(!el.disabled)return handler();});parent.append(el);return el;};
+ const BUTTON_ICONS={'settings-calibration-end':'check','settings-calibration-cancel':'close','settings-reset':'history','settings-official':'external'};
+  const button=(parent,id,label,handler)=>{const el=element('button',id,label,'button quiet small');el.type='button';withIcon(el,BUTTON_ICONS[id]);listen(el,'click',()=>{if(!el.disabled)return handler();});parent.append(el);return el;};
  for(const [id,label]of [['general','Thiết lập'],['maintenance','Hiệu chuẩn & khôi phục'],['firmware','Firmware']]){
    const panel=element('div',`settings-panel-${id}`,undefined,'settings-panel');panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',`settings-tab-${id}`);panels.set(id,panel);
    const tab=button(tabbar,`settings-tab-${id}`,label,async()=>{context.onNavigate?.();if(active===id)return;active=id;refresh();await cancelCalibration();});tab.setAttribute('role','tab');tab.setAttribute('aria-controls',panel.id);tabs.set(id,tab);
@@ -108,24 +110,24 @@ export function mountDeviceSettings(root,context){
    if(field.hint)wrapper.append(make('small',field.hint,'editor-hint'));
    listen(input,'change',()=>{dirty.add(field.id);try{if(!editable())throw new Error('Đọc lại snapshot đầy đủ trước khi sửa thiết lập.');const scaled=input.value.trim()===''?NaN:Number(input.value)*(field.scale??1);const value=Math.abs(scaled-Math.round(scaled))<1e-8?Math.round(scaled):scaled;session.edit('settings',[{field:field.id,value}]);dirty.delete(field.id);context.onEdit?.();show('Đã thêm thiết lập vào bản nháp. Bấm Áp dụng để gửi và đọc lại xác minh.');}catch(error){show(`Chưa thêm vào bản nháp: ${error.message}`);}});
  }
- general.append(make('p','Các trường hệ điều hành và cách đánh thức chưa có mã giá trị/model được xác minh; dữ liệu gốc được giữ nguyên.','editor-hint'));
+ general.append(make('p','Hệ điều hành, cách đánh thức: giữ nguyên giá trị đọc được.','editor-hint'));
  const maintenance=panels.get('maintenance'),maintenanceReason=element('p','settings-maintenance-reason',undefined,'editor-hint');maintenance.append(maintenanceReason);
- maintenance.append(make('h3','Hiệu chuẩn thủ công'),make('p',capability.maintenance.manualCalibration?'Giữ kết nối trong suốt phiên. Kết thúc và hủy đều gửi thao tác kết thúc/lưu; kết quả đã hiệu chuẩn có thể được lưu và không được hoàn tác.':'Driver hãng ẩn hiệu chuẩn thủ công cho model đầu thu này. Dùng hướng dẫn chính thức đúng model.','editor-hint'));
+ maintenance.append(make('h3','Hiệu chuẩn thủ công'),make('p',capability.maintenance.manualCalibration?'Giữ kết nối suốt phiên. Kết quả hiệu chuẩn không hoàn tác được.':'Đầu thu: không hiệu chuẩn thủ công được.','editor-hint'));
  const calibrationActions=make('div',undefined,'actions');maintenance.append(calibrationActions);
  const runContext=()=>({...context,onProgress:event=>{context.onProgress?.(event);if(event.phase==='ended'){show(event.result.reason);setBusy(false);}else show(event.phase==='active'?'Đang hiệu chuẩn; chưa xác nhận kết quả.':'Đang gửi thao tác bảo trì…');}});
  const begin=button(calibrationActions,'settings-calibration-begin','Bắt đầu hiệu chuẩn',async()=>{
    calibrating=true;setBusy(true);try{const value=await runDeviceAction('beginCalibration',runContext());show(value.reason);if(value.status!=='active')setBusy(false);}catch(error){show(error.message);setBusy(false);}
  });
- const end=button(calibrationActions,'settings-calibration-end','Kết thúc / lưu',()=>cancelCalibration('endCalibration'));
- const cancel=button(calibrationActions,'settings-calibration-cancel','Hủy và kết thúc',()=>cancelCalibration());
- maintenance.append(make('h3','Khôi phục toàn bộ thiết bị'),make('p','Phạm vi yêu cầu của hãng: toàn bộ thiết lập thiết bị, gồm gán phím, RT, macro, đèn và thiết lập chung. Thao tác riêng, không nằm trong Áp dụng bản nháp. Cần đọc lại sau yêu cầu để kiểm tra.','editor-hint'));
+ const end=button(calibrationActions,'settings-calibration-end','Lưu & kết thúc',()=>cancelCalibration('endCalibration'));
+ const cancel=button(calibrationActions,'settings-calibration-cancel','Hủy',()=>cancelCalibration());
+ maintenance.append(make('h3','Khôi phục toàn bộ thiết bị'),make('p','Xóa toàn bộ: gán phím, RT, macro, đèn, thiết lập. Không qua bản nháp. Đọc lại sau đó.','editor-hint'));
  const confirmLabel=make('label',undefined,'settings-confirm'),confirm=element('input','settings-reset-confirm');confirm.type='checkbox';confirmLabel.append(confirm,make('span','Tôi hiểu phạm vi khôi phục toàn bộ thiết bị.'));maintenance.append(confirmLabel);listen(confirm,'change',refresh);
  const reset=button(maintenance,'settings-reset','Khôi phục toàn bộ thiết bị',async()=>{
    setBusy(true);try{const value=await runDeviceAction({type:'reset',confirmed:confirm.checked},runContext());show(value.reason);setBusy(false);if(value.requiresReload)await context.onReload?.();}catch(error){show(error.message);setBusy(false);}
  });
  const firmware=panels.get('firmware'),info=element('p','settings-device-info',undefined,'settings-info');firmware.append(info,make('h3','Cập nhật qua công cụ hãng'),make('p',`${context.modelConfirmed===false?'Kết nối thiết bị có model được nhận diện trước khi chọn firmware.':`Chọn đúng ${capability.name} tại web LEOBOG.`} Với đầu thu, kiểm tra hướng dẫn riêng cho đầu thu và bàn phím trước khi chọn ảnh firmware. Phiên bản mới nhất và ảnh firmware chưa được xác minh ở đây. Flash trực tiếp trong ứng dụng: chưa hỗ trợ.`,'editor-hint'));
- const official=button(firmware,'settings-official','Mở web driver LEOBOG ↗',async()=>{try{const value=await runDeviceAction({type:'firmware',model:capability.model},{...context,openOfficial:context.openOfficial??(url=>{const opened=win?.open?.(url,'_blank');if(opened)opened.opener=null;return opened;})});show(value.reason);}catch(error){show(error.message);}});
- firmware.append(make('p','Tab công cụ hãng hoạt động bên ngoài ứng dụng. Đóng kết nối ở đây trước khi kết nối thiết bị bên công cụ hãng. Mở trang không xác nhận đã cập nhật firmware.','editor-hint'));
+ const official=button(firmware,'settings-official','Driver hãng',async()=>{try{const value=await runDeviceAction({type:'firmware',model:capability.model},{...context,openOfficial:context.openOfficial??(url=>{const opened=win?.open?.(url,'_blank');if(opened)opened.opener=null;return opened;})});show(value.reason);}catch(error){show(error.message);}});
+ firmware.append(make('p','Ngắt kết nối ở đây trước khi dùng công cụ hãng.','editor-hint'));
  root.replaceChildren(heading,tabbar,...panels.values(),status);
  function refresh(){
    if(destroyed)return;const current=view(),canEdit=editable();
@@ -136,7 +138,7 @@ export function mountDeviceSettings(root,context){
    }}
    for(const [id,tab]of tabs){tab.setAttribute('aria-selected',String(active===id));panels.get(id).hidden=active!==id;}
    const live=!!transport&&session?.snapshot.provenance.source==='device',externalBusy=!!context.isBusy?.(),gate=transport?.getMaintenanceState('beginCalibration'),resetGate=transport?.getMaintenanceState('reset');
-   maintenanceReason.textContent=session?.invalidated?session.invalidReason:!live?'Đọc snapshot đầy đủ từ thiết bị thật trước khi bảo trì. Chưa có xác minh ACK bảo trì từ thiết bị thật.':gate?.reason??'Thao tác bảo trì giữ riêng phiên giao tiếp; cần đọc lại khi kết thúc.';
+   maintenanceReason.textContent=session?.invalidated?session.invalidReason:!live?'Đọc snapshot đầy đủ từ thiết bị thật trước khi bảo trì. Chưa có xác minh ACK bảo trì từ thiết bị thật.':gate?.reason??'Đọc lại cấu hình sau khi bảo trì.';
    begin.hidden=!capability.maintenance.manualCalibration;begin.disabled=!live||!canEdit||!gate?.ready;end.disabled=cancel.disabled=!calibrating;confirm.disabled=busy||externalBusy||!live||!resetGate?.ready;reset.disabled=!live||!canEdit||!resetGate?.ready||!confirm.checked;
    official.disabled=busy||externalBusy||context.modelConfirmed===false;
    const actual=session?.invalidated?{version:null,battery:null}:current.info;

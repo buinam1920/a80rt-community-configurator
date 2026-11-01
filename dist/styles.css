@@ -173,3 +173,15 @@ p,.editor-hint,.small-note,.notice,.message{text-wrap:pretty}
 .binding-option:hover:not(:disabled){border-color:var(--accent)}
 .binding-option[aria-pressed=true],#core-binding-empty[aria-pressed=true]{background:var(--accent);color:#19270a;border-color:var(--accent);font-weight:600}
 .binding-option:disabled{opacity:.45;cursor:not-allowed}
+/* ===== Icons (0.4.0-beta.12): nét đơn, theo màu chữ ===== */
+.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px}
+.button,.preset-tool,.text-button,.preset-button,.binding-option{display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.button.small .i,.preset-tool .i{width:14px;height:14px}
+.icon-only{padding:6px;min-width:32px;min-height:32px}
+.icon-only .i{width:16px;height:16px}
+.i-after{width:12px;height:12px;margin-left:4px;vertical-align:-1px}
+.nav-icon{display:inline-flex}.nav-icon .i{width:18px;height:18px}
+#macro-record-start .i path{fill:#ff6b6b;stroke:#ff6b6b}
+.preset-delete.icon-only:hover:not(:disabled){color:#ff8589}
+footer a{color:inherit;text-decoration:none}footer a:hover{color:var(--text)}
+.side-bottom a{display:inline-flex;align-items:center;margin-top:10px}

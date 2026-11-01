@@ -37,7 +37,8 @@ function updateText(node){
   writtenText.set(node,next);if(next!==current)node.data=next;
 }
 function updateAttr(el,name){
-  if(!el.hasAttribute?.(name)||skipped(el))return;
+  // Thuộc tính (placeholder, title…) của chính ô nhập vẫn dịch; chỉ bỏ qua khi nằm trong vùng không dịch.
+  if(!el.hasAttribute?.(name)||el.getAttribute?.('data-i18n')==='off'||(el.parentElement&&skipped(el.parentElement)))return;
   const current=el.getAttribute(name);
   let sources=sourceAttr.get(el),written=writtenAttr.get(el);
   if(!sources){sources=new Map();written=new Map();sourceAttr.set(el,sources);writtenAttr.set(el,written);}

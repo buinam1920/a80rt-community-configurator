@@ -67,13 +67,13 @@ test('the cable is preferred over the receiver when both are permitted, and wire
 
 test('a low battery warns once through the toast',async()=>{
   const device=new Receiver(9),{get,restore}=await host('auto-low',{permitted:[device]});
-  try{assert.match(get('toast').textContent,/Pin bàn phím còn 9%/);assert.equal(get('battery-chip').dataset.level,'low');}
+  try{assert.match(get('toast').textContent,/Pin còn 9%/);assert.equal(get('battery-chip').dataset.level,'low');}
   finally{await restore();}
 });
 
 test('no permitted device leaves the app idle and never opens the chooser by itself',async()=>{
   let chooser=0;const {get,restore}=await host('auto-none',{permitted:[],requestDevice:async()=>{chooser++;return [];}});
-  try{assert.equal(chooser,0);assert.doesNotMatch(get('message').textContent,/Đã đọc/);assert.match(get('message').textContent,/chọn đúng thiết bị.*A80RT U/);}
+  try{assert.equal(chooser,0);assert.doesNotMatch(get('message').textContent,/Đã đọc/);assert.match(get('message').textContent,/A80RT U.*A80RT U Dongle/);}
   finally{await restore();}
 });
 

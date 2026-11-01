@@ -894,6 +894,16 @@ export const EXACT = {
   'Thiết lập và bảo trì thiết bị': 'Device settings and maintenance',
   'Hồ sơ cấu hình cục bộ': 'Local configuration profiles',
   'Bản nháp': 'Draft',
+  // Binding picker (0.4.0-beta.11)
+  'Bỏ gán (Trống)': 'Unassign (empty)',
+  'Tìm phím hoặc chức năng (vd. F5, Mute, Bluetooth)': 'Search keys or functions (e.g. F5, Mute, Bluetooth)',
+  'Tìm gán phím': 'Search key bindings',
+  'Nhóm gán phím': 'Binding groups',
+  'Không có kết quả.': 'No results.',
+  'Phím': 'Keys',
+  'Chức năng': 'Functions',
+  'Đang gán: giá trị khác nhau giữa các phím đã chọn': 'Assigned: differs between the selected keys',
+  'Đang gán: —': 'Assigned: —',
   // Profile files (0.4.0-beta.9)
   'Nhập file JSON': 'Import JSON file',
   'Dán JSON': 'Paste JSON',
@@ -912,7 +922,7 @@ export const EXACT = {
   '"keys" phải là object, ví dụ {"W":{"actuation":0.4}}.': '"keys" must be an object, for example {"W":{"actuation":0.4}}.',
   '"deadZone" cần dạng {"top":0.1,"bottom":0.1} (mm).': '"deadZone" must look like {"top":0.1,"bottom":0.1} (mm).',
   // Fn layer key caps (0.4.0-beta.7)
-  'Khối Fn trên bàn phím đang trống (thường sau khi khôi phục cài đặt gốc), nên firmware dùng chức năng mặc định. Phím viền nét đứt hiển thị chức năng mặc định đó, đọc từ A80RT U firmware 1.37.': 'The Fn block on the keyboard is empty (usually after a factory reset), so the firmware uses its built-in functions. Keys with a dashed border show those defaults, as read from an A80RT U on firmware 1.37.',
+  'Khối Fn đọc về đang trống (thường gặp khi đọc qua đầu thu 2.4 GHz), nên phím viền nét đứt hiển thị chức năng mặc định của firmware, đọc từ A80RT U firmware 1.37. Cắm cáp USB để xem dữ liệu Fn lưu trên bàn phím.': 'The Fn block read back empty (common when reading through the 2.4 GHz receiver), so keys with a dashed border show the firmware defaults, as read from an A80RT U on firmware 1.37. Connect the USB cable to see the Fn data stored on the keyboard.',
   'Reset gốc': 'Factory reset',
   'Nối lại': 'Re-link',
   'Đổi F': 'F-key switch',
@@ -973,11 +983,19 @@ const userDesc = text => text.replace(USER_DESC, (m, range, count, top, bottom) 
 // Fn function name, possibly marked as the firmware default.
 const fnName = text => text.endsWith(' (mặc định firmware)') ? `${EXACT[text.slice(0, -20)] ?? text.slice(0, -20)} (firmware default)` : (EXACT[text] ?? text);
 
+// Translate a binding label inside another sentence (exact first, then the label patterns).
+const trLabel = text => EXACT[text] ?? (/^Phím · /.test(text) ? `Key · ${EXACT[text.slice(7)] ?? text.slice(7)}` : /^Modifier · /.test(text) ? `Modifier · ${EXACT[text.slice(11)] ?? text.slice(11)}` : text);
+
 export const PATTERNS = [
   [/^((?:[0-9a-f]{2} ){3}[0-9a-f]{2}) · (.+)$/, (m, bytes, fn) => `${bytes} · ${fnName(fn)}`],
   [/^Phím (.+?), Fn: (.+)$/, (m, key, fn) => `Key ${key}, Fn: ${fnName(fn)}`],
   [/^Fn \+ (.+?): (.+)$/, (m, key, fn) => `Fn + ${key}: ${fnName(fn)}`],
   [/^Đã khôi phục hồ sơ “(.+?)”\.$/, 'Restored profile “$1”.'],
+  [/^Đang gán: Trống · firmware dùng mặc định (.+)$/, (m, fn) => `Assigned: empty · the firmware uses its default, ${EXACT[fn] ?? fn}`],
+  [/^Đang gán: (.+?) \(mã (\d+)\) · giữ nguyên$/, 'Assigned: $1 (code $2) · kept as is'],
+  [/^Phím · (.+)$/, (m, key) => `Key · ${EXACT[key] ?? key}`],
+  [/^Modifier · (.+)$/, (m, key) => `Modifier · ${EXACT[key] ?? key}`],
+  [/^Đang gán: (.+)$/, (m, label) => `Assigned: ${trLabel(label)}`],
   // Profile files (0.4.0-beta.9)
   [/^Đã nhập profile (.+?) \((\d+) phím khác mặc định\)\. Bấm nút (.+?) để đưa vào bản nháp\.(.*)$/, (m, name, count, button, rest) => `Imported profile ${name} (${count} keys differ from the default). Press the ${button} button to bring it into the draft.${rest.replace(/Phím tắt (\S+) đang thuộc (.+?) nên chưa gán\./g, 'Shortcut $1 belongs to $2, so it was not assigned.').replace(/(\S+): bỏ qua trường lạ "(.+?)"\./g, '$1: ignored unknown field "$2".').replace(/Bỏ qua phím tắt: /g, 'Shortcut ignored: ')}`],
   [/^Đã xuất (.+?)\. Gửi file này cho người khác hoặc nhập lại bằng “Nhập file JSON”\.$/, 'Exported $1. Share this file or import it again with “Import JSON file”.'],

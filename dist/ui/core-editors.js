@@ -1,6 +1,7 @@
 import {decodeBlock} from '../config/codecs.js';
 import {KEYS,usageName} from '../layout.js';
 import {readPlan} from '../device/capabilities.js';
+import {translate} from '../i18n.js';
 import {presetEdits,matchingPreset,presetLibrary,presetFromDraft,shortcutFromEvent,MAX_PRESET_LABEL,parseRtProfile,exportRtProfile,rtProfileAiGuide} from '../config/presets.js';
 
 const RT_FIELDS=['switchId','actuationMm','pressMm','releaseMm','whole','bottom','rtMode'];
@@ -324,6 +325,49 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
   const binding=field(bindingPanel,'binding','Gán cho các phím đã chọn','select'),bindingNote=make('p',null,'editor-hint');bindingPanel.append(bindingNote);
   const options=capability?bindingOptions(capability):[];option(binding,'','—');for(const [index,item]of options.entries())option(binding,index,item.label);
   listen(binding,'change',()=>{if(binding.value!=='')commit('binding','binding',options[Number(binding.value)].value);});
+
+  // Bộ chọn gán phím theo nhóm, giống driver hãng: tab Phím / Modifier / Media / Chuột / Chức năng,
+  // lưới nút tên ngắn, tìm kiếm trên mọi nhóm (tiếng Việt và tiếng Anh). Ô select gốc vẫn giữ
+  // (ẩn) làm đường dự phòng; cả hai cùng đi qua commit() như trước.
+  binding.hidden=true;controls.get('binding').wrap.hidden=true;
+  const picker=make('div',null,'binding-picker');picker.id='core-binding-picker';
+  const pickerTop=make('div',null,'binding-picker-top'),bindingCurrent=make('p',null,'binding-current'),bindingSearch=make('input',null,'binding-search'),bindingEmpty=make('button','Bỏ gán (Trống)','preset-tool');
+  bindingCurrent.id='core-binding-current';bindingSearch.type='search';bindingSearch.id='core-binding-search';bindingSearch.placeholder='Tìm phím hoặc chức năng (vd. F5, Mute, Bluetooth)';bindingSearch.setAttribute('aria-label','Tìm gán phím');bindingSearch.autocomplete='off';
+  bindingEmpty.type='button';bindingEmpty.id='core-binding-empty';
+  const bindingTabs=make('div',null,'binding-tabs'),bindingGrid=make('div',null,'binding-grid');bindingTabs.setAttribute('role','tablist');bindingTabs.setAttribute('aria-label','Nhóm gán phím');bindingGrid.id='core-binding-grid';
+  pickerTop.append(bindingCurrent,bindingSearch,bindingEmpty);picker.append(pickerTop,bindingTabs,bindingGrid);bindingPanel.append(picker);
+  const BINDING_GROUPS=[['key','Phím'],['modifier','Modifier'],['media','Media'],['mouse','Chuột'],['function','Chức năng']];
+  const groupOf=item=>item.value.type==='keyboard'?(item.value.usage?'key':'modifier'):item.value.type;
+  const shortOf=item=>item.label.replace(/^(Phím|Modifier|Media|Chức năng) · /,'');
+  const haystack=options.map(item=>[item.label,shortOf(item),translate(item.label),translate(shortOf(item))].join(' ').toLowerCase());
+  const emptyIndex=options.findIndex(item=>item.value.type==='empty');
+  let bindingGroup='key',bindingSlotsSeen=null,pickerListeners=[];
+  const bindingTabButtons=new Map();
+  for(const [id,label]of BINDING_GROUPS){
+    const tab=make('button',label,'binding-tab');tab.type='button';tab.id=`core-binding-tab-${id}`;tab.setAttribute('role','tab');bindingTabs.append(tab);bindingTabButtons.set(id,tab);
+    listen(tab,'click',()=>{onNavigate();bindingGroup=id;bindingSearch.value='';renderBindingPicker();});
+  }
+  listen(bindingSearch,'input',()=>renderBindingPicker());
+  listen(bindingEmpty,'click',()=>{onNavigate();if(emptyIndex>=0)commit('binding','binding',options[emptyIndex].value);});
+  function renderBindingPicker(){
+    for(const remove of pickerListeners)remove();pickerListeners=[];
+    const view=model.view(),index=options.findIndex(item=>same(item.value,bindingValue(view.binding.value))),query=String(bindingSearch.value??'').trim().toLowerCase();
+    const slotsKey=view.slots.join(',')+'|'+view.layer;
+    if(slotsKey!==bindingSlotsSeen){bindingSlotsSeen=slotsKey;if(index>=0&&index!==emptyIndex&&!query)bindingGroup=groupOf(options[index]);}
+    const items=options.map((item,i)=>({item,i})).filter(({item,i})=>i!==emptyIndex&&(query?haystack[i].includes(query):groupOf(item)===bindingGroup));
+    const buttons=items.map(({item,i})=>{
+      const button=make('button',shortOf(item),'binding-option');button.type='button';button.id=`core-binding-option-${i}`;button.title=item.label;
+      button.setAttribute('aria-pressed',String(i===index));button.disabled=binding.disabled;
+      const handler=()=>{onNavigate();commit('binding','binding',item.value);};button.addEventListener('click',handler);pickerListeners.push(()=>button.removeEventListener('click',handler));
+      return button;
+    });
+    bindingGrid.replaceChildren(...(buttons.length?buttons:[make('p','Không có kết quả.','editor-hint')]));
+    for(const [id,tab]of bindingTabButtons){tab.setAttribute('aria-selected',String(!query&&id===bindingGroup));tab.disabled=binding.disabled;}
+    bindingSearch.disabled=binding.disabled;bindingEmpty.disabled=binding.disabled;bindingEmpty.setAttribute('aria-pressed',String(index===emptyIndex));
+    const soleKey=view.slots.length===1?KEYS.find(key=>key.slot===view.slots[0]):null,fallback=view.layer==='fn'&&index===emptyIndex&&soleKey?fnKeyCap(view.binding.value,soleKey,capability):null;
+    bindingCurrent.textContent=fallback?.factory?`Đang gán: Trống · firmware dùng mặc định ${fallback.full.slice(0,-FACTORY_SUFFIX.length)}`:view.binding.mixed?'Đang gán: giá trị khác nhau giữa các phím đã chọn':index>=0?`Đang gán: ${options[index].label}`:view.binding.value?`Đang gán: ${view.binding.value.type} (mã ${view.binding.value.typeCode}) · giữ nguyên`:'Đang gán: —';
+  }
+  listeners.push(()=>{for(const remove of pickerListeners)remove();pickerListeners=[];});
   const rgbPanel=panels.get('rgb'),effect=field(rgbPanel,'mode','Hiệu ứng toàn bàn phím','select');option(effect,'','—');
   for(const mode of capability?.limits.lightingModes??[])option(effect,mode,mode===128?'128 · Màu từng phím':`${mode} · ${EFFECTS[mode]}`);
   listen(effect,'change',()=>{if(effect.value!=='')commit('lighting','mode',Number(effect.value));});
@@ -372,6 +416,7 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
     layer.disabled=false;layer.value=view.layer;binding.disabled=!view.editable||view.bindingLocked;
     const index=options.findIndex(item=>same(item.value,bindingValue(view.binding.value)));binding.value=index<0?'':String(index);
     binding.options[0].textContent=view.binding.mixed?'Giá trị khác nhau':index<0&&view.binding.value?`Giữ nguyên · ${view.binding.value.type} (mã ${view.binding.value.typeCode})`:'—';
+    renderBindingPicker();
     bindingNote.textContent=view.bindingLocked?'Fn F1–F12 bị khóa trong driver A80RT hãng. Chọn vùng không chứa các phím này để gán.':`Đang sửa lớp ${view.layer==='fn'?'Fn':'mặc định'}. Chọn một gán phím để đổi toàn vùng chọn; lớp còn lại được giữ nguyên.`;
     for(const key of ['mode','brightness','speed','colorMode','direction'])controls.get(key).input.value=view.lighting[key]===undefined?'':String(view.lighting[key]);
     const colorEnabled=![0,6,8].includes(view.lighting.mode),speedEnabled=![0,1,128].includes(view.lighting.mode),directionEnabled=[10,11,12,16,18].includes(view.lighting.mode);

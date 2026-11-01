@@ -47,7 +47,8 @@ function measuredDongleInterface(device,selected){
   return (device.collections??[]).some(matches);
 }
 
-// Reads retry once. Writes never retry and require current-session attestation.
+// Reads retry once (no reply, or a send that timed out). Writes never retry and require current-session attestation.
+const SEND_TIMEOUT=/quá thời gian|timed out/i;
 export class A80Transport {
   #versionReadSession=null;
   constructor(device,{onTrace=()=>{},timeoutMs=3000}={}) {
@@ -321,6 +322,7 @@ export class A80Transport {
     if(!this.getState().opened)return Promise.reject(new Error('Thiết bị chưa mở kết nối.'));
     if(this._pending)return Promise.reject(new Error('Một yêu cầu đọc đang chạy.'));
     const packet=buildReadPacket(command,offset,length,this.interface.packetSize,last);
+    const noReply=()=>new Error(`Bàn phím chưa trả lời lệnh ${hex(command)} tại vị trí ${offset}. ${this.device.productId===DONGLE_PRODUCT?'Kiểm tra bàn phím đang bật ở chế độ 2.4 GHz, đánh thức bàn phím và đóng tab driver hãng rồi thử lại.':'Đóng tab driver hãng rồi thử cắm lại cáp USB.'}`);
     return new Promise((resolve,reject)=>{
       let timer,settled=false,attempt=0;
       const finish=(error,value)=>{
@@ -338,13 +340,25 @@ export class A80Transport {
         timer=setTimeout(()=>{
           if(attempt<2){this._trace('retry',{command,offset,attempt});send();return;}
           this._trace('timeout',{command,offset,attempt});
-          finish(new Error(`Bàn phím chưa trả lời lệnh ${hex(command)} tại vị trí ${offset}. ${this.device.productId===DONGLE_PRODUCT?'Kiểm tra bàn phím đang bật ở chế độ 2.4 GHz, đánh thức bàn phím và đóng tab driver hãng rồi thử lại.':'Đóng tab driver hãng rồi thử cắm lại cáp USB.'}`));
+          finish(noReply());
         },this.timeoutMs);
+        const thisAttempt=attempt;
         Promise.resolve().then(()=>{
           if(settled||sessionId!==this._sessionId||signal?.aborted)return;
           this._assertOwner(owner);
           return this.device.sendReport(this.interface.reportId,packet);
-        }).catch(error=>finish(error));
+        }).catch(error=>{
+          if(settled)return;
+          // Gửi bị treo quá thời gian (thiết bị/đầu thu bận): đọc không có tác dụng phụ nên
+          // thử lại một lần như khi không có phản hồi. Lỗi khác (đã đóng, bị từ chối) dừng ngay.
+          if(SEND_TIMEOUT.test(error?.message??'')){
+            this._trace('send-timeout',{command,offset,attempt:thisAttempt});
+            if(thisAttempt===attempt&&attempt<2){clearTimeout(timer);this._trace('retry',{command,offset,attempt});send();}
+            else if(thisAttempt===attempt)finish(noReply());
+            return;
+          }
+          finish(error);
+        });
       };
       signal?.addEventListener('abort',cancel,{once:true});send();
     });

@@ -421,7 +421,12 @@ namespace A80RT {
                     if (!Native.WriteFile(_handle, buffer, (uint)frame.Length, IntPtr.Zero, overlapped)) {
                         int err = Marshal.GetLastWin32Error();
                         if (err != Native.ERROR_IO_PENDING) throw new IOException("Gửi report HID thất bại (mã lỗi " + err + ").");
-                        if (!done.WaitOne(3000)) { Native.CancelIoEx(_handle, overlapped); Native.GetOverlappedResult(_handle, overlapped, out written, true); throw new IOException("Gửi report HID quá thời gian."); }
+                        if (!done.WaitOne(3000)) {
+                            Native.CancelIoEx(_handle, overlapped);
+                            // The write may have completed just as the timeout fired: then it was sent.
+                            if (Native.GetOverlappedResult(_handle, overlapped, out written, true) && written == frame.Length) return;
+                            throw new IOException("Gửi report HID quá thời gian.");
+                        }
                     }
                     if (!Native.GetOverlappedResult(_handle, overlapped, out written, true) || written != frame.Length) throw new IOException("Gửi report HID chưa trọn vẹn.");
                 } finally {

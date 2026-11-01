@@ -91,3 +91,46 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
 .editor-panel>.preset-bar,.editor-panel>.preset-save,.editor-panel>.preset-manage{grid-column:1/-1}
 .editor-panel>.preset-save,.editor-panel>.preset-manage{margin:-10px 0 0}
 .preset-manage{max-width:720px}
+/* ===== Readability & accessibility layer (0.4.0-beta.6) =====
+   Chữ: nội dung ≥12px, nhãn/đơn vị phụ ≥11px, nhãn trên phím 10–12px (không tràn sơ đồ).
+   --dim: #66717b (3.1–3.7:1) → #8b96a0 (≥5.1:1 trên mọi nền của app). */
+:root{--dim:#8b96a0}
+.slash{color:var(--dim)}
+.brand-sub,.sidebar-section,.side-bottom,.build-tag,.eyebrow,.stats span,.selected-key>small{font-size:11px;letter-spacing:1px}
+#device-sub,#device-meta,.pill,.button.small,.stats small,.panel-heading p,.layer-switch button,.keyboard-footer,.read-toolbar p,.mono,.travel-title small,.inspector-hint,.key-details,.raw-details,.raw-key>span,.raw-key code,.small-note,.block strong,.block-status,#diagnostics>summary,.nav-current,.topbar,.connect-copy p,.stats strong em,.selection-toolbar>span,.travel-gauge-value small,.block-icon,.side-bottom p,.side-bottom a{font-size:12px}
+.travel-scale,.block small,#log,footer{font-size:11px}
+.small-note,.inspector-hint,.read-toolbar p,.keyboard-footer,.panel-heading p{line-height:1.7}
+.key{font-size:11px}.key-row:first-child .key{font-size:10px}.key small{font-size:10px}
+@media(min-width:1550px){.key{font-size:12px}.key-row:first-child .key{font-size:11px}.key small{font-size:10px}}
+/* Vùng bấm: tối thiểu 24×24 (WCAG 2.2 AA), mục tiêu ~32px cho điều khiển hay dùng. */
+.lang-switch button{min-width:36px;min-height:28px;font-size:12px}
+.layer-switch button{min-height:32px;padding:7px 12px}
+.selection-toolbar label,.selection-toolbar button{min-height:32px;display:inline-flex;align-items:center;gap:8px}
+.selection-toolbar input[type=checkbox]{width:18px;height:18px}
+.text-button{min-height:32px;padding:6px 8px}
+.editor-field input[type=range]{height:28px;cursor:pointer}
+.side-bottom a,.small-note a{display:inline-block;padding:6px 0}
+/* Đầu trang gọn: phạm vi ghi luôn thấy ở dòng tóm tắt, chi tiết mở khi cần. */
+.scope-note{margin:-14px 0 18px;font-size:12px;color:var(--muted)}
+.scope-note>summary{padding:8px 0;line-height:1.6}
+.scope-note>summary:before{color:var(--accent)}
+.scope-note>p{margin:4px 0 0 18px;line-height:1.8;color:var(--dim)}
+.hotkey-status{margin:0 0 14px;padding:8px 14px;font-size:12px}
+.connect-strip.is-compact{padding:10px 16px}
+.connect-strip.is-compact .step-symbol{height:30px;width:30px}
+.connect-strip.is-compact .connect-copy p{display:none}
+/* Thanh Áp dụng: dính đáy khi có thay đổi hoặc đang ghi; chừa chỗ để không che vùng đang focus. */
+.draft-bar.is-active{position:sticky;bottom:12px;z-index:30;border-color:#48573b;box-shadow:0 -8px 28px #0008;background:#1b2219}
+.draft-bar.is-active #draft-count{color:var(--accent)}
+#apply-reason.error{color:#efbaac}
+html:has(.draft-bar.is-active){scroll-padding-bottom:140px}
+/* Bàn phím: viền focus rõ khi đi bằng phím mũi tên. */
+.key:focus-visible{outline:2px solid var(--accent);outline-offset:2px;z-index:1}
+.undo-button{margin-left:10px}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+  .button:not(:disabled):hover{transform:none}
+}
+.editor-panel>.preset-note-row{grid-column:1/-1;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.preset-note-row>.editor-hint{margin:0}
+#profile-undo{margin:2px 0 10px}

@@ -108,3 +108,31 @@ test('the Rapid Trigger panel saves a named profile as a button, assigns a short
     mount.destroy();
   }finally{globalThis.document=old;}
 });
+
+test('deleting a profile can be undone with its position and shortcut',()=>{
+  const library=createPresetLibrary(memory()),s=session();
+  const a=library.save('Alpha',presetFromDraft(cap,s.draft)),b=library.save('Beta',presetFromDraft(cap,s.draft));
+  library.setShortcut(a.id,'Ctrl+Alt+7');
+  const token=library.remove(a.id);assert.equal(library.find(a.id),null);
+  library.undoRemove(token);
+  assert.deepEqual(library.list().filter(p=>!p.builtin).map(p=>p.id),[a.id,b.id],'back in its old place');
+  assert.equal(library.find(a.id).shortcut,'Ctrl+Alt+7');
+  const hidden=library.remove('apex');assert.ok(!library.list().some(p=>p.id==='apex'));
+  library.undoRemove(hidden);assert.ok(library.list().some(p=>p.id==='apex'));assert.equal(library.find('apex').shortcut,'Ctrl+Alt+2');
+});
+
+test('the panel offers Undo right after a delete',async()=>{
+  const old=globalThis.document,elements=[];
+  globalThis.document={createElement:tag=>{const el=new Element(tag);elements.push(el);return el;}};
+  const get=id=>elements.findLast(el=>el.id===id);
+  try{
+    const library=createPresetLibrary(memory()),s=session();
+    const mount=mountCoreEditors(new Element(),{session:s,capability:cap,selectedSlots:[34],library});
+    assert.equal(get('core-preset-undo').hidden,true);
+    await get('core-preset-delete-lol').trigger('click');await get('core-preset-delete-lol').trigger('click');
+    assert.ok(!library.list().some(p=>p.id==='lol'));assert.equal(get('core-preset-undo').hidden,false);
+    await get('core-preset-undo').trigger('click');
+    assert.ok(library.list().some(p=>p.id==='lol'));assert.equal(library.find('lol').shortcut,'Ctrl+Alt+1');assert.equal(get('core-preset-undo').hidden,true);
+    mount.destroy();
+  }finally{globalThis.document=old;}
+});

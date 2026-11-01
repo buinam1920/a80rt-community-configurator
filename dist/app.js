@@ -25,17 +25,19 @@ const currentImport=generation=>generation===importGeneration&&!state.reading&&!
 const supported=!!navigator.hid&&window.isSecureContext;
 let runtimeHidBlocked=false;
 const time=value=>new Date(value).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-function message(text,error=false){$('message').hidden=!text;$('message').textContent=text;$('message').classList.toggle('error',error);}
+let barNote=null,barNoteUntil=0,barNoteTimer=null;
+function message(text,error=false){$('message').hidden=!text;$('message').textContent=text;$('message').classList.toggle('error',error);
+  if(state.applying&&text){barNote={text,error};barNoteUntil=Date.now()+8000;clearTimeout(barNoteTimer);barNoteTimer=setTimeout(()=>renderDraft(),8100);barNoteTimer?.unref?.();renderDraft();}}
 function clearMessage(){message('');}
 function setText(id,text){$(id).textContent=text;}
 function mode(){return state.snapshot?.source??'empty';}
 function describeSource(){if(mode()==='demo')return 'Dữ liệu mẫu';if(mode()==='import')return 'Bản đã lưu';if(mode()==='device')return state.reader?'Bàn phím thật':Object.keys(state.snapshot.blocks).length?'Bản đọc trước':'Thông tin thiết bị';return 'Chưa có dữ liệu';}
-function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.4.0-beta.5',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
+function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.4.0-beta.6',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
 function makeKeyboard(){
   for(const row of LAYOUT){
     const container=document.createElement('div');container.className='key-row';
     for(const key of row){
-      const button=document.createElement('button');button.type='button';button.className='key';button.style.setProperty('--width',key.width);
+      const button=document.createElement('button');button.type='button';button.className='key';button.style.setProperty('--width',key.width);button.tabIndex=key.slot===state.selected?0:-1;if(button.dataset)button.dataset.slot=String(key.slot);
       button.setAttribute('aria-label',`Phím ${key.label}, vị trí ${key.slot}`);button.setAttribute('aria-pressed','false');
       const label=document.createElement('span');label.textContent=key.label;button.append(label);
       const value=document.createElement('small');value.textContent='';const rtLine=document.createElement('small');rtLine.className='key-rt';button.append(value,rtLine);
@@ -50,6 +52,21 @@ function makeKeyboard(){
     $('keyboard').append(container);
   }
 }
+const NAV_KEYS=['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'];
+function moveKeyFocus(event){
+  if(!NAV_KEYS.includes(event.key)||event.altKey||event.ctrlKey||event.metaKey)return;
+  const rows=[...$('keyboard').children].map(row=>[...row.children]);let r=-1,c=-1;
+  rows.forEach((row,i)=>{const j=row.indexOf(event.target);if(j>=0){r=i;c=j;}});if(r<0)return;
+  event.preventDefault();let next=null;
+  if(event.key==='ArrowLeft')next=rows[r][c-1];else if(event.key==='ArrowRight')next=rows[r][c+1];
+  else if(event.key==='Home')next=rows[r][0];else if(event.key==='End')next=rows[r].at(-1);
+  else{const target=rows[r+(event.key==='ArrowUp'?-1:1)];if(!target)return;const box=event.target.getBoundingClientRect(),mid=box.left+box.width/2;
+    next=target.reduce((best,el)=>{const b=el.getBoundingClientRect(),d=Math.abs(b.left+b.width/2-mid);return d<best.d?{el,d}:best;},{el:null,d:Infinity}).el;}
+  if(!next||next===event.target)return;
+  for(const row of rows)for(const el of row)el.tabIndex=-1;next.tabIndex=0;next.focus();
+  if(event.shiftKey){const slot=Number(next.dataset.slot);state.selected=slot;if(!state.selectedSlots.includes(slot))state.selectedSlots=[...state.selectedSlots,slot];renderSelection();editors?.setSelection(state.selectedSlots);}
+}
+$('keyboard').addEventListener('keydown',moveKeyFocus);
 function renderBlocks(){
   $('block-list').replaceChildren();
   for(const [index,block] of FULL_BLOCKS.entries()){
@@ -75,7 +92,7 @@ function renderSelection(){
   const selected=KEYS.find(key=>key.slot===state.selected),decoded=decodeKey(blocks,state.selected),rt=decoded.rt;
   for(const key of KEYS){
     const {button,value,rtLine}=buttons.get(key.slot);const item=decodeKey(blocks,key.slot),chosen=state.selectedSlots.includes(key.slot),travel=keyTravel(item.rt);
-    button.classList.toggle('selected',chosen);button.classList.toggle('has-data',!!item.rt);button.setAttribute('aria-pressed',String(chosen));
+    button.classList.toggle('selected',chosen);button.classList.toggle('has-data',!!item.rt);button.setAttribute('aria-pressed',String(chosen));if(document.activeElement?.parentElement?.parentElement!==$('keyboard'))button.tabIndex=key.slot===state.selected?0:-1;
     value.textContent=travel.mm!=null?mmText(travel.mm):'';value.classList.toggle('is-default',travel.isDefault);
     const rtOn=travel.press>0||travel.release>0;rtLine.textContent=!rtOn?'':travel.press===travel.release?`↕${mmText(travel.press)}`:`${mmText(travel.press)}/${mmText(travel.release)}`;button.classList.toggle('has-rt',rtOn);
     const rgb=blocks.colors?.slice(key.slot*4+1,key.slot*4+4);button.classList.toggle('has-color',!!rgb);if(rgb?.length===3)button.style.setProperty('--key-rgb',`rgb(${Array.from(rgb).join(',')})`);
@@ -107,7 +124,7 @@ function renderLog(){
 function render(){
   reportHotkeyState();
   const connected=!!state.reader,source=mode(),hasData=!!state.snapshot&&Object.keys(state.snapshot.blocks).length>0;
-  const responding=connected&&state.reader.getState().hasResponse;
+  const responding=connected&&state.reader.getState().hasResponse;$('connect-strip')?.classList?.toggle('is-compact',connected&&hasData&&!state.reading);
   const busy=state.reading||state.connecting||state.applying||state.maintaining;
   $('connect-button').hidden=connected;$('connect-button').disabled=!supported||runtimeHidBlocked||busy;
   $('disconnect-button').hidden=!connected;$('disconnect-button').disabled=busy;
@@ -248,7 +265,9 @@ function draftReason(){
 }
 function renderDraft(){
   const count=state.session?.diff().length??0,busy=state.reading||state.connecting||state.applying||state.maintaining||!!state.session?.invalidated;
-  setText('draft-count',`${count} thay đổi trong bản nháp`);setText('apply-reason',draftReason());
+  const noting=!!barNote&&(state.applying||Date.now()<barNoteUntil);
+  setText('draft-count',`${count} thay đổi trong bản nháp`);setText('apply-reason',noting?barNote.text:draftReason());
+  $('apply-reason')?.classList?.toggle('error',noting&&barNote.error);$('draft-bar')?.classList?.toggle('is-active',count>0||state.applying||noting);
   $('revert-button').disabled=!state.session||!count||busy;
   $('apply-button').disabled=!state.session||!count||busy||mode()!=='device'||!state.reader||!draftWriteState().ready||state.session.snapshot.provenance.sessionId!==state.reader.getState().sessionId;
 }
@@ -382,13 +401,20 @@ $('diagnostics').addEventListener('toggle',renderLog);
 $('profiles-panel').addEventListener('focusin',()=>editors?.stopRecording());
 $('profiles-panel').addEventListener('pointerdown',()=>editors?.stopRecording());
 $('profile-model').addEventListener('change',()=>{profileRecovery=null;clearProfilePreview();void refreshProfiles();});
-$('profile-list').addEventListener('change',()=>{clearProfilePreview();const p=selectedProfile();if(p)$('profile-name').value=p.name;renderProfiles();});
+$('profile-list').addEventListener('change',()=>{disarmProfileDelete();clearProfilePreview();const p=selectedProfile();if(p)$('profile-name').value=p.name;renderProfiles();});
 $('profile-import').addEventListener('click',()=>{editors?.stopRecording();$('profile-file').click();});
 $('profile-file').addEventListener('change',importConfigurationProfile);
 $('profile-save').addEventListener('click',()=>profileAction(async()=>{const p=createProfile(state.session,$('profile-name').value),id=await saveProfile(p,profileStorage);await refreshProfiles(id);profileStatus('Đã lưu hồ sơ cục bộ.');}));
 $('profile-rename').addEventListener('click',()=>profileAction(async()=>{const p=selectedProfile();if(!p)return;const id=await saveProfile({...p,name:$('profile-name').value},profileStorage);await refreshProfiles(id);profileStatus('Đã đổi tên hồ sơ.');}));
 $('profile-duplicate').addEventListener('click',()=>profileAction(async()=>{const p=selectedProfile();if(!p)return;const id=await saveProfile(duplicateProfile(p,`${$('profile-name').value} · bản sao`),profileStorage);await refreshProfiles(id);profileStatus('Đã nhân bản hồ sơ.');}));
-$('profile-delete').addEventListener('click',()=>profileAction(async()=>{const p=selectedProfile();if(!p)return;await deleteProfile(p.id,p.identity,profileStorage);clearProfilePreview();await refreshProfiles();profileStatus('Đã xóa hồ sơ khỏi trình duyệt. Bản nháp hiện tại vẫn còn.');}));
+let profileDeleteArmed=null,profileDeleteTimer=null,profileUndo=null,profileUndoTimer=null;
+const DELETE_LABEL='Xóa đã chọn';
+function disarmProfileDelete(){profileDeleteArmed=null;clearTimeout(profileDeleteTimer);setText('profile-delete',DELETE_LABEL);}
+function offerProfileUndo(profile){profileUndo=profile;$('profile-undo').hidden=!profile;clearTimeout(profileUndoTimer);if(profile){profileUndoTimer=setTimeout(()=>offerProfileUndo(null),10000);profileUndoTimer?.unref?.();}}
+$('profile-undo').addEventListener('click',()=>profileAction(async()=>{const p=profileUndo;if(!p)return;offerProfileUndo(null);const id=await saveProfile(p,profileStorage);await refreshProfiles(id);profileStatus(`Đã khôi phục hồ sơ “${p.name}”.`);}));
+$('profile-delete').addEventListener('click',()=>profileAction(async()=>{const p=selectedProfile();if(!p)return;
+  if(profileDeleteArmed!==p.id){profileDeleteArmed=p.id;setText('profile-delete','Bấm lần nữa để xóa');clearTimeout(profileDeleteTimer);profileDeleteTimer=setTimeout(disarmProfileDelete,3000);profileDeleteTimer?.unref?.();return;}
+  disarmProfileDelete();await deleteProfile(p.id,p.identity,profileStorage);offerProfileUndo(p);clearProfilePreview();await refreshProfiles();profileStatus('Đã xóa hồ sơ khỏi trình duyệt. Bản nháp hiện tại vẫn còn.');}));
 $('profile-open').addEventListener('click',()=>profileAction(()=>{const p=selectedProfile();if(p)stageProfile(p);}));
 $('profile-recover').addEventListener('click',()=>profileAction(()=>{if(profileRecovery)stageProfile(profileRecovery);}));
 $('profile-export').addEventListener('click',()=>profileAction(()=>downloadProfile(profilePending?.profile??selectedProfile()??createProfile(state.session,$('profile-name').value))));

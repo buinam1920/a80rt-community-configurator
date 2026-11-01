@@ -106,6 +106,8 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
   presetName.type='text';presetName.id='core-preset-name';presetName.placeholder='Tên profile mới (vd. Valorant)';presetName.maxLength=MAX_PRESET_LABEL;presetName.setAttribute('aria-label','Tên profile mới');
   presetSaveButton.type='button';presetSaveButton.id='core-preset-save';presetManageButton.type='button';presetManageButton.id='core-preset-manage';presetManageButton.setAttribute('aria-expanded','false');
   presetSave.append(presetName,presetSaveButton,presetManageButton);
+  const presetUndo=make('button','Hoàn tác','preset-tool undo-button');presetUndo.type='button';presetUndo.id='core-preset-undo';presetUndo.hidden=true;let undoToken=null,undoTimer=null;
+  const offerUndo=token=>{undoToken=token;presetUndo.hidden=!token;clearTimeout(undoTimer);if(token){undoTimer=setTimeout(()=>offerUndo(null),10000);undoTimer?.unref?.();}};
   const presetManage=make('div',null,'preset-manage');presetManage.id='core-preset-manage-panel';presetManage.hidden=true;
   let dynamic=[],capturing=null,confirmDelete=null,confirmTimer=null;
   const dlisten=(el,type,fn)=>{el.addEventListener(type,fn);dynamic.push(()=>el.removeEventListener(type,fn));};
@@ -148,7 +150,7 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
       drop.title=preset.builtin?'Ẩn profile cài sẵn này; khôi phục được bằng nút bên dưới.':'Xóa hẳn profile của bạn khỏi máy này.';
       dlisten(drop,'click',()=>{onNavigate();clearTimeout(confirmTimer);
         if(confirmDelete!==preset.id){confirmDelete=preset.id;confirmTimer=setTimeout(()=>{confirmDelete=null;if(!destroyed)renderPresets();},3000);renderPresets();return;}
-        confirmDelete=null;try{library.remove(preset.id);presetNote.textContent=`Đã xóa profile ${preset.label}.`;}catch(problem){showPresetError(problem);}
+        confirmDelete=null;try{const token=library.remove(preset.id);presetNote.textContent=`Đã xóa profile ${preset.label}.`;offerUndo(token);}catch(problem){showPresetError(problem);}
       });
       row.append(name,kind,keys,drop);return row;
     });
@@ -171,8 +173,9 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
     }catch(problem){showPresetError(problem);}
   };
   listen(presetSaveButton,'click',savePreset);
+  listen(presetUndo,'click',()=>{onNavigate();const token=undoToken;offerUndo(null);if(!token)return;library.undoRemove(token);presetNote.textContent='Đã hoàn tác xóa profile.';});
   listen(presetName,'keydown',event=>{if(event.key==='Enter'){event.preventDefault?.();savePreset();}});
-  const unsubscribe=library.subscribe(()=>{if(!destroyed)renderPresets();});listeners.push(()=>{unsubscribe();for(const remove of dynamic)remove();dynamic=[];clearTimeout(confirmTimer);});
+  const unsubscribe=library.subscribe(()=>{if(!destroyed)renderPresets();});listeners.push(()=>{unsubscribe();for(const remove of dynamic)remove();dynamic=[];clearTimeout(confirmTimer);clearTimeout(undoTimer);});
   renderPresets();
   // Thanh điểm nhận dọc như driver hãng: phần sáng là quãng nhấn tới điểm nhận.
   const visual=make('div',null,'rt-visual'),gauge=make('div',null,'travel-gauge'),gaugeValue=make('strong',null,'travel-gauge-value'),track=make('div',null,'travel-gauge-track');
@@ -199,7 +202,8 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
     const next=event.key==='Home'?0.01:event.key==='End'?gaugeState.max:base+(['ArrowDown','ArrowRight','PageDown'].includes(event.key)?step:-step);
     commit('rt','actuationMm',Math.min(gaugeState.max,Math.max(0.01,Math.round(next*100)/100)));
   });
-  rtPanel.append(presetBar,presetSave,presetManage,presetNote,visual);
+  const presetNoteRow=make('div',null,'preset-note-row');presetNoteRow.append(presetNote,presetUndo);
+  rtPanel.append(presetBar,presetSave,presetManage,presetNoteRow,visual);
   if(capability?.fields.rt.switchId){
     const switchInput=field(rtPanel,'switchId','Loại switch · ID từng phím','select');option(switchInput,'','—');
     for(const id of capability.limits.switchIds)option(switchInput,id,`${id} · ${capability.limits.switchLabels[id]} · ${capability.limits.switchTravelMm[id]} mm`);

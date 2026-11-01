@@ -894,6 +894,12 @@ export const EXACT = {
   'Thiết lập và bảo trì thiết bị': 'Device settings and maintenance',
   'Hồ sơ cấu hình cục bộ': 'Local configuration profiles',
   'Bản nháp': 'Draft',
+  // UX layer (0.4.0-beta.6)
+  'Phạm vi ghi: cáp USB — mọi nhóm đã đo; đầu thu 2.4 GHz — Rapid Trigger và thiết lập chung; lớp Fn — chặn ghi.': 'Write scope: USB cable — every measured group; 2.4 GHz receiver — Rapid Trigger and general settings; Fn layer — blocked.',
+  'Sơ đồ 82 phím · phím mũi tên để di chuyển, Space để chọn, Shift+mũi tên để chọn thêm': '82-key layout · arrow keys move, Space selects, Shift+arrow adds to the selection',
+  'Hoàn tác xóa': 'Undo delete',
+  'Đã hoàn tác xóa profile.': 'Profile deletion undone.',
+  'Hoàn tác': 'Undo',
   // Profile library (0.4.0-beta.5)
   'Chọn profile để đưa vào bản nháp; chỉ gửi bàn phím khi bấm Áp dụng.': 'Choose a profile to bring into the draft; it is sent to the keyboard only when you press Apply.',
   'Profile Rapid Trigger': 'Rapid Trigger profiles',
@@ -934,6 +940,7 @@ const USER_DESC = /^Profile của bạn: điểm nhận (.+?), (\d+) phím bật
 const userDesc = text => text.replace(USER_DESC, (m, range, count, top, bottom) => `Your profile: actuation ${range}, RT on ${count} keys${top !== undefined ? `, dead zones ${top}/${bottom}` : ''}.`);
 
 export const PATTERNS = [
+  [/^Đã khôi phục hồ sơ “(.+?)”\.$/, 'Restored profile “$1”.'],
   // Profile library (0.4.0-beta.5)
   [/^Đã đưa profile (.+?) vào bản nháp: (.+?) Chưa gửi bàn phím\.$/, (m, label, desc) => `Added profile ${label} to the draft: ${userDesc(desc)} Not sent to the keyboard yet.`],
   [/^(Profile của bạn: .+?\.)(?: Phím tắt (.+?)\.)?$/, (m, desc, keys) => `${userDesc(desc)}${keys ? ` Shortcut ${keys}.` : ''}`],

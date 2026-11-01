@@ -174,10 +174,19 @@ export function createPresetLibrary(storage=null){
       if(existing)data.custom[data.custom.indexOf(existing)]=stored;else data.custom.push(stored);
       persist();return library.find(id);
     },
+    // Trả về một "vé" để hoàn tác ngay sau khi xóa (khôi phục cả vị trí và phím tắt).
     remove(id){
-      if(RT_PRESETS.some(preset=>preset.id===id)){if(!data.hidden.includes(id))data.hidden.push(id);}
-      else{const index=data.custom.findIndex(preset=>preset.id===id);if(index<0)throw new Error('Không tìm thấy profile.');data.custom.splice(index,1);}
-      delete data.shortcuts[id];persist();
+      const token={id,shortcut:data.shortcuts[id]??null,builtin:RT_PRESETS.some(preset=>preset.id===id)};
+      if(token.builtin){if(!data.hidden.includes(id))data.hidden.push(id);}
+      else{const index=data.custom.findIndex(preset=>preset.id===id);if(index<0)throw new Error('Không tìm thấy profile.');token.index=index;token.preset=data.custom.splice(index,1)[0];}
+      delete data.shortcuts[id];persist();return token;
+    },
+    undoRemove(token){
+      if(!token)return;
+      if(token.builtin)data.hidden=data.hidden.filter(id=>id!==token.id);
+      else if(token.preset&&!data.custom.some(preset=>preset.id===token.id))data.custom.splice(Math.min(token.index??data.custom.length,data.custom.length),0,token.preset);
+      if(token.shortcut&&!Object.values(data.shortcuts).includes(token.shortcut))data.shortcuts[token.id]=token.shortcut;
+      persist();
     },
     restoreDefaults(){
       data.hidden=[];

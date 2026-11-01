@@ -894,6 +894,19 @@ export const EXACT = {
   'Thiết lập và bảo trì thiết bị': 'Device settings and maintenance',
   'Hồ sơ cấu hình cục bộ': 'Local configuration profiles',
   'Bản nháp': 'Draft',
+  // Fn layer key caps (0.4.0-beta.7)
+  'Reset gốc': 'Factory reset',
+  'Nối lại': 'Re-link',
+  'Đổi F': 'F-key switch',
+  'Hiệu ứng đèn': 'Light effect',
+  'Màu đèn': 'Light color',
+  'Sáng +': 'Bright +',
+  'Sáng −': 'Bright −',
+  'Tốc độ +': 'Speed +',
+  'Tốc độ −': 'Speed −',
+  'Dừng': 'Stop',
+  'Tìm': 'Search',
+  'Tổ hợp': 'Combo',
   // UX layer (0.4.0-beta.6)
   'Phạm vi ghi: cáp USB — mọi nhóm đã đo; đầu thu 2.4 GHz — Rapid Trigger và thiết lập chung; lớp Fn — chặn ghi.': 'Write scope: USB cable — every measured group; 2.4 GHz receiver — Rapid Trigger and general settings; Fn layer — blocked.',
   'Sơ đồ 82 phím · phím mũi tên để di chuyển, Space để chọn, Shift+mũi tên để chọn thêm': '82-key layout · arrow keys move, Space selects, Shift+arrow adds to the selection',
@@ -940,6 +953,9 @@ const USER_DESC = /^Profile của bạn: điểm nhận (.+?), (\d+) phím bật
 const userDesc = text => text.replace(USER_DESC, (m, range, count, top, bottom) => `Your profile: actuation ${range}, RT on ${count} keys${top !== undefined ? `, dead zones ${top}/${bottom}` : ''}.`);
 
 export const PATTERNS = [
+  [/^((?:[0-9a-f]{2} ){3}[0-9a-f]{2}) · (.+)$/, (m, bytes, fn) => `${bytes} · ${EXACT[fn] ?? fn}`],
+  [/^Phím (.+?), Fn: (.+)$/, (m, key, fn) => `Key ${key}, Fn: ${EXACT[fn] ?? fn}`],
+  [/^Fn \+ (.+?): (.+)$/, (m, key, fn) => `Fn + ${key}: ${EXACT[fn] ?? fn}`],
   [/^Đã khôi phục hồ sơ “(.+?)”\.$/, 'Restored profile “$1”.'],
   // Profile library (0.4.0-beta.5)
   [/^Đã đưa profile (.+?) vào bản nháp: (.+?) Chưa gửi bàn phím\.$/, (m, label, desc) => `Added profile ${label} to the draft: ${userDesc(desc)} Not sent to the keyboard yet.`],

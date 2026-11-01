@@ -61,6 +61,37 @@ export function bindingOptions(capability){
     ...[[1,1,'Chuột trái'],[1,2,'Chuột phải'],[1,4,'Chuột giữa'],[1,8,'Chuột lùi'],[1,16,'Chuột tiến'],[3,1,'Cuộn lên'],[3,255,'Cuộn xuống']].map(([mouseCode,code,label])=>({label,value:{type:'mouse',mouseCode,code}})),
     ...capability.limits.functionCodes.map(code=>({label:`Chức năng · ${FUNCTIONS[code-1]}`,value:{type:'function',code}}))];
 }
+// Nhãn trên phím khi xem lớp Fn, giống driver hãng: chức năng/media hiện tên chức năng
+// (đánh dấu nổi bật), phím thường hiện tên phím mà Fn gửi ra, mã chưa biết giữ nhãn gốc.
+const FN_SHORT=['Reset gốc','BT 1','BT 2','BT 3','Nối lại','Đổi F','Xem pin','WIN','MAC','Android','Hiệu ứng đèn','Màu đèn','Sáng +','Sáng −','Tốc độ +','Tốc độ −','Tắt đèn','Alt+Tab','Win+E','Win+Tab','Win+H','Khóa Win'];
+const MEDIA_SHORT=['Máy tính','Calc','Email','Media','Play / Pause','Dừng','Bài trước','Bài sau','Vol +','Vol −','Mute','Home','Làm mới','Tiến','Lùi','Yêu thích','Tìm'];
+const HID_NAMES={40:'Enter',41:'Esc',42:'Backspace',43:'Tab',44:'Space',57:'Caps',70:'Print',71:'Scroll',72:'Pause',73:'Ins',74:'Home',75:'PgUp',76:'Del',77:'End',78:'PgDn',79:'→',80:'←',81:'↓',82:'↑'};
+const MOD_NAMES={1:'Ctrl',2:'Shift',4:'Alt',8:'Win',16:'Ctrl',32:'Shift',64:'Alt',128:'Win'};
+const MOD_USAGE={1:224,2:225,4:226,8:227,16:228,32:229,64:230,128:231};
+const SPECIAL_TYPES={mouse:'Chuột',macro:'Macro',combination:'Tổ hợp',dks:'DKS',mt:'MT',tgl:'TGL',socd:'SOCD',rs:'RS'};
+export function fnKeyCap(binding,key,capability){
+  if(!binding)return null;
+  if(binding.type==='function'){
+    const index=binding.code-1;
+    if(FUNCTIONS[index])return {short:FN_SHORT[index],full:FUNCTIONS[index],special:true};
+    return {short:key.label,full:key.label,special:false};
+  }
+  if(binding.type==='media'){
+    const index=capability?.limits.mediaUsages.indexOf(binding.usage)??-1;
+    return index>=0?{short:MEDIA_SHORT[index],full:MEDIA[index],special:true}:{short:'Media',full:`Media 0x${binding.usage.toString(16)}`,special:true};
+  }
+  if(binding.type==='keyboard'){
+    if(binding.usage===175&&!binding.modifier)return {short:'Fn',full:'Fn',special:false};
+    if(!binding.usage&&MOD_NAMES[binding.modifier]){
+      const name=MOD_NAMES[binding.modifier];return {short:name,full:name,special:false,remapped:MOD_USAGE[binding.modifier]!==key.usage};
+    }
+    const name=HID_NAMES[binding.usage]??usageName(binding.usage),mods=Object.entries(MOD_NAMES).filter(([bit])=>binding.modifier&Number(bit)).map(([,label])=>label);
+    const text=[...new Set(mods),name].join('+');
+    return {short:text,full:text,special:false,remapped:binding.usage!==key.usage||binding.modifier!==0};
+  }
+  if(binding.type==='empty')return {short:key.label,full:'Trống',special:false,empty:true};
+  const label=SPECIAL_TYPES[binding.type]??'?';return {short:label,full:label,special:true};
+}
 function bindingValue(binding){
   if(!binding)return null;
   const {type}=binding;

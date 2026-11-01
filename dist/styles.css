@@ -134,3 +134,12 @@ html:has(.draft-bar.is-active){scroll-padding-bottom:140px}
 .editor-panel>.preset-note-row{grid-column:1/-1;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .preset-note-row>.editor-hint{margin:0}
 #profile-undo{margin:2px 0 10px}
+/* Lớp Fn: nhãn là chức năng của Fn + phím (giống driver hãng). Chức năng/media nổi bật,
+   phím bị đổi sang phím khác có chữ màu hổ phách, phím giữ nguyên hiện như thường. */
+.keyboard.fn-layer .key>span{font-size:10px;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-align:center;padding:0 2px;overflow-wrap:normal;word-break:normal}
+.keyboard.fn-layer .key:after{display:none}
+.keyboard.fn-layer .key.fn-special{background:linear-gradient(#34442c,#2a3725);border-color:#58703f;border-bottom-color:#3c4d2f;color:#d9f5ac}
+.keyboard.fn-layer .key.fn-remapped{color:#f0d08a}
+.keyboard.fn-layer .key.selected,.keyboard.fn-layer .key.fn-special.selected{background:#c3f56b;color:#19270a;border-color:#e2ffa9;border-bottom-color:#8ebc44}
+@media(min-width:1550px){.keyboard.fn-layer .key>span{font-size:11px}}
+.keyboard.fn-layer .key.fn-empty{color:#7d8790}

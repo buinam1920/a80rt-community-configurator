@@ -2,7 +2,8 @@ import {LAYOUT,KEYS} from './layout.js';
 import {A80Reader,VENDOR,DEVICE_FILTERS,describeDevice,transportName,decodeKey,hex,bytesHex} from './protocol.js';
 import {identifyDevice,readPlan} from './device/capabilities.js';
 import {ConfigSession} from './config/session.js';
-import {mountCoreEditors} from './ui/core-editors.js';
+import {mountCoreEditors,fnKeyCap} from './ui/core-editors.js';
+import {decodeBlock} from './config/codecs.js';
 import {mountAdvancedEditors} from './ui/advanced-editors.js';
 import {mountDeviceSettings} from './ui/device-settings.js';
 import {presetEdits,presetLibrary,shortcutFromEvent} from './config/presets.js';
@@ -32,7 +33,7 @@ function clearMessage(){message('');}
 function setText(id,text){$(id).textContent=text;}
 function mode(){return state.snapshot?.source??'empty';}
 function describeSource(){if(mode()==='demo')return 'Dữ liệu mẫu';if(mode()==='import')return 'Bản đã lưu';if(mode()==='device')return state.reader?'Bàn phím thật':Object.keys(state.snapshot.blocks).length?'Bản đọc trước':'Thông tin thiết bị';return 'Chưa có dữ liệu';}
-function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.4.0-beta.6',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
+function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.4.0-beta.7',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
 function makeKeyboard(){
   for(const row of LAYOUT){
     const container=document.createElement('div');container.className='key-row';
@@ -47,7 +48,7 @@ function makeKeyboard(){
         else state.selectedSlots=[key.slot];
         renderSelection();editors?.setSelection(state.selectedSlots);
       });
-      buttons.set(key.slot,{button,value,rtLine});container.append(button);
+      buttons.set(key.slot,{button,value,rtLine,label});container.append(button);
     }
     $('keyboard').append(container);
   }
@@ -90,13 +91,22 @@ const mmText=value=>value.toFixed(2).replace(/0$/,'');
 function renderSelection(){
   const blocks=state.session?.draft??state.snapshot?.blocks??{};
   const selected=KEYS.find(key=>key.slot===state.selected),decoded=decodeKey(blocks,state.selected),rt=decoded.rt;
+  // Lớp Fn: nhãn phím là chức năng mà Fn + phím đó thực hiện (giống driver hãng).
+  const fnView=state.layer==='fn',fnCapability=state.capability??SAMPLE_CAPABILITY;
+  let fnRecords=null;if(fnView&&blocks.fn){try{fnRecords=decodeBlock('fn',blocks.fn,fnCapability).records;}catch{fnRecords=null;}}
+  $('keyboard')?.classList?.toggle('fn-layer',fnView);
   for(const key of KEYS){
-    const {button,value,rtLine}=buttons.get(key.slot);const item=decodeKey(blocks,key.slot),chosen=state.selectedSlots.includes(key.slot),travel=keyTravel(item.rt);
+    const {button,value,rtLine,label}=buttons.get(key.slot);
+    const cap=fnRecords?fnKeyCap(fnRecords[key.slot]?.binding,key,fnCapability):null;
+    label.textContent=cap?cap.short:key.label;button.classList.toggle('fn-special',!!cap?.special);button.classList.toggle('fn-remapped',!!cap?.remapped);button.classList.toggle('fn-empty',!!cap?.empty);
+    if(cap)button.title=`Fn + ${key.label}: ${cap.full}`;
+    button.setAttribute('aria-label',cap?`Phím ${key.label}, Fn: ${cap.full}`:`Phím ${key.label}, vị trí ${key.slot}`);const item=decodeKey(blocks,key.slot),chosen=state.selectedSlots.includes(key.slot),travel=keyTravel(item.rt);
     button.classList.toggle('selected',chosen);button.classList.toggle('has-data',!!item.rt);button.setAttribute('aria-pressed',String(chosen));if(document.activeElement?.parentElement?.parentElement!==$('keyboard'))button.tabIndex=key.slot===state.selected?0:-1;
     value.textContent=travel.mm!=null?mmText(travel.mm):'';value.classList.toggle('is-default',travel.isDefault);
-    const rtOn=travel.press>0||travel.release>0;rtLine.textContent=!rtOn?'':travel.press===travel.release?`↕${mmText(travel.press)}`:`${mmText(travel.press)}/${mmText(travel.release)}`;button.classList.toggle('has-rt',rtOn);
+    if(fnView){value.textContent='';}
+    const rtOn=!fnView&&(travel.press>0||travel.release>0);rtLine.textContent=!rtOn?'':travel.press===travel.release?`↕${mmText(travel.press)}`:`${mmText(travel.press)}/${mmText(travel.release)}`;button.classList.toggle('has-rt',rtOn);
     const rgb=blocks.colors?.slice(key.slot*4+1,key.slot*4+4);button.classList.toggle('has-color',!!rgb);if(rgb?.length===3)button.style.setProperty('--key-rgb',`rgb(${Array.from(rgb).join(',')})`);
-    button.title=`${key.label} · vị trí ${key.slot}${travel.mm!=null?` · điểm nhận ${travel.mm.toFixed(2)} mm${travel.isDefault?' (mặc định hãng)':''}`:''}${rtOn?` · RT nhấn ${travel.press.toFixed(2)} / nhả ${travel.release.toFixed(2)} mm`:''}`;
+    if(!cap)button.title=`${key.label} · vị trí ${key.slot}${travel.mm!=null?` · điểm nhận ${travel.mm.toFixed(2)} mm${travel.isDefault?' (mặc định hãng)':''}`:''}${rtOn?` · RT nhấn ${travel.press.toFixed(2)} / nhả ${travel.release.toFixed(2)} mm`:''}`;
   }
   $('layer-base').setAttribute('aria-pressed',String(state.layer==='base'));$('layer-fn').setAttribute('aria-pressed',String(state.layer==='fn'));
   setText('selected-slot',`#${String(state.selected).padStart(3,'0')}`);setText('selected-key-name',selected.label);
@@ -110,7 +120,8 @@ function renderSelection(){
   setText('key-state',!rt?'Đọc cấu hình để xem thông số thực.':selectedTravel.isDefault?'Giá trị gốc là 0: web hãng hiển thị mặc định 1,2 mm. App hiện giống hãng và giữ nguyên byte gốc.':mode()==='demo'?'Thông số minh họa, chưa đọc từ thiết bị.':'Điểm nhận được giải mã từ cấu hình; không phải hành trình nhấn trực tiếp.');
   setText('key-switch',rt?String(rt.switchId):'—');setText('key-flags',rt?`0x${rt.flags.toString(16).toUpperCase().padStart(2,'0')}`:'—');
   const mapping=state.layer==='fn'?decoded.fn:decoded.keymap;
-  setText('key-mapping',mapping?bytesHex(mapping):'—');
+  const selectedFn=fnRecords&&selected?fnKeyCap(fnRecords[state.selected]?.binding,selected,fnCapability):null;
+  setText('key-mapping',mapping?`${bytesHex(mapping)}${selectedFn?` · ${selectedFn.full}`:''}`:'—');
   setText('key-rt-raw',rt?bytesHex(rt.raw):'Chưa có dữ liệu');setText('key-map-raw',mapping?bytesHex(mapping):'Chưa có dữ liệu');
   setText('key-thresholds',rt?(selectedTravel.press||selectedTravel.release?`${selectedTravel.press.toFixed(2)} / ${selectedTravel.release.toFixed(2)} mm`:'Tắt'):'—');
   setText('selection-count',`${state.selectedSlots.length} phím đã chọn`);

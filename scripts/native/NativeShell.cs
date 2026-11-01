@@ -330,6 +330,8 @@ namespace A80RT {
         private readonly ManualResetEvent _stop = new ManualResetEvent(false);
         private readonly object _writeLock = new object();
         private volatile bool _disposed;
+        private Thread _reader;
+        private int _handleClosed;
 
         private OpenDevice(SafeFileHandle handle, int inputLength, int outputLength, Action<byte[]> onInput, Action onLost) {
             _handle = handle; _inputLength = inputLength; _outputLength = outputLength; _onInput = onInput; _onLost = onLost;
@@ -344,6 +346,7 @@ namespace A80RT {
             }
             var dev = new OpenDevice(h, inputLength, outputLength, onInput, onLost);
             var t = new Thread(dev.ReadLoop) { IsBackground = true, Name = "A80RT HID read" };
+            dev._reader = t;
             t.Start();
             return dev;
         }
@@ -363,24 +366,43 @@ namespace A80RT {
                         int err = Marshal.GetLastWin32Error();
                         if (err != Native.ERROR_IO_PENDING) { lost = !_disposed; break; }
                         int which = WaitHandle.WaitAny(new WaitHandle[] { done, _stop });
-                        if (which == 1) { Native.CancelIoEx(_handle, overlapped); Native.GetOverlappedResult(_handle, overlapped, out got, true); break; }
+                        if (which == 1) {
+                            // The handle stays open until this loop ends (see CloseHandleOnce), so the
+                            // pending read can be cancelled and drained safely.
+                            Native.CancelIoEx(_handle, overlapped); Native.GetOverlappedResult(_handle, overlapped, out got, true); break;
+                        }
                     }
                     if (!Native.GetOverlappedResult(_handle, overlapped, out got, true)) { lost = !_disposed; break; }
                     if (got > 1) {
                         byte[] report = new byte[got];
                         Marshal.Copy(buffer, report, 0, (int)got);
-                        _onInput(report);
+                        try { _onInput(report); } catch {}
                     }
                 }
+            } catch (Exception) {
+                lost = !_disposed;
             } finally {
                 Marshal.FreeHGlobal(buffer);
                 Marshal.FreeHGlobal(overlapped);
                 done.Close();
+                CloseHandleOnce();
             }
-            if (lost) { Dispose(); _onLost(); }
+            if (lost) { Dispose(); try { _onLost(); } catch {} }
+        }
+
+        // Closed exactly once, by the read loop after its I/O has completed, or by Dispose
+        // when the read loop does not finish in time. Writes hold _writeLock while using it.
+        private void CloseHandleOnce() {
+            if (Interlocked.Exchange(ref _handleClosed, 1) != 0) return;
+            lock (_writeLock) { try { _handle.Dispose(); } catch {} }
         }
 
         public void Write(int reportId, byte[] data) {
+            try { WriteCore(reportId, data); }
+            catch (ObjectDisposedException) { throw new IOException("Thiết bị đã đóng."); }
+        }
+
+        private void WriteCore(int reportId, byte[] data) {
             if (_disposed) throw new IOException("Thiết bị đã đóng.");
             if (data.Length > _outputLength - 1) throw new ArgumentException("Report dài hơn kích thước output của thiết bị.");
             // Windows expects [reportId][payload padded to OutputReportByteLength-1].
@@ -415,7 +437,9 @@ namespace A80RT {
             _disposed = true;
             _stop.Set();
             try { Native.CancelIoEx(_handle, IntPtr.Zero); } catch {}
-            _handle.Dispose();
+            // Let the read loop drain its cancelled read and close the handle itself.
+            if (_reader != null && Thread.CurrentThread != _reader && _reader.Join(1500)) return;
+            if (Thread.CurrentThread != _reader) CloseHandleOnce();
         }
     }
 

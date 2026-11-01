@@ -1,0 +1,25 @@
+{
+  "schema": "a80rt-rt-profile/v1",
+  "name": "Valorant",
+  "shortcut": "Ctrl+Alt+3",
+  "default": { "actuation": 1.5, "rtPress": 0, "rtRelease": 0, "wholeTravel": false },
+  "keys": {
+    "W": { "actuation": 0.5, "rtPress": 0.15, "rtRelease": 0.15, "wholeTravel": true },
+    "A": { "actuation": 0.5, "rtPress": 0.15, "rtRelease": 0.15, "wholeTravel": true },
+    "S": { "actuation": 0.5, "rtPress": 0.15, "rtRelease": 0.15, "wholeTravel": true },
+    "D": { "actuation": 0.5, "rtPress": 0.15, "rtRelease": 0.15, "wholeTravel": true },
+    "LShift": { "actuation": 0.8, "rtPress": 0.2, "rtRelease": 0.2 },
+    "LCtrl": { "actuation": 0.8, "rtPress": 0.2, "rtRelease": 0.2 },
+    "Space": { "actuation": 1.0 },
+    "Q": { "actuation": 1.2 },
+    "E": { "actuation": 1.2 },
+    "C": { "actuation": 1.2 },
+    "X": { "actuation": 1.2 },
+    "F": { "actuation": 1.2 },
+    "1": { "actuation": 1.3 },
+    "2": { "actuation": 1.3 },
+    "3": { "actuation": 1.3 },
+    "4": { "actuation": 1.3 }
+  },
+  "deadZone": { "top": 0.05, "bottom": 0.1 }
+}

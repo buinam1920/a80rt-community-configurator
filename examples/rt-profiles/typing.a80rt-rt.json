@@ -1,0 +1,11 @@
+{
+  "schema": "a80rt-rt-profile/v1",
+  "name": "Typing",
+  "default": { "actuation": 2.0, "rtPress": 0, "rtRelease": 0, "wholeTravel": false },
+  "keys": {
+    "Space": { "actuation": 2.2 },
+    "Backspace": { "actuation": 2.2 },
+    "Enter": { "actuation": 2.2 }
+  },
+  "deadZone": { "top": 0.1, "bottom": 0.1 }
+}

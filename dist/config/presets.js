@@ -1,5 +1,6 @@
 import {readPlan} from '../device/capabilities.js';
 import {decodeBlock} from './codecs.js';
+import {KEYS} from '../layout.js';
 
 // RT presets. All distance values are stored in millimetres.
 //
@@ -208,3 +209,115 @@ export function createPresetLibrary(storage=null){
 }
 const defaultStorage=(()=>{try{return globalThis.localStorage??null;}catch{return null;}})();
 export const presetLibrary=createPresetLibrary(defaultStorage);
+
+// ---------- File profile RT: định dạng dễ đọc cho người và AI ----------
+// Một profile = giá trị mặc định cho mọi phím + các phím khác mặc định, theo mm.
+// Tên phím là tên trên sơ đồ (Shift/Ctrl trái-phải tách thành LShift/RShift, LCtrl/RCtrl);
+// nhận thêm tên gọi khác thông dụng. Nhập file chỉ tạo profile trong thư viện cục bộ;
+// ghi bàn phím vẫn phải qua bản nháp, preflight và đọc lại xác minh như mọi thay đổi.
+export const RT_PROFILE_SCHEMA='a80rt-rt-profile/v1';
+const KEY_ALIASES={Esc:['Escape'],Ins:['Insert'],Prt:['PrintScreen','Print','PrtSc'],'`':['Grave','Backquote','Tilde','~'],'−':['-'],'=':['Equal','Equals','Plus'],
+  Backspace:['BS'],Del:['Delete'],Tab:[],'[':['BracketLeft','LeftBracket'],']':['BracketRight','RightBracket'],'\\':['Backslash'],PgUp:['PageUp'],Caps:['CapsLock'],
+  ';':['Semicolon'],"'":['Quote','Apostrophe'],Enter:['Return'],PgDn:['PageDown'],',':['Comma'],'.':['Period','Dot'],'/':['Slash'],'↑':['ArrowUp'],End:[],
+  Win:['LWin','Windows','Meta','Super'],Alt:['LAlt'],Space:['Spacebar'],Fn:[],'←':['ArrowLeft'],'↓':['ArrowDown'],'→':['ArrowRight']};
+// Phím có ký tự Unicode dùng tên ASCII làm tên chuẩn (dễ gõ, AI ít nhầm); ký tự gốc vẫn được nhận.
+const ASCII_NAMES={'−':'Minus','↑':'Up','↓':'Down','←':'Left','→':'Right'};
+// Tên chuẩn cho từng vị trí, theo thứ tự sơ đồ.
+export function rtKeyNames(){
+  const seen={},names=[];
+  for(const key of KEYS){
+    let name=ASCII_NAMES[key.label]??key.label;
+    if(name==='Shift'||name==='Ctrl'){seen[name]=(seen[name]??0)+1;name=(seen[name]===1?'L':'R')+name;}
+    names.push({name,slot:key.slot,aliases:[...(KEY_ALIASES[key.label]??[]),...(ASCII_NAMES[key.label]?[key.label]:[]),...(key.label!==name?(seen[key.label]===1?[key.label,`Left${key.label}`,`Left ${key.label}`]:[`Right${key.label}`,`Right ${key.label}`]):[])]});
+  }
+  return names;
+}
+const KEY_INDEX=(()=>{const map=new Map();for(const entry of rtKeyNames())for(const alias of [entry.name,...entry.aliases]){const k=alias.toLowerCase();if(!map.has(k))map.set(k,entry.slot);}
+  for(const key of KEYS)if(/^[A-Z0-9]$/.test(key.label)){map.set(`key${key.label.toLowerCase()}`,key.slot);if(/\d/.test(key.label))map.set(`digit${key.label}`,key.slot);}
+  return map;})();
+const slotForName=name=>{if(typeof name!=='string')return undefined;const m=/^slot\s*:?\s*(\d+)$/i.exec(name.trim());if(m)return Number(m[1]);return KEY_INDEX.get(name.trim().toLowerCase());};
+const round2=value=>Math.round(value*100)/100;
+
+// Đọc file (chuỗi JSON hoặc object). Trả về {label, preset, shortcut, warnings} hoặc ném lỗi rõ ràng.
+export function parseRtProfile(input,capability){
+  let data=input;
+  if(typeof input==='string'){
+    const text=input.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
+    try{data=JSON.parse(text);}catch{throw new Error('Không đọc được JSON. Dán đúng nội dung file profile (bắt đầu bằng { và kết thúc bằng }).');}
+  }
+  if(!data||typeof data!=='object'||Array.isArray(data))throw new Error('File profile phải là một object JSON.');
+  if(data.schema!==RT_PROFILE_SCHEMA)throw new Error(`Thiếu hoặc sai "schema": cần "${RT_PROFILE_SCHEMA}".`);
+  const label=typeof data.name==='string'?data.name.trim().replace(/\s+/g,' '):'';
+  if(!label)throw new Error('Thiếu "name" (tên profile).');
+  const maxMm=Math.min(...Object.values(capability?.limits.switchTravelMm??{0:3.4}));
+  const warnings=[];
+  const frame=(value,where,base)=>{
+    if(!value||typeof value!=='object'||Array.isArray(value))throw new Error(`${where}: cần một object như {"actuation":1.5}.`);
+    for(const key of Object.keys(value))if(!['actuation','rtPress','rtRelease','wholeTravel'].includes(key))warnings.push(`${where}: bỏ qua trường lạ "${key}".`);
+    const mm=(field,min)=>{const raw=value[field]??base?.[field];if(raw===undefined)return undefined;
+      if(typeof raw!=='number'||!Number.isFinite(raw))throw new Error(`${where}.${field}: cần một số (mm).`);
+      const v=round2(raw);if(v<min||v>maxMm)throw new Error(`${where}.${field} = ${raw}: cần trong khoảng ${min}–${maxMm} mm.`);return v;};
+    const actuation=mm('actuation',0),rtPress=mm('rtPress',0),rtRelease=mm('rtRelease',0);
+    if(value.wholeTravel!==undefined&&typeof value.wholeTravel!=='boolean')throw new Error(`${where}.wholeTravel: cần true hoặc false.`);
+    return {actuationMm:actuation??1.5,pressMm:rtPress??0,releaseMm:rtRelease??0,whole:(value.wholeTravel??base?.wholeTravel)===true};
+  };
+  const defaults=data.default??{actuation:1.5};
+  const rest=frame(defaults,'default');
+  const keys=[],used=new Set();
+  if(data.keys!==undefined&&(typeof data.keys!=='object'||Array.isArray(data.keys)))throw new Error('"keys" phải là object, ví dụ {"W":{"actuation":0.4}}.');
+  for(const [name,value]of Object.entries(data.keys??{})){
+    const slot=slotForName(name);
+    if(slot===undefined||!capability.slots.includes(slot))throw new Error(`Không biết phím "${name}". Dùng tên như W, Space, LShift, LCtrl, F1, Esc.`);
+    if(used.has(slot))throw new Error(`Phím "${name}" bị khai báo hai lần.`);used.add(slot);
+    keys.push({slot,...frame(value,`keys.${name}`,defaults)});
+  }
+  const preset={id:'u-import',group:'user',label,rest,keys};
+  if(data.deadZone!==undefined){
+    const zone=data.deadZone;if(!zone||typeof zone!=='object')throw new Error('"deadZone" cần dạng {"top":0.1,"bottom":0.1} (mm).');
+    const raw=(field)=>{const v=zone[field];if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>0.5)throw new Error(`deadZone.${field}: cần số từ 0 đến 0.5 mm.`);return Math.round(v*100);};
+    preset.deadZone={top:raw('top'),bottom:raw('bottom')};
+  }
+  let shortcut=null;
+  if(data.shortcut!=null&&data.shortcut!==''){try{shortcut=normalizeShortcut(data.shortcut);}catch(problem){warnings.push(`Bỏ qua phím tắt: ${problem.message}`);}}
+  return {label,preset,shortcut,warnings};
+}
+
+// Xuất profile (cài sẵn hoặc của bạn) ra object gọn: mặc định + các phím khác mặc định.
+export function exportRtProfile(preset,capability){
+  const names=rtKeyNames(),pick=frame=>({actuation:frame.actuationMm,rtPress:frame.pressMm,rtRelease:frame.releaseMm,wholeTravel:frame.whole===true});
+  const rest=preset.rest,keys={};
+  for(const {name,slot}of names){
+    if(!capability.slots.includes(slot))continue;
+    const target=preset.keys.find(entry=>entry.slot===slot)??rest;
+    if(target.actuationMm!==rest.actuationMm||target.pressMm!==rest.pressMm||target.releaseMm!==rest.releaseMm||(target.whole===true)!==(rest.whole===true))keys[name]=pick(target);
+  }
+  const out={schema:RT_PROFILE_SCHEMA,name:preset.label,default:pick(rest),keys};
+  if(preset.deadZone)out.deadZone={top:preset.deadZone.top/100,bottom:preset.deadZone.bottom/100};
+  if(preset.shortcut)out.shortcut=preset.shortcut;
+  return out;
+}
+
+// Hướng dẫn chép cho AI: định dạng, tên phím, giới hạn và một ví dụ. Viết bằng tiếng Anh
+// để mọi AI hiểu; trả lời là một khối JSON dán thẳng vào app.
+export function rtProfileAiGuide(capability,current=null){
+  const maxMm=Math.min(...Object.values(capability?.limits.switchTravelMm??{0:3.4}));
+  const example={schema:RT_PROFILE_SCHEMA,name:'Valorant',shortcut:'Ctrl+Alt+3',default:{actuation:1.5,rtPress:0,rtRelease:0,wholeTravel:false},
+    keys:{W:{actuation:0.5,rtPress:0.15,rtRelease:0.15,wholeTravel:true},A:{actuation:0.5,rtPress:0.15,rtRelease:0.15,wholeTravel:true},S:{actuation:0.5,rtPress:0.15,rtRelease:0.15,wholeTravel:true},D:{actuation:0.5,rtPress:0.15,rtRelease:0.15,wholeTravel:true},LCtrl:{actuation:0.8},Space:{actuation:1.0}},
+    deadZone:{top:0.05,bottom:0.1}};
+  return [
+    'You are helping me create a Rapid Trigger profile for my LEOBOG A80RT magnetic (Hall effect) keyboard.',
+    'Reply with ONE JSON object only (no prose), in exactly this format:',
+    '',JSON.stringify(example,null,2),'',
+    'Rules:',
+    `- "schema" must be "${RT_PROFILE_SCHEMA}". "name": up to 32 characters.`,
+    `- All distances are millimetres with at most 2 decimals. actuation: 0.01–${maxMm} (lower = more sensitive). rtPress / rtRelease: 0–${maxMm}; 0 turns Rapid Trigger off for that key.`,
+    '- wholeTravel: true keeps Rapid Trigger active over the whole key travel; false activates it only after the actuation point.',
+    '- "default" applies to every key; list in "keys" only keys that differ. Unlisted fields of a key inherit "default".',
+    '- deadZone (optional): top/bottom dead zones for the whole keyboard, 0–0.5 mm.',
+    '- shortcut (optional): Ctrl, Alt or Win plus A–Z, 0–9 or F1–F24, e.g. "Ctrl+Alt+3".',
+    '- Avoid actuation below ~0.3 mm on keys you rest your fingers on, or they trigger by accident.',
+    '',`Key names: ${rtKeyNames().filter(entry=>capability.slots.includes(entry.slot)).map(entry=>entry.name).join(' ')}`,
+    ...(current?['','My current profile, for reference:',JSON.stringify(current,null,2)]:[]),
+    '','What I want: <describe your game, play style and keys here>',
+  ].join('\n');
+}

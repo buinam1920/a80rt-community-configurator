@@ -1,0 +1,19 @@
+{
+  "schema": "a80rt-rt-profile/v1",
+  "name": "CS2",
+  "shortcut": "Ctrl+Alt+4",
+  "default": { "actuation": 1.5, "rtPress": 0, "rtRelease": 0, "wholeTravel": false },
+  "keys": {
+    "W": { "actuation": 0.4, "rtPress": 0.1, "rtRelease": 0.1, "wholeTravel": true },
+    "A": { "actuation": 0.4, "rtPress": 0.1, "rtRelease": 0.1, "wholeTravel": true },
+    "S": { "actuation": 0.4, "rtPress": 0.1, "rtRelease": 0.1, "wholeTravel": true },
+    "D": { "actuation": 0.4, "rtPress": 0.1, "rtRelease": 0.1, "wholeTravel": true },
+    "LShift": { "actuation": 0.7, "rtPress": 0.2, "rtRelease": 0.2 },
+    "LCtrl": { "actuation": 0.7, "rtPress": 0.2, "rtRelease": 0.2 },
+    "Space": { "actuation": 0.9 },
+    "R": { "actuation": 1.3 },
+    "E": { "actuation": 1.2 },
+    "G": { "actuation": 1.3 },
+    "Tab": { "actuation": 1.2 }
+  }
+}

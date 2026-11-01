@@ -1,8 +1,8 @@
-# A80RT Community Configurator — 0.4.0-beta.8
+# A80RT Community Configurator — 0.4.0-beta.9
 
 An unofficial community configurator compatible with LEOBOG A80RT keyboards. This project is not affiliated with or endorsed by LEOBOG. Product names identify compatible hardware only.
 
-**[Download the Windows beta](https://github.com/buinam1920/a80rt-community-configurator/releases/tag/v0.4.0-beta.8)** — choose `A80RT-Configurator-0.4.0-beta.8.exe` under Assets.
+**[Download the Windows beta](https://github.com/buinam1920/a80rt-community-configurator/releases/tag/v0.4.0-beta.9)** — choose `A80RT-Configurator-0.4.0-beta.9.exe` under Assets.
 
 ## Getting started
 
@@ -34,6 +34,7 @@ The executable is unsigned. Physical in-game hotkeys and a complete preset write
 - Fn layer view like the manufacturer driver: switching the key map to Fn labels each key with what Fn + key does (functions and media highlighted, keys that send another key in amber), with the full name on hover and in Key details.
 - Vendor-derived Office, Beginner, and Gaming presets; community LoL and Apex presets.
 - Your own Rapid Trigger profiles: name the current draft and save it as a button next to the presets, delete or hide any profile (built-ins can be restored), and assign a global shortcut to any profile (Ctrl, Alt or Win plus A–Z, 0–9 or F1–F24).
+- Shareable profile files: export any Rapid Trigger profile as a small JSON file, import one from a file or by pasting JSON, and use **Copy AI instructions** so ChatGPT, Claude or another assistant can write a profile for your game. See the [profile file format](docs/rt-profile-format.md) and the [example profiles](examples/rt-profiles/).
 - Local profiles, JSON import/export, draft previews, and session recovery.
 - A standalone Windows executable with embedded interface assets and system tray controls. Since 0.4.0-beta.3 it opens its **own window (WebView2)** instead of a browser: the exe talks to the keyboard through the Windows HID API and exposes the same `navigator.hid` surface to the app (`scripts/native/hid-shim.js`, `scripts/native/NativeShell.cs`). Report bytes pass through unchanged, so every measured protocol rule is still enforced by the same JavaScript; the host never builds, alters, retries or originates a report. No device chooser is needed and the keyboard is detected automatically. Closing the window keeps the app in the tray (hotkeys, battery); use the tray menu to exit. `--browser` forces the previous Edge/Chrome app window, which is also the automatic fallback when WebView2 is unavailable. Profiles saved in the browser version live in that browser's storage: export them as JSON there and import them in the window. WebView2 SDK 1.0.4314.35 is redistributed under its license (`vendor/webview2/`).
 - English or Vietnamese interface (VI/EN switch in the top bar; follows the system language by default).
@@ -137,4 +138,4 @@ Manufacturer cloud libraries, music sync, calibration, reset, and firmware updat
 - **0.3.6:** installable PWA and offline interface caching.
 - **0.3.5:** draft context, macro ownership, DKS/profile validation, and import-race fixes. See the [historical correctness notes](docs/0.3.5-correctness.md).
 
-These older version numbers describe project history. The current release is **0.4.0-beta.8** ([release notes](docs/release-0.4.0-beta.8.md)); see also the notes for [0.4.0-beta.7](docs/release-0.4.0-beta.7.md), [0.4.0-beta.6](docs/release-0.4.0-beta.6.md), [0.4.0-beta.5](docs/release-0.4.0-beta.5.md), [0.4.0-beta.4](docs/release-0.4.0-beta.4.md) and [0.4.0-beta.3](docs/release-0.4.0-beta.3.md).
+These older version numbers describe project history. The current release is **0.4.0-beta.9** ([release notes](docs/release-0.4.0-beta.9.md)); see also the notes for [0.4.0-beta.8](docs/release-0.4.0-beta.8.md), [0.4.0-beta.7](docs/release-0.4.0-beta.7.md), [0.4.0-beta.6](docs/release-0.4.0-beta.6.md), [0.4.0-beta.5](docs/release-0.4.0-beta.5.md), [0.4.0-beta.4](docs/release-0.4.0-beta.4.md) and [0.4.0-beta.3](docs/release-0.4.0-beta.3.md).

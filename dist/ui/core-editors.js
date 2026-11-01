@@ -1,7 +1,7 @@
 import {decodeBlock} from '../config/codecs.js';
 import {KEYS,usageName} from '../layout.js';
 import {readPlan} from '../device/capabilities.js';
-import {presetEdits,matchingPreset,presetLibrary,presetFromDraft,shortcutFromEvent,MAX_PRESET_LABEL} from '../config/presets.js';
+import {presetEdits,matchingPreset,presetLibrary,presetFromDraft,shortcutFromEvent,MAX_PRESET_LABEL,parseRtProfile,exportRtProfile,rtProfileAiGuide} from '../config/presets.js';
 
 const RT_FIELDS=['switchId','actuationMm','pressMm','releaseMm','whole','bottom','rtMode'];
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
@@ -143,6 +143,41 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
   const presetUndo=make('button','Hoàn tác','preset-tool undo-button');presetUndo.type='button';presetUndo.id='core-preset-undo';presetUndo.hidden=true;let undoToken=null,undoTimer=null;
   const offerUndo=token=>{undoToken=token;presetUndo.hidden=!token;clearTimeout(undoTimer);if(token){undoTimer=setTimeout(()=>offerUndo(null),10000);undoTimer?.unref?.();}};
   const presetManage=make('div',null,'preset-manage');presetManage.id='core-preset-manage-panel';presetManage.hidden=true;
+  // Nhập/xuất file profile: file JSON dễ đọc, dán JSON từ AI, chép hướng dẫn cho AI.
+  const ioTools=make('div',null,'preset-io'),importFile=make('input'),importButton=make('button','Nhập file JSON','preset-tool'),pasteButton=make('button','Dán JSON','preset-tool'),aiButton=make('button','Chép hướng dẫn cho AI','preset-tool');
+  importFile.type='file';importFile.accept='.json,application/json';importFile.hidden=true;importFile.id='core-preset-import-file';
+  for(const [el,id]of [[importButton,'core-preset-import'],[pasteButton,'core-preset-paste'],[aiButton,'core-preset-ai']]){el.type='button';el.id=id;}
+  pasteButton.setAttribute('aria-expanded','false');
+  const pasteBox=make('div',null,'preset-paste'),pasteText=make('textarea',null,'preset-paste-text'),pasteImport=make('button','Nhập profile từ JSON','preset-tool');
+  pasteBox.hidden=true;pasteBox.id='core-preset-paste-box';pasteText.id='core-preset-paste-text';pasteText.rows=8;pasteText.spellcheck=false;pasteText.setAttribute('aria-label','JSON profile Rapid Trigger');
+  pasteText.placeholder='Dán JSON profile ở đây (từ file hoặc từ AI), rồi bấm “Nhập profile từ JSON”.';pasteImport.type='button';pasteImport.id='core-preset-paste-import';
+  pasteBox.append(pasteText,pasteImport);ioTools.append(importButton,pasteButton,aiButton,importFile);
+  const importProfileText=text=>{
+    try{
+      const parsed=parseRtProfile(text,capability),saved=library.save(parsed.label,parsed.preset),notes=[...parsed.warnings];
+      if(parsed.shortcut){const owner=library.list().find(item=>item.shortcut===parsed.shortcut&&item.id!==saved.id);
+        if(owner)notes.push(`Phím tắt ${parsed.shortcut} đang thuộc ${owner.label} nên chưa gán.`);else library.setShortcut(saved.id,parsed.shortcut);}
+      clearError();presetNote.textContent=`Đã nhập profile ${saved.label} (${parsed.preset.keys.length} phím khác mặc định). Bấm nút ${saved.label} để đưa vào bản nháp.${notes.length?` ${notes.join(' ')}`:''}`;
+      return true;
+    }catch(problem){showPresetError(problem);return false;}
+  };
+  listen(importButton,'click',()=>{onNavigate();importFile.click?.();});
+  listen(importFile,'change',async()=>{const file=importFile.files?.[0];importFile.value='';if(!file)return;
+    if(file.size>256*1024){showPresetError(new Error('File profile quá lớn (tối đa 256 KB).'));return;}importProfileText(await file.text());});
+  listen(pasteButton,'click',()=>{onNavigate();pasteBox.hidden=!pasteBox.hidden;pasteButton.setAttribute('aria-expanded',String(!pasteBox.hidden));if(!pasteBox.hidden)pasteText.focus?.();});
+  listen(pasteImport,'click',()=>{onNavigate();if(importProfileText(pasteText.value))pasteText.value='';});
+  listen(aiButton,'click',async()=>{onNavigate();
+    let current=null;try{if(model.view().complete)current=exportRtProfile({...presetFromDraft(capability,session.draft),label:'Current'},capability);}catch{}
+    const guide=rtProfileAiGuide(capability,current);
+    try{await globalThis.navigator.clipboard.writeText(guide);presetNote.textContent='Đã chép hướng dẫn cho AI. Dán vào ChatGPT/Claude/Gemini, mô tả game và cách chơi, rồi dán JSON AI trả về vào “Dán JSON”.';}
+    catch{pasteBox.hidden=false;pasteButton.setAttribute('aria-expanded','true');pasteText.value=guide;pasteText.select?.();presetNote.textContent='Chưa chép được tự động: hướng dẫn đã hiện trong ô bên dưới, hãy tự chép (Ctrl+C) rồi xóa ô trước khi dán JSON từ AI.';}
+  });
+  const downloadProfile=preset=>{
+    const data=exportRtProfile(preset,capability),name=`${preset.label.replace(/[^\p{L}\p{N}_-]+/gu,'-').replace(/^-+|-+$/g,'')||'profile'}.a80rt-rt.json`;
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');
+    link.href=url;link.download=name;link.click?.();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    presetNote.textContent=`Đã xuất ${name}. Gửi file này cho người khác hoặc nhập lại bằng “Nhập file JSON”.`;return data;
+  };
   let dynamic=[],capturing=null,confirmDelete=null,confirmTimer=null;
   const dlisten=(el,type,fn)=>{el.addEventListener(type,fn);dynamic.push(()=>el.removeEventListener(type,fn));};
   const showPresetError=problem=>{error.textContent=problem.message;error.hidden=false;};
@@ -186,11 +221,13 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
         if(confirmDelete!==preset.id){confirmDelete=preset.id;confirmTimer=setTimeout(()=>{confirmDelete=null;if(!destroyed)renderPresets();},3000);renderPresets();return;}
         confirmDelete=null;try{const token=library.remove(preset.id);presetNote.textContent=`Đã xóa profile ${preset.label}.`;offerUndo(token);}catch(problem){showPresetError(problem);}
       });
-      row.append(name,kind,keys,drop);return row;
+      const out=make('button','Xuất','preset-tool');out.type='button';out.id=`core-preset-export-${preset.id}`;out.title='Tải profile này về dạng file JSON để chia sẻ hoặc lưu trữ.';
+      dlisten(out,'click',()=>{onNavigate();downloadProfile(preset);});
+      row.append(name,kind,keys,out,drop);return row;
     });
     const hidden=library.hiddenCount(),restore=make('button',`Khôi phục profile cài sẵn đã xóa (${hidden})`,'preset-tool');restore.type='button';restore.id='core-preset-restore';restore.hidden=!hidden;
     dlisten(restore,'click',()=>{onNavigate();library.restoreDefaults();presetNote.textContent='Đã khôi phục các profile cài sẵn.';});
-    presetManage.replaceChildren(make('p','Profile của bạn và phím tắt được lưu trên máy này. Phím tắt chạy cả khi đang trong game nếu mở bằng A80RT-Configurator.exe.','editor-hint'),...rows,restore);
+    presetManage.replaceChildren(make('p','Profile của bạn và phím tắt được lưu trên máy này. Phím tắt chạy cả khi đang trong game nếu mở bằng A80RT-Configurator.exe.','editor-hint'),ioTools,pasteBox,...rows,restore);
     if(capturing)document.getElementById?.(`core-preset-keys-${capturing}`)?.focus?.();
     if(!destroyed)syncPresetState();
   }

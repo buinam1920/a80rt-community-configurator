@@ -4,8 +4,9 @@ Không cần thư viện ngoài (chỉ thư viện chuẩn Python: http.server, 
 
 - Phục vụ app tại http://localhost:8787/ (luôn kèm Cache-Control: no-cache để
   trình duyệt không giữ bản cũ sau khi cập nhật).
-- Đăng ký phím tắt toàn cục Ctrl+Alt+1 (LoL) và Ctrl+Alt+2 (Apex) bằng
-  RegisterHotKey, chạy được cả khi đang ở trong game.
+- Đăng ký phím tắt toàn cục bằng RegisterHotKey, chạy được cả khi đang ở trong
+  game. Mặc định Ctrl+Alt+1 (LoL) và Ctrl+Alt+2 (Apex); cửa sổ app gửi danh sách
+  phím tắt người dùng gán qua /hotkeys/bindings.
 - Khi bấm: phát tiếng "đã nhận" và gửi sự kiện cho ĐÚNG MỘT cửa sổ app qua SSE
   (/hotkeys/events): cửa sổ đã kết nối + đọc bàn phím và dùng gần nhất, kèm mã sự
   kiện để chỉ nhận một kết quả. App tự đổi profile, ghi bàn phím qua WebHID với đúng luồng
@@ -28,11 +29,69 @@ import sys
 import threading
 import urllib.parse
 
-HOTKEYS = {  # id -> (preset, nhãn, mã phím ảo, chuỗi hiển thị)
-    1: ('lol', 'LoL', 0x31, 'Ctrl+Alt+1'),
-    2: ('apex', 'Apex', 0x32, 'Ctrl+Alt+2'),
-}
-MOD_ALT, MOD_CONTROL, MOD_NOREPEAT, WM_HOTKEY = 0x1, 0x2, 0x4000, 0x0312
+# Danh sách phím tắt hiện hành: (preset, nhãn, chuỗi phím). App thay bằng /hotkeys/bindings.
+bindings = [('lol', 'LoL', 'Ctrl+Alt+1'), ('apex', 'Apex', 'Ctrl+Alt+2')]
+bindings_lock = threading.Lock()
+hotkey_ids = {}  # id RegisterHotKey -> (preset, nhãn)
+failed = []
+hotkey_thread_id = None
+rebind_done = threading.Event()
+MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN, MOD_NOREPEAT, WM_HOTKEY = 0x1, 0x2, 0x4, 0x8, 0x4000, 0x0312
+WM_APP_REBIND = 0x8001
+MOD_NAMES = {'Ctrl': MOD_CONTROL, 'Alt': MOD_ALT, 'Shift': MOD_SHIFT, 'Win': MOD_WIN}
+KEY_RE = re.compile(r'^(?:[A-Z0-9]|F(?:[1-9]|1[0-9]|2[0-4]))$')
+MAX_BINDINGS = 20
+
+
+def parse_keys(keys):
+    """'Ctrl+Alt+K' -> (modifiers, mã phím ảo) hoặc None nếu không hợp lệ."""
+    if not isinstance(keys, str):
+        return None
+    parts = keys.split('+')
+    key, mods = parts[-1], 0
+    for part in parts[:-1]:
+        if part not in MOD_NAMES:
+            return None
+        mods |= MOD_NAMES[part]
+    if not KEY_RE.match(key) or not mods & (MOD_CONTROL | MOD_ALT | MOD_WIN):
+        return None
+    vk = ord(key) if len(key) == 1 else 0x6F + int(key[1:])
+    return mods, vk
+
+
+def clean_bindings(items):
+    result = []
+    for item in items if isinstance(items, list) else []:
+        if not isinstance(item, dict):
+            continue
+        preset, label, keys = item.get('preset'), item.get('label'), item.get('keys')
+        if not isinstance(preset, str) or not preset or len(preset) > 40 or parse_keys(keys) is None:
+            continue
+        label = label[:40] if isinstance(label, str) and label else preset
+        result.append((preset, label, keys))
+        if len(result) >= MAX_BINDINGS:
+            break
+    return result
+
+
+def register_all(user32):
+    """Gọi trên luồng phím tắt: bỏ đăng ký cũ rồi đăng ký danh sách hiện hành."""
+    for hotkey_id in list(hotkey_ids):
+        user32.UnregisterHotKey(None, hotkey_id)
+    hotkey_ids.clear()
+    registered.clear()
+    failed.clear()
+    with bindings_lock:
+        current = list(bindings)
+    for index, (preset, label, keys) in enumerate(current, start=1):
+        mods, vk = parse_keys(keys)
+        if user32.RegisterHotKey(None, index, mods | MOD_NOREPEAT, vk):
+            hotkey_ids[index] = (preset, label)
+            registered.append(keys)
+            print(f'[phím tắt] {keys} → {label}', flush=True)
+        else:
+            failed.append(keys)
+            print(f'[phím tắt] Không đăng ký được {keys} (chương trình khác đang dùng).', flush=True)
 RESULT_TIMEOUT = 45  # giây chờ cửa sổ app báo kết quả trước khi kêu tiếng lỗi
 CLIENT_RE = re.compile(r'^[A-Za-z0-9_-]{8,64}$')
 RUN_ID = secrets.token_hex(4)  # đổi mỗi lần chạy để app không nhầm mã sự kiện cũ
@@ -103,22 +162,43 @@ def dispatch(preset, label):
 
 
 def hotkey_loop():
+    global hotkey_thread_id
     if os.name != 'nt':
         print('[phím tắt] Chỉ hỗ trợ Windows.', flush=True)
         return
     from ctypes import wintypes
     user32 = ctypes.windll.user32
-    for hotkey_id, (preset, label, vk, keys) in HOTKEYS.items():
-        if user32.RegisterHotKey(None, hotkey_id, MOD_CONTROL | MOD_ALT | MOD_NOREPEAT, vk):
-            registered.append(keys)
-            print(f'[phím tắt] {keys} → {label}', flush=True)
-        else:
-            print(f'[phím tắt] Không đăng ký được {keys} (chương trình khác đang dùng).', flush=True)
+    register_all(user32)
+    hotkey_thread_id = ctypes.windll.kernel32.GetCurrentThreadId()
     msg = wintypes.MSG()
     while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
-        if msg.message == WM_HOTKEY and msg.wParam in HOTKEYS:
-            preset, label, _, _ = HOTKEYS[msg.wParam]
+        if msg.message == WM_APP_REBIND:
+            register_all(user32)
+            rebind_done.set()
+        elif msg.message == WM_HOTKEY and msg.wParam in hotkey_ids:
+            preset, label = hotkey_ids[msg.wParam]
             dispatch(preset, label)
+
+
+def apply_bindings(items):
+    global bindings
+    with bindings_lock:
+        bindings = items
+    if hotkey_thread_id is None:
+        return
+    rebind_done.clear()
+    if ctypes.windll.user32.PostThreadMessageW(hotkey_thread_id, WM_APP_REBIND, 0, 0):
+        rebind_done.wait(2)
+
+
+def hotkey_config():
+    with bindings_lock:
+        current = list(bindings)
+    return {
+        'hotkeys': [{'preset': p, 'label': l, 'keys': k} for p, l, k in current],
+        'registered': list(registered), 'failed': list(failed),
+        'sound': not options.no_sound, 'bindable': True,
+    }
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -146,10 +226,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         path = self.path.split('?', 1)[0]
         if path == '/hotkeys/config':
-            return self._json(200, {
-                'hotkeys': [{'preset': p, 'label': l, 'keys': k} for p, l, _, k in HOTKEYS.values()],
-                'registered': registered, 'sound': not options.no_sound,
-            })
+            return self._json(200, hotkey_config())
         if path == '/hotkeys/events':
             return self._events()
         return super().do_GET()
@@ -199,11 +276,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         path = self.path.split('?', 1)[0]
-        if path not in ('/hotkeys/result', '/hotkeys/state', '/hotkeys/test-trigger'):
+        if path not in ('/hotkeys/result', '/hotkeys/state', '/hotkeys/test-trigger', '/hotkeys/bindings'):
             return self._json(404, {'error': 'not found'})
         if not self._same_origin():
             return self._json(403, {'error': 'origin'})
-        length = min(int(self.headers.get('Content-Length') or 0), 4096)
+        length = min(int(self.headers.get('Content-Length') or 0), 8192)
         try:
             data = json.loads(self.rfile.read(length) or b'{}')
         except ValueError:
@@ -213,13 +290,19 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if path == '/hotkeys/test-trigger':
             if not options.test_trigger:
                 return self._json(404, {'error': 'not found'})
-            match = next((v for v in HOTKEYS.values() if v[0] == data.get('preset')), None)
+            with bindings_lock:
+                match = next((v for v in bindings if v[0] == data.get('preset')), None)
             if not match:
                 return self._json(400, {'error': 'preset'})
             event_id = dispatch(match[0], match[1])
             with listeners_lock:
                 count = len(listeners)
             return self._json(200, {'listeners': count, 'event': event_id})
+        if path == '/hotkeys/bindings':
+            if not isinstance(data.get('bindings'), list):
+                return self._json(400, {'error': 'bindings'})
+            apply_bindings(clean_bindings(data['bindings']))
+            return self._json(200, hotkey_config())
         if path == '/hotkeys/state':
             with listeners_lock:
                 cid = data.get('client')

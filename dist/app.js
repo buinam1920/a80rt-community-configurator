@@ -5,7 +5,7 @@ import {ConfigSession} from './config/session.js';
 import {mountCoreEditors} from './ui/core-editors.js';
 import {mountAdvancedEditors} from './ui/advanced-editors.js';
 import {mountDeviceSettings} from './ui/device-settings.js';
-import {RT_PRESETS,presetEdits} from './config/presets.js';
+import {presetEdits,presetLibrary,shortcutFromEvent} from './config/presets.js';
 import {localize} from './i18n.js';
 import {createProfile,parseProfile,exportProfile,restoreProfile,previewProfile,profileSkippedFields,loadProfile,createIndexedDBStorage,saveProfile,listProfiles,duplicateProfile,deleteProfile,saveRecovery,readRecovery} from './config/profiles.js';
 const SAMPLE_CAPABILITY=identifyDevice({vendorId:VENDOR,productId:0x80a1,productName:'A80RT U'});
@@ -30,7 +30,7 @@ function clearMessage(){message('');}
 function setText(id,text){$(id).textContent=text;}
 function mode(){return state.snapshot?.source??'empty';}
 function describeSource(){if(mode()==='demo')return 'Dữ liệu mẫu';if(mode()==='import')return 'Bản đã lưu';if(mode()==='device')return state.reader?'Bàn phím thật':Object.keys(state.snapshot.blocks).length?'Bản đọc trước':'Thông tin thiết bị';return 'Chưa có dữ liệu';}
-function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.4.0-beta.4',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
+function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.4.0-beta.5',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
 function makeKeyboard(){
   for(const row of LAYOUT){
     const container=document.createElement('div');container.className='key-row';
@@ -441,7 +441,7 @@ async function switchPreset(preset,{global=false,event=null}={}){
   try{
     const hadChanges=session.diff().length>0;
     editors?.stopRecording();invalidateImports();
-    session.transaction(presetEdits(state.capability??SAMPLE_CAPABILITY,preset.id));
+    session.transaction(presetEdits(state.capability??SAMPLE_CAPABILITY,preset));
     clearProfilePreview();editors?.refresh();renderSelection();renderDraft();scheduleRecovery();
     const pending=session.diff().length;
     if(mode()!=='device'||!state.reader)return finish('staged',`Đã chuyển sang ${preset.label} trong bản nháp (${mode()==='demo'?'dữ liệu mẫu':'ngoại tuyến'}, không ghi bàn phím).`,'info');
@@ -456,13 +456,30 @@ async function switchPreset(preset,{global=false,event=null}={}){
   finally{presetSwitching=false;}
 }
 window.addEventListener?.('keydown',event=>{
-  if(!event.altKey||!event.ctrlKey||event.metaKey||event.shiftKey||event.repeat)return;
-  const preset=RT_PRESETS.find(item=>item.shortcut&&item.shortcut===`Ctrl+Alt+${event.code.replace(/^Digit/,'')}`);
+  if(event.repeat||event.defaultPrevented)return;
+  const keys=shortcutFromEvent(event);if(!keys)return;
+  const preset=presetLibrary.list().find(item=>item.shortcut===keys);
   if(!preset)return;event.preventDefault();void switchPreset(preset);
 });
+// Phím tắt do người dùng gán: gửi danh sách cho chương trình nền để đăng ký toàn cục.
+// Mọi cửa sổ app cùng đọc một thư viện nên gửi lại danh sách giống nhau là vô hại.
+let bindingsSent=null;
+async function syncHotkeyBindings(){
+  if(!hotkeyBridge?.bindable||typeof fetch==='undefined')return;
+  const bindings=presetLibrary.bindings().slice(0,20),body=JSON.stringify({bindings});
+  if(body===bindingsSent)return;bindingsSent=body;
+  try{
+    const response=await fetch('./hotkeys/bindings',{method:'POST',headers:{'Content-Type':'application/json'},body});
+    const result=await response.json();if(!response.ok)throw new Error(result?.error??response.status);
+    hotkeyBridge.registered=Array.isArray(result.registered)?result.registered:[];hotkeyBridge.failed=Array.isArray(result.failed)?result.failed:[];
+    if(hotkeyBridge.failed.length)toast(`Không đăng ký được phím tắt toàn cục ${hotkeyBridge.failed.join(', ')}: chương trình khác đang dùng. Chọn tổ hợp khác.`,'warning');
+  }catch{bindingsSent=null;}
+  renderHotkeyStatus();
+}
+presetLibrary.subscribe(()=>{renderHotkeyStatus();void syncHotkeyBindings();});
 function renderHotkeyStatus(){
   const box=$('hotkey-status');if(!box)return;
-  const keys=RT_PRESETS.filter(item=>item.shortcut).map(item=>`${item.shortcut} → ${item.label}`).join(' · ');
+  const keys=presetLibrary.list().filter(item=>item.shortcut).map(item=>`${item.shortcut} → ${item.label}`).join(' · ')||'—';
   const text=$('hotkey-status-text'),button=$('notify-enable');
   text.textContent=hotkeyBridge?.registered?.length?`Phím tắt toàn cục (cả trong game): ${keys}. Có tiếng báo khi bấm và khi ghi xong.`
     :hotkeyBridge?`Phím tắt chỉ trong cửa sổ app: ${keys}. Chương trình nền chưa đăng ký được phím toàn cục.`
@@ -476,7 +493,7 @@ async function connectHotkeyBridge(){
   try{
     const response=await fetch('./hotkeys/config',{cache:'no-store'});
     if(!response.ok)return renderHotkeyStatus();
-    hotkeyBridge=await response.json();renderHotkeyStatus();
+    hotkeyBridge=await response.json();renderHotkeyStatus();void syncHotkeyBindings();
     const events=new EventSource(`./hotkeys/events?client=${encodeURIComponent(hotkeyClient)}`);
     // Mỗi lần (nối lại) kết nối, chương trình nền có thể đã khởi động lại: báo lại trạng thái.
     events.onopen=()=>{hotkeyReadySent=null;reportHotkeyState(!document.hidden&&!!document.hasFocus?.());};
@@ -484,7 +501,7 @@ async function connectHotkeyBridge(){
       let data;try{data=JSON.parse(event.data);}catch{return;}
       if(typeof data?.event!=='string'||hotkeyHandled.has(data.event))return;
       hotkeyHandled.add(data.event);if(hotkeyHandled.size>64)hotkeyHandled.delete(hotkeyHandled.values().next().value);
-      const preset=RT_PRESETS.find(item=>item.id===data.preset);if(preset)void switchPreset(preset,{global:true,event:data.event});
+      const preset=presetLibrary.find(data.preset);if(preset)void switchPreset(preset,{global:true,event:data.event});
     };
     window.addEventListener?.('focus',()=>reportHotkeyState(true));
     document.addEventListener?.('visibilitychange',()=>{if(!document.hidden)reportHotkeyState(true);});

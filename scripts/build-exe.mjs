@@ -92,6 +92,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Web.Script.Serialization;
 using System.Windows.Forms;
 
 [assembly: AssemblyTitle("A80RT Configurator")]
@@ -122,10 +123,21 @@ namespace A80RT {
         }
     }
 
+    internal sealed class HotkeyBinding {
+        public string Preset;
+        public string Label;
+        public string Keys;
+    }
+
+    // Global hotkeys. Bindings come from the app window (/hotkeys/bindings); defaults
+    // Ctrl+Alt+1/2 stay active until a window sends its list. Apply must run on the
+    // thread that created this window (RegisterHotKey is thread-bound).
     internal sealed class HotkeyWindow : NativeWindow, IDisposable {
         private const int WM_HOTKEY = 0x0312;
         private const uint MOD_ALT = 0x0001;
         private const uint MOD_CONTROL = 0x0002;
+        private const uint MOD_SHIFT = 0x0004;
+        private const uint MOD_WIN = 0x0008;
         private const uint MOD_NOREPEAT = 0x4000;
 
         [DllImport("user32.dll", SetLastError = true)]
@@ -134,29 +146,71 @@ namespace A80RT {
         private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
         public readonly List<string> Registered = new List<string>();
-        private readonly Action<int> _onHotkey;
+        public readonly List<string> Failed = new List<string>();
+        public readonly List<HotkeyBinding> Bindings = new List<HotkeyBinding>();
+        private readonly Dictionary<int, HotkeyBinding> _ids = new Dictionary<int, HotkeyBinding>();
+        private readonly Action<string, string> _onHotkey;
+        private readonly bool _enabled;
+        private int _nextId = 1;
 
-        public HotkeyWindow(Action<int> onHotkey, bool registerHotkeys) {
+        public HotkeyWindow(Action<string, string> onHotkey, bool registerHotkeys) {
             _onHotkey = onHotkey;
+            _enabled = registerHotkeys;
             CreateHandle(new CreateParams());
-            if (!registerHotkeys) return;
-            if (RegisterHotKey(Handle, 1, MOD_CONTROL | MOD_ALT | MOD_NOREPEAT, 0x31))
-                Registered.Add("Ctrl+Alt+1");
-            if (RegisterHotKey(Handle, 2, MOD_CONTROL | MOD_ALT | MOD_NOREPEAT, 0x32))
-                Registered.Add("Ctrl+Alt+2");
+            List<HotkeyBinding> defaults = new List<HotkeyBinding>();
+            defaults.Add(new HotkeyBinding { Preset = "lol", Label = "LoL", Keys = "Ctrl+Alt+1" });
+            defaults.Add(new HotkeyBinding { Preset = "apex", Label = "Apex", Keys = "Ctrl+Alt+2" });
+            Apply(defaults);
+        }
+
+        // "Ctrl+Alt+K" -> modifiers + virtual key. Needs Ctrl, Alt or Win.
+        public static bool TryParse(string keys, out uint mods, out uint vk) {
+            mods = 0; vk = 0;
+            if (string.IsNullOrEmpty(keys)) return false;
+            string[] parts = keys.Split('+');
+            for (int i = 0; i < parts.Length - 1; i++) {
+                if (parts[i] == "Ctrl") mods |= MOD_CONTROL;
+                else if (parts[i] == "Alt") mods |= MOD_ALT;
+                else if (parts[i] == "Shift") mods |= MOD_SHIFT;
+                else if (parts[i] == "Win") mods |= MOD_WIN;
+                else return false;
+            }
+            string key = parts[parts.Length - 1];
+            if (key.Length == 1 && ((key[0] >= 'A' && key[0] <= 'Z') || (key[0] >= '0' && key[0] <= '9'))) vk = (uint)key[0];
+            else if (key.Length >= 2 && key.Length <= 3 && key[0] == 'F') {
+                int n;
+                if (!int.TryParse(key.Substring(1), out n) || n < 1 || n > 24) return false;
+                vk = (uint)(0x6F + n);
+            } else return false;
+            return (mods & (MOD_CONTROL | MOD_ALT | MOD_WIN)) != 0;
+        }
+
+        public void Apply(List<HotkeyBinding> bindings) {
+            foreach (int id in _ids.Keys) { try { UnregisterHotKey(Handle, id); } catch {} }
+            _ids.Clear(); Registered.Clear(); Failed.Clear(); Bindings.Clear();
+            foreach (HotkeyBinding b in bindings) {
+                uint mods, vk;
+                if (b == null || string.IsNullOrEmpty(b.Preset) || !TryParse(b.Keys, out mods, out vk)) continue;
+                Bindings.Add(b);
+                if (!_enabled) continue;
+                int id = _nextId++;
+                if (_nextId > 0xBFFF) _nextId = 1;
+                if (RegisterHotKey(Handle, id, mods | MOD_NOREPEAT, vk)) { _ids[id] = b; Registered.Add(b.Keys); }
+                else Failed.Add(b.Keys);
+            }
         }
 
         protected override void WndProc(ref Message m) {
             if (m.Msg == WM_HOTKEY) {
-                int id = m.WParam.ToInt32();
-                _onHotkey(id);
+                HotkeyBinding b;
+                if (_ids.TryGetValue(m.WParam.ToInt32(), out b)) _onHotkey(b.Preset, b.Label);
             }
             base.WndProc(ref m);
         }
 
         public void Dispose() {
-            try { UnregisterHotKey(Handle, 1); } catch {}
-            try { UnregisterHotKey(Handle, 2); } catch {}
+            foreach (int id in _ids.Keys) { try { UnregisterHotKey(Handle, id); } catch {} }
+            _ids.Clear();
             try { DestroyHandle(); } catch {}
         }
     }
@@ -189,7 +243,8 @@ namespace A80RT {
         private static int _batteryWarned = 101;
         private static Icon _baseIcon;
         private static IntPtr _batteryHicon = IntPtr.Zero;
-        private const string BaseTrayText = "A80RT Configurator (Ctrl+Alt+1 LoL · Ctrl+Alt+2 Apex)";
+        private const string BaseTrayText = "A80RT Configurator";
+        private static ToolStripMenuItem _hkItem;
         [DllImport("user32.dll")] private static extern bool DestroyIcon(IntPtr handle);
 
         [STAThread]
@@ -236,10 +291,10 @@ namespace A80RT {
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
 
-                _hotkeyWin = new HotkeyWindow(id => {
-                    if (id == 1) Dispatch("lol", "LoL");
-                    else if (id == 2) Dispatch("apex", "Apex");
-                }, !noHotkeys);
+                // UI-thread invoker: hotkey (re)registration and reads of the binding list.
+                _invoker = new Control();
+                IntPtr invokerHandle = _invoker.Handle;
+                _hotkeyWin = new HotkeyWindow((preset, label) => Dispatch(preset, label), !noHotkeys);
 
                 TcpListener server = new TcpListener(IPAddress.Loopback, _port);
                 try {
@@ -259,8 +314,6 @@ namespace A80RT {
                 string url = "http://localhost:" + _port + "/";
                 if (!_testTrigger) {
                     SetupTray(url);
-                    _invoker = new Control();
-                    IntPtr invokerHandle = _invoker.Handle;
                     var showEvent = new EventWaitHandle(false, EventResetMode.AutoReset, showEventName);
                     new Thread(() => {
                         while (showEvent.WaitOne()) {
@@ -292,12 +345,62 @@ namespace A80RT {
                 scType.InvokeMember("TargetPath", BindingFlags.SetProperty, null, shortcut, new object[] { exePath });
                 scType.InvokeMember("WorkingDirectory", BindingFlags.SetProperty, null, shortcut, new object[] { workDir });
                 scType.InvokeMember("IconLocation", BindingFlags.SetProperty, null, shortcut, new object[] { exePath + ",0" });
-                scType.InvokeMember("Description", BindingFlags.SetProperty, null, shortcut, new object[] { "A80RT Configurator (Ctrl+Alt+1 LoL · Ctrl+Alt+2 Apex)" });
+                scType.InvokeMember("Description", BindingFlags.SetProperty, null, shortcut, new object[] { "A80RT Configurator" });
                 scType.InvokeMember("Save", BindingFlags.InvokeMethod, null, shortcut, null);
                 if (notify && _tray != null) {
                     _tray.ShowBalloonTip(2000, "A80RT Configurator", "Đã tạo lối tắt trên màn hình Desktop.", ToolTipIcon.Info);
                 }
             } catch {}
+        }
+
+        private static void UpdateTrayHotkeys() {
+            if (_hkItem == null) return;
+            if (_hotkeyWin.Registered.Count > 0) {
+                string text = "Phím tắt: " + string.Join(", ", _hotkeyWin.Registered.ToArray());
+                _hkItem.Text = text.Length > 120 ? text.Substring(0, 117) + "..." : text;
+            } else _hkItem.Text = _hotkeyWin.Failed.Count > 0 ? "Phím tắt toàn cục: đang bị chiếm" : "Phím tắt: chưa gán";
+        }
+
+        private static string HotkeyConfigJson() {
+            List<object> list = new List<object>();
+            foreach (HotkeyBinding b in _hotkeyWin.Bindings)
+                list.Add(new Dictionary<string, object> { { "preset", b.Preset }, { "label", b.Label }, { "keys", b.Keys } });
+            Dictionary<string, object> body = new Dictionary<string, object>();
+            body["hotkeys"] = list;
+            body["registered"] = _hotkeyWin.Registered.ToArray();
+            body["failed"] = _hotkeyWin.Failed.ToArray();
+            body["sound"] = _sound;
+            body["bindable"] = true;
+            return new JavaScriptSerializer().Serialize(body);
+        }
+
+        private static string OnUiThread(Func<string> work) {
+            string result = null;
+            _invoker.Invoke((MethodInvoker)delegate { result = work(); });
+            return result;
+        }
+
+        private static List<HotkeyBinding> ParseBindings(string json) {
+            Dictionary<string, object> root = new JavaScriptSerializer().DeserializeObject(json) as Dictionary<string, object>;
+            object raw;
+            object[] items = root != null && root.TryGetValue("bindings", out raw) ? raw as object[] : null;
+            if (items == null) return null;
+            List<HotkeyBinding> next = new List<HotkeyBinding>();
+            foreach (object item in items) {
+                Dictionary<string, object> d = item as Dictionary<string, object>;
+                if (d == null) continue;
+                object p, l, k;
+                string preset = d.TryGetValue("preset", out p) ? p as string : null;
+                string label = d.TryGetValue("label", out l) ? l as string : null;
+                string keys = d.TryGetValue("keys", out k) ? k as string : null;
+                uint mods, vk;
+                if (string.IsNullOrEmpty(preset) || preset.Length > 40 || !HotkeyWindow.TryParse(keys, out mods, out vk)) continue;
+                if (string.IsNullOrEmpty(label)) label = preset;
+                if (label.Length > 40) label = label.Substring(0, 40);
+                next.Add(new HotkeyBinding { Preset = preset, Label = label, Keys = keys });
+                if (next.Count >= 20) break;
+            }
+            return next;
         }
 
         private static void SetupTray(string url) {
@@ -309,10 +412,9 @@ namespace A80RT {
             _appIcon = ico;
             ContextMenuStrip menu = new ContextMenuStrip();
             var titleItem = new ToolStripMenuItem("A80RT Configurator ${pkg.version}") { Enabled = false };
-            var hkStatus = _hotkeyWin.Registered.Count > 0
-                ? "Phím tắt: " + string.Join(", ", _hotkeyWin.Registered.ToArray())
-                : "Phím tắt toàn cục: Đang bị chiếm";
-            var hkItem = new ToolStripMenuItem(hkStatus) { Enabled = false };
+            _hkItem = new ToolStripMenuItem("") { Enabled = false };
+            var hkItem = _hkItem;
+            UpdateTrayHotkeys();
             var openItem = new ToolStripMenuItem("Mở cửa sổ cấu hình", null, (s, e) => OpenAppWindow(url));
             var soundItem = new ToolStripMenuItem("Tiếng báo khi bấm phím tắt") { Checked = _sound, CheckOnClick = true };
             soundItem.CheckedChanged += (s, e) => _sound = soundItem.Checked;
@@ -357,7 +459,7 @@ namespace A80RT {
             } else {
                 _batteryHicon = DrawBatteryIcon(b);
                 _tray.Icon = Icon.FromHandle(_batteryHicon);
-                _tray.Text = "A80RT · Pin " + b + "% · Ctrl+Alt+1 LoL · Ctrl+Alt+2 Apex";
+                _tray.Text = "A80RT Configurator · Pin " + b + "%";
                 if (b <= 10 && _batteryWarned > 10) { _batteryWarned = 10; ShowLowBattery(b); }
                 else if (b <= 20 && _batteryWarned > 20) { _batteryWarned = 20; ShowLowBattery(b); }
                 if (b > 25) _batteryWarned = 101;
@@ -545,14 +647,7 @@ namespace A80RT {
 
                     if (method == "GET") {
                         if (path == "/hotkeys/config") {
-                            StringBuilder regJson = new StringBuilder("[");
-                            for (int i = 0; i < _hotkeyWin.Registered.Count; i++) {
-                                if (i > 0) regJson.Append(",");
-                                regJson.Append("\\"").Append(_hotkeyWin.Registered[i]).Append("\\"");
-                            }
-                            regJson.Append("]");
-                            string body = "{\\"hotkeys\\":[{\\"preset\\":\\"lol\\",\\"label\\":\\"LoL\\",\\"keys\\":\\"Ctrl+Alt+1\\"},{\\"preset\\":\\"apex\\",\\"label\\":\\"Apex\\",\\"keys\\":\\"Ctrl+Alt+2\\"}],\\"registered\\":" + regJson + ",\\"sound\\":" + (_sound ? "true" : "false") + "}";
-                            WriteJson(ns, 200, body);
+                            WriteJson(ns, 200, OnUiThread(HotkeyConfigJson));
                             return;
                         }
                         if (path == "/hotkeys/events") {
@@ -571,7 +666,7 @@ namespace A80RT {
                         int contentLen = 0;
                         string lenStr;
                         if (headers.TryGetValue("Content-Length", out lenStr)) int.TryParse(lenStr, out contentLen);
-                        contentLen = Math.Min(Math.Max(contentLen, 0), 4096);
+                        contentLen = Math.Min(Math.Max(contentLen, 0), 8192);
                         byte[] bodyBytes = new byte[contentLen];
                         int read = 0;
                         while (read < contentLen) {
@@ -581,7 +676,7 @@ namespace A80RT {
                         }
                         string bodyText = Encoding.UTF8.GetString(bodyBytes, 0, read);
 
-                        if (path != "/hotkeys/result" && path != "/hotkeys/state" && path != "/hotkeys/test-trigger") {
+                        if (path != "/hotkeys/result" && path != "/hotkeys/state" && path != "/hotkeys/test-trigger" && path != "/hotkeys/bindings") {
                             WriteJson(ns, 404, "{\\"error\\":\\"not found\\"}");
                             return;
                         }
@@ -600,12 +695,24 @@ namespace A80RT {
                         if (path == "/hotkeys/test-trigger") {
                             if (!_testTrigger) { WriteJson(ns, 404, "{\\"error\\":\\"not found\\"}"); return; }
                             string preset = ExtractJsonString(trimmed, "preset");
-                            if (preset != "lol" && preset != "apex") { WriteJson(ns, 400, "{\\"error\\":\\"preset\\"}"); return; }
-                            string evId = Dispatch(preset, preset == "lol" ? "LoL" : "Apex");
+                            string label = OnUiThread(() => {
+                                foreach (HotkeyBinding b in _hotkeyWin.Bindings) if (b.Preset == preset) return b.Label;
+                                return null;
+                            });
+                            if (label == null) { WriteJson(ns, 400, "{\\"error\\":\\"preset\\"}"); return; }
+                            string evId = Dispatch(preset, label);
                             int count;
                             lock (LockObj) count = Listeners.Count;
                             string evJson = evId == null ? "null" : ("\\"" + evId + "\\"");
                             WriteJson(ns, 200, "{\\"listeners\\":" + count + ",\\"event\\":" + evJson + "}");
+                            return;
+                        }
+
+                        if (path == "/hotkeys/bindings") {
+                            List<HotkeyBinding> next;
+                            try { next = ParseBindings(trimmed); } catch { next = null; }
+                            if (next == null) { WriteJson(ns, 400, "{\\"error\\":\\"bindings\\"}"); return; }
+                            WriteJson(ns, 200, OnUiThread(() => { _hotkeyWin.Apply(next); UpdateTrayHotkeys(); return HotkeyConfigJson(); }));
                             return;
                         }
 

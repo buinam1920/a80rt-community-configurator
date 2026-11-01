@@ -73,3 +73,21 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
 .lang-switch{display:inline-flex;border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .lang-switch button{border:0;background:transparent;color:var(--muted);font:600 11px var(--mono);padding:4px 9px;cursor:pointer}
 .lang-switch button[aria-pressed=true]{background:var(--accent);color:#19270a}
+/* Profile của bạn: lưu, quản lý, phím tắt */
+.preset-button.preset-user{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.preset-save{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px}
+.preset-name{flex:1 1 200px;min-width:160px;max-width:320px;background:var(--surface2);color:var(--text);border:1px solid var(--line);border-radius:5px;padding:7px 10px;font-size:12px}
+.preset-name:focus{outline:none;border-color:var(--accent)}
+.preset-tool{border:1px solid var(--line);background:transparent;color:var(--text);border-radius:5px;padding:7px 12px;font-size:12px;cursor:pointer}
+.preset-tool:hover:not(:disabled){border-color:var(--accent)}
+.preset-tool:disabled,.preset-name:disabled{opacity:.45;cursor:not-allowed}
+.preset-tool[aria-expanded=true]{border-color:var(--accent);color:var(--accent)}
+.preset-manage{border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin:0 0 10px;display:grid;gap:6px}
+.preset-row{display:grid;grid-template-columns:minmax(90px,1fr) auto minmax(150px,auto) auto;gap:8px;align-items:center}
+.preset-row-name{font-weight:600;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.preset-row-kind{font-size:11px;color:var(--muted)}
+.preset-keys{font-family:ui-monospace,Consolas,monospace;min-width:150px;text-align:center}
+.preset-delete:hover:not(:disabled){border-color:#e5484d;color:#ff8589}
+.editor-panel>.preset-bar,.editor-panel>.preset-save,.editor-panel>.preset-manage{grid-column:1/-1}
+.editor-panel>.preset-save,.editor-panel>.preset-manage{margin:-10px 0 0}
+.preset-manage{max-width:720px}

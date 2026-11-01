@@ -1,15 +1,15 @@
-# A80RT Community Configurator — 0.4.0-beta.1
+# A80RT Community Configurator — 0.4.0-beta.5
 
 An unofficial community configurator compatible with LEOBOG A80RT keyboards. This project is not affiliated with or endorsed by LEOBOG. Product names identify compatible hardware only.
 
-**[Download the Windows beta](https://github.com/buinam1920/a80rt-community-configurator/releases/tag/v0.4.0-beta.1)** — choose `A80RT-Configurator-0.4.0-beta.1.exe` under Assets.
+**[Download the Windows beta](https://github.com/buinam1920/a80rt-community-configurator/releases/tag/v0.4.0-beta.5)** — choose `A80RT-Configurator-0.4.0-beta.5.exe` under Assets.
 
 ## Getting started
 
-1. Install Microsoft Edge or Google Chrome, then run the executable. Python is not required for the executable.
+1. Run the executable. It opens its own window using Microsoft WebView2, which is built into Windows 10/11; Edge or Chrome is only needed for the `--browser` fallback. Python is not required.
 2. Close the manufacturer's configuration page. In the app, connect the keyboard and read its configuration. All nine configuration blocks must be read before editing.
 3. Edit the draft, review the changes, then click Apply. Sliders and preset buttons only change the local draft.
-4. Keep the app window open while using global shortcuts: **Ctrl+Alt+1 → LoL**, **Ctrl+Alt+2 → Apex**. A shortcut applies its preset automatically only when the existing draft has no changes. Otherwise, review the staged preset and click Apply.
+4. Keep the app running (closing the window keeps it in the tray) while using global shortcuts. Defaults are **Ctrl+Alt+1 → LoL** and **Ctrl+Alt+2 → Apex**; assign your own under **Manage profiles & shortcuts** in the Rapid Trigger tab. A shortcut applies its profile automatically only when the existing draft has no changes. Otherwise, review the staged profile and click Apply.
 5. Use the system tray menu to reopen the window, toggle sound, create a desktop shortcut, or exit completely.
 
 Profiles are stored in the browser on this machine, not inside the executable. Export profile JSON files to keep separate backups. Changing the browser, origin, or clearing site data can make existing profiles unavailable.
@@ -32,10 +32,11 @@ The executable is unsigned. Physical in-game hotkeys and a complete preset write
 - Per-key actuation, Rapid Trigger press/release thresholds, and whole-travel RT.
 - Base/Fn mappings, lighting, per-key colors, macros, DKS, MT, TGL, RS/SOCD, and general settings, subject to model capabilities and write restrictions.
 - Vendor-derived Office, Beginner, and Gaming presets; community LoL and Apex presets.
+- Your own Rapid Trigger profiles: name the current draft and save it as a button next to the presets, delete or hide any profile (built-ins can be restored), and assign a global shortcut to any profile (Ctrl, Alt or Win plus A–Z, 0–9 or F1–F24).
 - Local profiles, JSON import/export, draft previews, and session recovery.
 - A standalone Windows executable with embedded interface assets and system tray controls. Since 0.4.0-beta.3 it opens its **own window (WebView2)** instead of a browser: the exe talks to the keyboard through the Windows HID API and exposes the same `navigator.hid` surface to the app (`scripts/native/hid-shim.js`, `scripts/native/NativeShell.cs`). Report bytes pass through unchanged, so every measured protocol rule is still enforced by the same JavaScript; the host never builds, alters, retries or originates a report. No device chooser is needed and the keyboard is detected automatically. Closing the window keeps the app in the tray (hotkeys, battery); use the tray menu to exit. `--browser` forces the previous Edge/Chrome app window, which is also the automatic fallback when WebView2 is unavailable. Profiles saved in the browser version live in that browser's storage: export them as JSON there and import them in the window. WebView2 SDK 1.0.4314.35 is redistributed under its license (`vendor/webview2/`).
 - English or Vietnamese interface (VI/EN switch in the top bar; follows the system language by default).
-- Global profile shortcuts with sound feedback and optional Windows notifications.
+- Global profile shortcuts with sound feedback and optional Windows notifications. The app window sends its shortcut list to the exe (or `scripts/a80rt_local.py`), which registers them with `RegisterHotKey`.
 - Single-window event dispatch: the bridge selects one app window, prioritizes a connected/read session, and accepts only the first matching result for each event. Events time out after 45 seconds.
 - Installable browser app (PWA) with an offline interface cache.
 
@@ -52,6 +53,8 @@ Global top/bottom dead zones are settings bytes 8/9, with a range of 0.00–0.50
 Per-key switch selection is available for wired A80RT/A80RT U under source-derived capability gates and hidden for the dongle. Unknown switch IDs are preserved. Distance edits are rejected if switch travel is unknown. Changing a switch does not calibrate it; use the manufacturer's calibration tool.
 
 Vendor-derived presets preserve switch IDs and the bottom/rtMode bits. Only Office resets both global dead zones to zero. Preset values and source notes are in [presets.js](dist/config/presets.js).
+
+Saved profiles store Rapid Trigger for every key (actuation, RT press/release, whole-travel) and both global dead zones; switch IDs and the bottom/rtMode bits are left untouched. They are kept in this window's local storage, apply through the same draft, preflight and readback as any other edit, and are therefore writable over the receiver as well as the cable.
 
 Community presets are starting points, not manufacturer data:
 
@@ -132,4 +135,4 @@ Manufacturer cloud libraries, music sync, calibration, reset, and firmware updat
 - **0.3.6:** installable PWA and offline interface caching.
 - **0.3.5:** draft context, macro ownership, DKS/profile validation, and import-race fixes. See the [historical correctness notes](docs/0.3.5-correctness.md).
 
-These older version numbers describe project history. The current release is **0.4.0-beta.4** ([release notes](docs/release-0.4.0-beta.4.md)); see also the [0.4.0-beta.3 release notes](docs/release-0.4.0-beta.3.md).
+These older version numbers describe project history. The current release is **0.4.0-beta.5** ([release notes](docs/release-0.4.0-beta.5.md)); see also the notes for [0.4.0-beta.4](docs/release-0.4.0-beta.4.md) and [0.4.0-beta.3](docs/release-0.4.0-beta.3.md).

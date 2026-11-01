@@ -1,7 +1,7 @@
 import {decodeBlock} from '../config/codecs.js';
 import {KEYS,usageName} from '../layout.js';
 import {readPlan} from '../device/capabilities.js';
-import {RT_PRESETS,presetEdits,matchingPreset} from '../config/presets.js';
+import {presetEdits,matchingPreset,presetLibrary,presetFromDraft,shortcutFromEvent,MAX_PRESET_LABEL} from '../config/presets.js';
 
 const RT_FIELDS=['switchId','actuationMm','pressMm','releaseMm','whole','bottom','rtMode'];
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
@@ -72,7 +72,7 @@ function bindingValue(binding){
   return null;
 }
 
-export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdit=()=>{},onLayerChange=()=>{},onNavigate=()=>{},isBusy=()=>false}){
+export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdit=()=>{},onLayerChange=()=>{},onNavigate=()=>{},isBusy=()=>false,library=presetLibrary}){
   const model=createCoreEditorModel({session,capability,selectedSlots,onEdit,isBusy});
   const listeners=[],controls=new Map(),panels=new Map(),tabs=new Map();let active='rt',destroyed=false,invalidInput=null;
   const make=(tag,text,className)=>{const el=document.createElement(tag);if(text)el.textContent=text;if(className)el.className=className;return el;};
@@ -97,20 +97,83 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
   };
   const option=(select,value,label)=>{const el=make('option',label);el.value=String(value);select.append(el);};
   const rtPanel=panels.get('rt');rtPanel.append(make('p','Chỉ trường bạn sửa được đổi cho vùng chọn. Điểm nhận raw0 đọc được được giữ nguyên và có thể khôi phục từ hồ sơ; chưa xác định ý nghĩa vật lý. Nhập điểm nhận thủ công tối thiểu 0,01 mm.','editor-hint'));
-  // Chế độ cài sẵn của hãng: một transaction cho cả bàn phím, chỉ vào bản nháp.
-  const presetBar=make('div',null,'preset-bar'),presetButtons=new Map(),presetNote=make('p','Chọn chế độ cài sẵn của hãng để đưa vào bản nháp; chỉ gửi bàn phím khi bấm Áp dụng.','editor-hint');
-  presetBar.setAttribute('role','group');presetBar.setAttribute('aria-label','Chế độ cài sẵn của hãng');
+  // Profile Rapid Trigger: cài sẵn của hãng, gợi ý của app và profile bạn tự lưu. Mỗi lần
+  // chọn là một transaction cho cả bàn phím, chỉ vào bản nháp; gửi khi bấm Áp dụng.
+  const presetBar=make('div',null,'preset-bar'),presetButtons=new Map(),presetNote=make('p','Chọn profile để đưa vào bản nháp; chỉ gửi bàn phím khi bấm Áp dụng.','editor-hint');
+  presetBar.setAttribute('role','group');presetBar.setAttribute('aria-label','Profile Rapid Trigger');
   const presetsEnabled=()=>{const view=model.view();return view.complete&&!session?.applying&&!isBusy();};
-  for(const preset of [{id:null,label:'Tùy chỉnh',description:'Cấu hình hiện tại không trùng chế độ nào của hãng.'},...RT_PRESETS]){
-    const item=make('button',preset.shortcut?`${preset.label} · ${preset.shortcut}`:preset.label,`preset-button${preset.group==='game'?' preset-game':''}`);item.type='button';item.id=`core-preset-${preset.id??'custom'}`;item.title=`${preset.description}${preset.shortcut?` Phím tắt ${preset.shortcut} khi cửa sổ app đang mở.`:''}`;presetBar.append(item);presetButtons.set(preset.id,item);
-    listen(item,'click',()=>{onNavigate();
-      if(!preset.id){presetNote.textContent='Tùy chỉnh: giữ nguyên cấu hình đang chỉnh. Muốn quay về bản đọc từ bàn phím, bấm Hoàn tác bản nháp.';return;}
-      try{if(!presetsEnabled())throw new Error('Đọc đủ cấu hình và chờ giao dịch xong trước khi chọn chế độ.');
-        session.transaction(presetEdits(capability,preset.id));onEdit(session.diff());clearError();
-        presetNote.textContent=`Đã đưa chế độ ${preset.label} vào bản nháp: ${preset.description} Chưa gửi bàn phím.`;refresh();
-      }catch(problem){error.textContent=problem.message;error.hidden=false;}
+  const presetSave=make('div',null,'preset-save'),presetName=make('input',null,'preset-name'),presetSaveButton=make('button','Lưu thành profile','preset-tool'),presetManageButton=make('button','Quản lý profile & phím tắt','preset-tool');
+  presetName.type='text';presetName.id='core-preset-name';presetName.placeholder='Tên profile mới (vd. Valorant)';presetName.maxLength=MAX_PRESET_LABEL;presetName.setAttribute('aria-label','Tên profile mới');
+  presetSaveButton.type='button';presetSaveButton.id='core-preset-save';presetManageButton.type='button';presetManageButton.id='core-preset-manage';presetManageButton.setAttribute('aria-expanded','false');
+  presetSave.append(presetName,presetSaveButton,presetManageButton);
+  const presetManage=make('div',null,'preset-manage');presetManage.id='core-preset-manage-panel';presetManage.hidden=true;
+  let dynamic=[],capturing=null,confirmDelete=null,confirmTimer=null;
+  const dlisten=(el,type,fn)=>{el.addEventListener(type,fn);dynamic.push(()=>el.removeEventListener(type,fn));};
+  const showPresetError=problem=>{error.textContent=problem.message;error.hidden=false;};
+  const choosePreset=preset=>{onNavigate();
+    if(!preset.id){presetNote.textContent='Tùy chỉnh: giữ nguyên cấu hình đang chỉnh. Đặt tên rồi bấm “Lưu thành profile” để giữ nó thành một nút như các profile khác.';presetName.focus?.();return;}
+    try{if(!presetsEnabled())throw new Error('Đọc đủ cấu hình và chờ giao dịch xong trước khi chọn profile.');
+      session.transaction(presetEdits(capability,preset));onEdit(session.diff());clearError();
+      presetNote.textContent=`Đã đưa profile ${preset.label} vào bản nháp: ${preset.description} Chưa gửi bàn phím.`;refresh();
+    }catch(problem){showPresetError(problem);}
+  };
+  const stopCapture=()=>{capturing=null;};
+  // Bấm nút phím tắt rồi bấm tổ hợp mới. Esc để hủy, Backspace/Delete để bỏ phím tắt.
+  const captureKeys=(preset,button)=>event=>{
+    if(capturing!==preset.id)return;
+    event.preventDefault?.();event.stopPropagation?.();
+    if(event.key==='Escape'){stopCapture();renderPresets();return;}
+    if(event.key==='Backspace'||event.key==='Delete'){stopCapture();library.setShortcut(preset.id,null);presetNote.textContent=`Đã bỏ phím tắt của ${preset.label}.`;return;}
+    const keys=shortcutFromEvent(event);
+    if(!keys){if(!['Control','Alt','Shift','Meta'].includes(event.key))button.textContent='Cần Ctrl/Alt/Win + chữ, số hoặc F1–F24';return;}
+    const owner=library.list().find(item=>item.shortcut===keys&&item.id!==preset.id);
+    stopCapture();library.setShortcut(preset.id,keys);clearError();
+    presetNote.textContent=`Đã gán ${keys} → ${preset.label}${owner?` (bỏ khỏi ${owner.label})`:''}.`;
+  };
+  function renderPresets(){
+    for(const remove of dynamic)remove();dynamic=[];presetButtons.clear();
+    const all=[{id:null,label:'Tùy chỉnh',description:'Cấu hình hiện tại không trùng profile nào.'},...library.list()];
+    presetBar.replaceChildren(...all.map(preset=>{
+      const kind=preset.group==='game'?' preset-game':preset.group==='user'?' preset-user':'';
+      const item=make('button',preset.shortcut?`${preset.label} · ${preset.shortcut}`:preset.label,`preset-button${kind}`);item.type='button';item.id=`core-preset-${preset.id??'custom'}`;
+      item.title=`${preset.description}${preset.shortcut?` Phím tắt ${preset.shortcut}.`:''}`;presetButtons.set(preset.id,item);dlisten(item,'click',()=>choosePreset(preset));return item;
+    }));
+    const rows=library.list().map(preset=>{
+      const row=make('div',null,'preset-row'),name=make('span',preset.label,'preset-row-name'),kind=make('span',preset.group==='user'?'Của bạn':preset.group==='game'?'Gợi ý của app':'Của hãng','preset-row-kind');
+      const keys=make('button',capturing===preset.id?'Bấm tổ hợp phím… (Esc hủy)':preset.shortcut??'Gán phím tắt','preset-tool preset-keys');keys.type='button';keys.id=`core-preset-keys-${preset.id}`;
+      keys.title='Bấm rồi nhấn tổ hợp mới, vd. Ctrl+Alt+3. Esc để hủy, Backspace để bỏ phím tắt.';
+      dlisten(keys,'click',()=>{onNavigate();capturing=capturing===preset.id?null:preset.id;renderPresets();});
+      dlisten(keys,'keydown',captureKeys(preset,keys));dlisten(keys,'blur',()=>{if(capturing===preset.id){stopCapture();renderPresets();}});
+      const drop=make('button',confirmDelete===preset.id?'Bấm lần nữa để xóa':'Xóa','preset-tool preset-delete');drop.type='button';drop.id=`core-preset-delete-${preset.id}`;
+      drop.title=preset.builtin?'Ẩn profile cài sẵn này; khôi phục được bằng nút bên dưới.':'Xóa hẳn profile của bạn khỏi máy này.';
+      dlisten(drop,'click',()=>{onNavigate();clearTimeout(confirmTimer);
+        if(confirmDelete!==preset.id){confirmDelete=preset.id;confirmTimer=setTimeout(()=>{confirmDelete=null;if(!destroyed)renderPresets();},3000);renderPresets();return;}
+        confirmDelete=null;try{library.remove(preset.id);presetNote.textContent=`Đã xóa profile ${preset.label}.`;}catch(problem){showPresetError(problem);}
+      });
+      row.append(name,kind,keys,drop);return row;
     });
+    const hidden=library.hiddenCount(),restore=make('button',`Khôi phục profile cài sẵn đã xóa (${hidden})`,'preset-tool');restore.type='button';restore.id='core-preset-restore';restore.hidden=!hidden;
+    dlisten(restore,'click',()=>{onNavigate();library.restoreDefaults();presetNote.textContent='Đã khôi phục các profile cài sẵn.';});
+    presetManage.replaceChildren(make('p','Profile của bạn và phím tắt được lưu trên máy này. Phím tắt chạy cả khi đang trong game nếu mở bằng A80RT-Configurator.exe.','editor-hint'),...rows,restore);
+    if(capturing)document.getElementById?.(`core-preset-keys-${capturing}`)?.focus?.();
+    if(!destroyed)syncPresetState();
   }
+  function syncPresetState(){
+    const view=model.view(),presetActive=session?.draft&&capability?matchingPreset(capability,session.draft,library.list()):null,canPreset=view.complete&&!session?.applying&&!isBusy();
+    for(const [id,item]of presetButtons){item.setAttribute('aria-pressed',String(view.complete&&id===presetActive));item.disabled=!canPreset;}
+    presetSaveButton.disabled=!view.complete;presetName.disabled=!view.complete;
+  }
+  listen(presetManageButton,'click',()=>{onNavigate();presetManage.hidden=!presetManage.hidden;presetManageButton.setAttribute('aria-expanded',String(!presetManage.hidden));});
+  const savePreset=()=>{onNavigate();
+    try{if(!model.view().complete)throw new Error('Đọc đủ cấu hình trước khi lưu profile.');
+      const saved=library.save(presetName.value,presetFromDraft(capability,session.draft));presetName.value='';clearError();
+      presetNote.textContent=`Đã lưu profile ${saved.label} từ bản nháp hiện tại (Rapid Trigger mọi phím + vùng chết). Mở “Quản lý profile & phím tắt” để gán phím tắt.`;
+    }catch(problem){showPresetError(problem);}
+  };
+  listen(presetSaveButton,'click',savePreset);
+  listen(presetName,'keydown',event=>{if(event.key==='Enter'){event.preventDefault?.();savePreset();}});
+  const unsubscribe=library.subscribe(()=>{if(!destroyed)renderPresets();});listeners.push(()=>{unsubscribe();for(const remove of dynamic)remove();dynamic=[];clearTimeout(confirmTimer);});
+  renderPresets();
   // Thanh điểm nhận dọc như driver hãng: phần sáng là quãng nhấn tới điểm nhận.
   const visual=make('div',null,'rt-visual'),gauge=make('div',null,'travel-gauge'),gaugeValue=make('strong',null,'travel-gauge-value'),track=make('div',null,'travel-gauge-track');
   const pressPart=make('div',null,'travel-gauge-press'),restPart=make('div',null,'travel-gauge-rest'),marker=make('div',null,'travel-gauge-marker'),info=make('div',null,'rt-visual-info');
@@ -136,7 +199,7 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
     const next=event.key==='Home'?0.01:event.key==='End'?gaugeState.max:base+(['ArrowDown','ArrowRight','PageDown'].includes(event.key)?step:-step);
     commit('rt','actuationMm',Math.min(gaugeState.max,Math.max(0.01,Math.round(next*100)/100)));
   });
-  rtPanel.append(presetBar,presetNote,visual);
+  rtPanel.append(presetBar,presetSave,presetManage,presetNote,visual);
   if(capability?.fields.rt.switchId){
     const switchInput=field(rtPanel,'switchId','Loại switch · ID từng phím','select');option(switchInput,'','—');
     for(const id of capability.limits.switchIds)option(switchInput,id,`${id} · ${capability.limits.switchLabels[id]} · ${capability.limits.switchTravelMm[id]} mm`);
@@ -190,8 +253,7 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
       }
       if(range){input.max=range.max=String(view.limits.maxMm??3.4);range.disabled=!view.editable||data.mixed||data.value===undefined||data.value<Number(input.min)||data.value>Number(input.max);range.hidden=data.mixed||data.value===undefined;if(!range.disabled)range.value=String(data.value);}
     }
-    const presetActive=session?.draft&&capability?matchingPreset(capability,session.draft):null,canPreset=view.complete&&!session?.applying&&!isBusy();
-    for(const [id,item]of presetButtons){item.setAttribute('aria-pressed',String(view.complete&&id===presetActive));item.disabled=!canPreset;}
+    syncPresetState();
     const actuation=view.rt.actuationMm,fallback=capability?.limits.vendorDefaultActuationMm??1.2;
     gaugeState={enabled:view.editable&&(actuation.value!==undefined||actuation.mixed),value:actuation.value===0?fallback:actuation.value??null,max:view.limits.maxMm??3.4,isDefault:actuation.value===0};
     gauge.setAttribute('aria-disabled',String(!gaugeState.enabled));

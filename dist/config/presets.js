@@ -37,12 +37,12 @@ export const RT_PRESETS=Object.freeze([
     rest:vendorFrame(1.5),keys:[...at(['W','A','S','D'],0.4,0.15,true),...at(['Space','LShift'],0.8),...at(['LCtrl','C'],0.6,0.2),...at(['Q','Z','E','R','G','Tab'],1.2)]},
 ].map(preset=>Object.freeze(preset)));
 
-export const presetById=id=>{const preset=RT_PRESETS.find(item=>item.id===id);if(!preset)throw new Error(`Unknown preset: ${id}`);return preset;};
+export const presetById=id=>{const preset=RT_PRESETS.find(item=>item.id===id)??presetLibrary.find(id);if(!preset)throw new Error(`Unknown preset: ${id}`);return preset;};
 const targetFor=(preset,slot)=>{const {actuationMm,pressMm,releaseMm,whole}=preset.keys.find(entry=>entry.slot===slot)??preset.rest;return {actuationMm,pressMm,releaseMm,whole};};
 
 // Return edit groups for one transaction, including only model-editable fields.
 export function presetEdits(capability,id){
-  const preset=presetById(id),fields=capability.fields.rt,rt=[];
+  const preset=typeof id==='object'&&id?id:presetById(id),fields=capability.fields.rt,rt=[];
   for(const slot of capability.slots)for(const [field,value]of Object.entries(targetFor(preset,slot)))if(fields[field]===true)rt.push({slot,field,value});
   const groups={rt};
   if(preset.deadZone){const settings=[];
@@ -53,11 +53,149 @@ export function presetEdits(capability,id){
 }
 
 // Return the preset matching the draft, or null for a custom configuration.
-export function matchingPreset(capability,blocks){
+export function matchingPreset(capability,blocks,presets=presetLibrary.list()){
   if(!blocks?.rt||!readPlan(capability).some(block=>block.id==='rt'))return null;
   const records=decodeBlock('rt',blocks.rt,capability).records,settings=blocks.settings?decodeBlock('settings',blocks.settings,capability).fields:null;
   const near=(a,b)=>Math.abs(a-b)<1e-9;
-  return RT_PRESETS.find(preset=>capability.slots.every(slot=>{const target=targetFor(preset,slot),record=records[slot];
+  return presets.find(preset=>capability.slots.every(slot=>{const target=targetFor(preset,slot),record=records[slot];
       return record&&near(record.actuationMm,target.actuationMm)&&near(record.pressMm,target.pressMm)&&near(record.releaseMm,target.releaseMm)&&(!capability.fields.rt.whole||record.whole===target.whole);})
     &&(!preset.deadZone||!settings||(settings.topDeadZone===preset.deadZone.top&&settings.bottomDeadZone===preset.deadZone.bottom)))?.id??null;
 }
+
+// ---------- Thư viện profile RT: cài sẵn + profile người dùng + phím tắt ----------
+// Lưu cục bộ (localStorage) trên máy này. Profile người dùng chỉ gồm Rapid Trigger
+// (điểm nhận, RT nhấn/nhả, cả hành trình) của mọi phím và vùng chết trên/dưới; áp dụng
+// vẫn đi qua bản nháp, preflight, chặn Fn và đọc lại xác minh như mọi thay đổi khác.
+// Profile cài sẵn "xóa" là ẩn đi, khôi phục được.
+const STORE_KEY='a80rt-rt-presets';
+const DEFAULT_SHORTCUTS=Object.freeze({lol:'Ctrl+Alt+1',apex:'Ctrl+Alt+2'});
+export const MAX_PRESET_LABEL=32,MAX_USER_PRESETS=24;
+const KEY_RE=/^(?:[A-Z]|[0-9]|F(?:[1-9]|1\d|2[0-4]))$/;
+const MOD_ORDER=['Ctrl','Alt','Shift','Win'];
+
+// Chuẩn hóa "ctrl + alt + k" thành "Ctrl+Alt+K". Bắt buộc có Ctrl, Alt hoặc Win để phím
+// tắt toàn cục không nuốt phím gõ thường trong game.
+export function normalizeShortcut(text){
+  if(typeof text!=='string')throw new Error('Phím tắt không hợp lệ.');
+  const parts=text.split('+').map(part=>part.trim()).filter(Boolean);
+  const key=(parts.pop()??'').toUpperCase(),mods=new Set();
+  for(const part of parts){
+    const lower=part.toLowerCase(),mod=MOD_ORDER.find(name=>name.toLowerCase()===lower||(name==='Ctrl'&&lower==='control'));
+    if(!mod)throw new Error(`Phím bổ trợ không hỗ trợ: ${part}`);mods.add(mod);
+  }
+  if(!KEY_RE.test(key))throw new Error('Phím chính cần là chữ A–Z, số 0–9 hoặc F1–F24.');
+  if(!mods.has('Ctrl')&&!mods.has('Alt')&&!mods.has('Win'))throw new Error('Phím tắt cần có Ctrl, Alt hoặc Win để không trùng phím gõ thường.');
+  return [...MOD_ORDER.filter(mod=>mods.has(mod)),key].join('+');
+}
+// Tổ hợp từ một KeyboardEvent, hoặc null khi chưa có phím chính hay thiếu phím bổ trợ.
+export function shortcutFromEvent(event){
+  const code=event?.code??'';let key=null;
+  if(/^Key[A-Z]$/.test(code))key=code.slice(3);
+  else if(/^Digit\d$/.test(code))key=code.slice(5);
+  else if(/^F([1-9]|1\d|2[0-4])$/.test(code))key=code;
+  if(!key)return null;
+  const mods=[event.ctrlKey&&'Ctrl',event.altKey&&'Alt',event.shiftKey&&'Shift',event.metaKey&&'Win'].filter(Boolean);
+  try{return normalizeShortcut([...mods,key].join('+'));}catch{return null;}
+}
+
+// Chụp Rapid Trigger (và vùng chết) hiện tại của bản nháp thành một profile.
+export function presetFromDraft(capability,blocks,{id='u-draft',label='Profile'}={}){
+  if(!blocks?.rt)throw new Error('Chưa có dữ liệu Rapid Trigger để lưu.');
+  const records=decodeBlock('rt',blocks.rt,capability).records,keys=[];
+  for(const slot of capability.slots){
+    const record=records[slot];if(!record)throw new Error(`Thiếu dữ liệu phím ở vị trí ${slot}.`);
+    keys.push({slot,actuationMm:record.actuationMm,pressMm:record.pressMm,releaseMm:record.releaseMm,whole:record.whole===true});
+  }
+  const first=keys[0]??{actuationMm:1.5,pressMm:0,releaseMm:0,whole:false};
+  const preset={id,group:'user',label,rest:{actuationMm:first.actuationMm,pressMm:first.pressMm,releaseMm:first.releaseMm,whole:first.whole},keys};
+  if(blocks.settings&&capability.settings.topDeadZone&&capability.settings.bottomDeadZone){
+    const fields=decodeBlock('settings',blocks.settings,capability).fields;preset.deadZone={top:fields.topDeadZone,bottom:fields.bottomDeadZone};
+  }
+  return preset;
+}
+const mmOk=value=>typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=3.4;
+const frameOf=entry=>entry&&mmOk(entry.actuationMm)&&mmOk(entry.pressMm)&&mmOk(entry.releaseMm)
+  ?{actuationMm:entry.actuationMm,pressMm:entry.pressMm,releaseMm:entry.releaseMm,whole:entry.whole===true}:null;
+function validUserPreset(item){
+  if(!item||typeof item!=='object'||typeof item.id!=='string'||!/^u-[a-z0-9]{4,24}$/.test(item.id))return null;
+  const label=typeof item.label==='string'?item.label.trim().slice(0,MAX_PRESET_LABEL):'';if(!label)return null;
+  const rest=frameOf(item.rest);if(!rest||!Array.isArray(item.keys)||item.keys.length>256)return null;
+  const keys=[];
+  for(const entry of item.keys){const value=frameOf(entry);if(!value||!Number.isInteger(entry.slot)||entry.slot<0||entry.slot>255)return null;keys.push({slot:entry.slot,...value});}
+  const preset={id:item.id,group:'user',label,rest,keys,savedAt:typeof item.savedAt==='string'?item.savedAt:null};
+  if(item.deadZone&&Number.isInteger(item.deadZone.top)&&Number.isInteger(item.deadZone.bottom))preset.deadZone={top:item.deadZone.top,bottom:item.deadZone.bottom};
+  return preset;
+}
+function describeUser(preset){
+  const values=[...new Set(preset.keys.map(entry=>entry.actuationMm))].sort((a,b)=>a-b),rt=preset.keys.filter(entry=>entry.pressMm>0||entry.releaseMm>0).length;
+  const range=!values.length?'—':values.length===1?`${values[0].toFixed(2)} mm`:`${values[0].toFixed(2)}–${values.at(-1).toFixed(2)} mm`;
+  return `Profile của bạn: điểm nhận ${range}, ${rt} phím bật RT${preset.deadZone?`, vùng chết ${preset.deadZone.top}/${preset.deadZone.bottom}`:''}.`;
+}
+
+export function createPresetLibrary(storage=null){
+  let data={hidden:[],custom:[],shortcuts:{...DEFAULT_SHORTCUTS}};const listeners=new Set();
+  try{
+    const raw=storage?.getItem?.(STORE_KEY),parsed=raw?JSON.parse(raw):null;
+    if(parsed&&typeof parsed==='object'){
+      const hidden=Array.isArray(parsed.hidden)?parsed.hidden.filter(id=>RT_PRESETS.some(preset=>preset.id===id)):[];
+      const custom=Array.isArray(parsed.custom)?parsed.custom.map(validUserPreset).filter(Boolean).slice(0,MAX_USER_PRESETS):[];
+      const shortcuts={};
+      if(parsed.shortcuts&&typeof parsed.shortcuts==='object')for(const [id,keys]of Object.entries(parsed.shortcuts)){
+        try{const value=normalizeShortcut(keys);if(!Object.values(shortcuts).includes(value))shortcuts[id]=value;}catch{}
+      }
+      data={hidden,custom,shortcuts};
+    }
+  }catch{}
+  const known=id=>RT_PRESETS.some(preset=>preset.id===id)||data.custom.some(preset=>preset.id===id);
+  const persist=()=>{
+    for(const id of Object.keys(data.shortcuts))if(!known(id)||data.hidden.includes(id))delete data.shortcuts[id];
+    try{storage?.setItem?.(STORE_KEY,JSON.stringify(data));}catch{}
+    for(const listener of [...listeners]){try{listener();}catch{}}
+  };
+  const decorate=(preset,builtin)=>({...preset,builtin,shortcut:data.shortcuts[preset.id]??null,description:builtin?preset.description:describeUser(preset)});
+  const library={
+    list(){return [...RT_PRESETS.filter(preset=>!data.hidden.includes(preset.id)).map(preset=>decorate(preset,true)),...data.custom.map(preset=>decorate(preset,false))];},
+    find(id){
+      const builtin=RT_PRESETS.find(preset=>preset.id===id);if(builtin)return decorate(builtin,true);
+      const custom=data.custom.find(preset=>preset.id===id);return custom?decorate(custom,false):null;
+    },
+    hiddenCount(){return data.hidden.length;},
+    // Lưu bản chụp thành profile mới; trùng tên với profile của bạn thì ghi đè (giữ phím tắt).
+    save(label,preset){
+      const name=typeof label==='string'?label.trim().replace(/\s+/g,' '):'';
+      if(!name)throw new Error('Nhập tên profile trước khi lưu.');
+      if(name.length>MAX_PRESET_LABEL)throw new Error(`Tên profile tối đa ${MAX_PRESET_LABEL} ký tự.`);
+      if(RT_PRESETS.some(item=>item.label.toLowerCase()===name.toLowerCase()&&!data.hidden.includes(item.id)))throw new Error(`“${name}” trùng tên profile cài sẵn; chọn tên khác.`);
+      const existing=data.custom.find(item=>item.label.toLowerCase()===name.toLowerCase());
+      if(!existing&&data.custom.length>=MAX_USER_PRESETS)throw new Error(`Tối đa ${MAX_USER_PRESETS} profile; xóa bớt rồi lưu lại.`);
+      const id=existing?.id??`u-${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`;
+      const stored=validUserPreset({...preset,id,label:name,savedAt:new Date().toISOString()});
+      if(!stored)throw new Error('Dữ liệu profile không hợp lệ.');
+      if(existing)data.custom[data.custom.indexOf(existing)]=stored;else data.custom.push(stored);
+      persist();return library.find(id);
+    },
+    remove(id){
+      if(RT_PRESETS.some(preset=>preset.id===id)){if(!data.hidden.includes(id))data.hidden.push(id);}
+      else{const index=data.custom.findIndex(preset=>preset.id===id);if(index<0)throw new Error('Không tìm thấy profile.');data.custom.splice(index,1);}
+      delete data.shortcuts[id];persist();
+    },
+    restoreDefaults(){
+      data.hidden=[];
+      for(const [id,keys]of Object.entries(DEFAULT_SHORTCUTS))if(!data.shortcuts[id]&&!Object.values(data.shortcuts).includes(keys))data.shortcuts[id]=keys;
+      persist();
+    },
+    // Gán phím tắt (null để bỏ). Tổ hợp đang thuộc profile khác được chuyển sang profile này.
+    setShortcut(id,keys){
+      if(!known(id)||data.hidden.includes(id))throw new Error('Không tìm thấy profile.');
+      if(keys==null||keys===''){delete data.shortcuts[id];persist();return null;}
+      const value=normalizeShortcut(keys);
+      for(const [other,current]of Object.entries(data.shortcuts))if(current===value&&other!==id)delete data.shortcuts[other];
+      data.shortcuts[id]=value;persist();return value;
+    },
+    bindings(){return library.list().filter(preset=>preset.shortcut).map(preset=>({preset:preset.id,label:preset.label,keys:preset.shortcut}));},
+    subscribe(listener){listeners.add(listener);return ()=>listeners.delete(listener);},
+  };
+  return library;
+}
+const defaultStorage=(()=>{try{return globalThis.localStorage??null;}catch{return null;}})();
+export const presetLibrary=createPresetLibrary(defaultStorage);

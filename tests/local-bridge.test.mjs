@@ -108,3 +108,30 @@ test('standalone A80RT-Configurator.exe serves embedded assets and dispatches si
   assert.equal((await post('/hotkeys/result',{client:'exeWinAAAA',event:first.event,status:'verified'})).body.ok,true);
   assert.equal((await post('/hotkeys/result',{client:'exeWinAAAA',event:first.event,status:'verified'})).body.ignored,true);
 });
+
+// The app window sends the user's profile shortcuts; the host replaces its list,
+// rejects other origins and malformed keys, and dispatches the new preset ids.
+async function checkBindings(t){
+  assert.equal((await request('/hotkeys/bindings',{method:'POST',headers:{Origin:'https://evil.example'},body:'{"bindings":[]}'})).status,403);
+  assert.equal((await post('/hotkeys/bindings',{nope:1})).status,400);
+  const set=await post('/hotkeys/bindings',{bindings:[{preset:'u-abcd1234',label:'Valorant',keys:'Ctrl+Alt+V'},{preset:'bad',label:'x',keys:'V'},{preset:'apex',label:'Apex',keys:'Ctrl+Shift+F5'}]});
+  assert.equal(set.status,200);assert.equal(set.body.bindable,true);
+  assert.deepEqual(set.body.hotkeys.map(h=>[h.preset,h.label,h.keys]),[['u-abcd1234','Valorant','Ctrl+Alt+V'],['apex','Apex','Ctrl+Shift+F5']]);
+  assert.deepEqual(JSON.parse((await request('/hotkeys/config')).body).hotkeys,set.body.hotkeys);
+  assert.equal((await post('/hotkeys/test-trigger',{preset:'lol'})).status,400,'an unbound preset is no longer dispatched');
+  const win=openWindow('bindWinAAAA');t.after(()=>win.close());await win.opened;
+  const fired=(await post('/hotkeys/test-trigger',{preset:'u-abcd1234'})).body;await settle(300);
+  assert.deepEqual(win.events,[{preset:'u-abcd1234',event:fired.event}]);
+}
+test('python bridge accepts user hotkey bindings from the app',{skip:!python&&'python not available'},async t=>{
+  const port4=port+3,child=spawn(python,['-I',script,'--port',String(port4),'--no-hotkeys','--no-sound','--test-trigger'],{stdio:'ignore'});
+  t.after(()=>child.kill());process.once('exit',()=>child.kill());
+  const realBase=base;base=`http://127.0.0.1:${port4}`;origin=`http://localhost:${port4}`;t.after(()=>{base=realBase;origin=`http://localhost:${port}`;});
+  await waitReady();await checkBindings(t);
+});
+test('standalone exe accepts user hotkey bindings from the app',{skip:process.platform!=='win32'},async t=>{
+  const port5=port+4,child=spawn(exe,['--port',String(port5),'--no-hotkeys','--no-sound','--test-trigger'],{stdio:'ignore'});
+  t.after(()=>child.kill());process.once('exit',()=>child.kill());
+  const realBase=base;base=`http://127.0.0.1:${port5}`;origin=`http://localhost:${port5}`;t.after(()=>{base=realBase;origin=`http://localhost:${port}`;});
+  await waitReady();await checkBindings(t);
+});

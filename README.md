@@ -1,8 +1,8 @@
-# A80RT Community Configurator — 0.4.0-beta.7
+# A80RT Community Configurator — 0.4.0-beta.8
 
 An unofficial community configurator compatible with LEOBOG A80RT keyboards. This project is not affiliated with or endorsed by LEOBOG. Product names identify compatible hardware only.
 
-**[Download the Windows beta](https://github.com/buinam1920/a80rt-community-configurator/releases/tag/v0.4.0-beta.7)** — choose `A80RT-Configurator-0.4.0-beta.7.exe` under Assets.
+**[Download the Windows beta](https://github.com/buinam1920/a80rt-community-configurator/releases/tag/v0.4.0-beta.8)** — choose `A80RT-Configurator-0.4.0-beta.8.exe` under Assets.
 
 ## Getting started
 
@@ -137,4 +137,4 @@ Manufacturer cloud libraries, music sync, calibration, reset, and firmware updat
 - **0.3.6:** installable PWA and offline interface caching.
 - **0.3.5:** draft context, macro ownership, DKS/profile validation, and import-race fixes. See the [historical correctness notes](docs/0.3.5-correctness.md).
 
-These older version numbers describe project history. The current release is **0.4.0-beta.7** ([release notes](docs/release-0.4.0-beta.7.md)); see also the notes for [0.4.0-beta.6](docs/release-0.4.0-beta.6.md), [0.4.0-beta.5](docs/release-0.4.0-beta.5.md), [0.4.0-beta.4](docs/release-0.4.0-beta.4.md) and [0.4.0-beta.3](docs/release-0.4.0-beta.3.md).
+These older version numbers describe project history. The current release is **0.4.0-beta.8** ([release notes](docs/release-0.4.0-beta.8.md)); see also the notes for [0.4.0-beta.7](docs/release-0.4.0-beta.7.md), [0.4.0-beta.6](docs/release-0.4.0-beta.6.md), [0.4.0-beta.5](docs/release-0.4.0-beta.5.md), [0.4.0-beta.4](docs/release-0.4.0-beta.4.md) and [0.4.0-beta.3](docs/release-0.4.0-beta.3.md).

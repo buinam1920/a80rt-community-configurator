@@ -33,7 +33,7 @@ function clearMessage(){message('');}
 function setText(id,text){$(id).textContent=text;}
 function mode(){return state.snapshot?.source??'empty';}
 function describeSource(){if(mode()==='demo')return 'Dữ liệu mẫu';if(mode()==='import')return 'Bản đã lưu';if(mode()==='device')return state.reader?'Bàn phím thật':Object.keys(state.snapshot.blocks).length?'Bản đọc trước':'Thông tin thiết bị';return 'Chưa có dữ liệu';}
-function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.4.0-beta.7',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
+function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.4.0-beta.8',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
 function makeKeyboard(){
   for(const row of LAYOUT){
     const container=document.createElement('div');container.className='key-row';
@@ -135,7 +135,8 @@ function renderLog(){
 function render(){
   reportHotkeyState();
   const connected=!!state.reader,source=mode(),hasData=!!state.snapshot&&Object.keys(state.snapshot.blocks).length>0;
-  const responding=connected&&state.reader.getState().hasResponse;$('connect-strip')?.classList?.toggle('is-compact',connected&&hasData&&!state.reading);
+  const responding=connected&&state.reader.getState().hasResponse;
+  for(const id of ['core-editors','draft-bar','keyboard'])$(id)?.setAttribute?.('aria-busy',String(state.reading||state.applying||state.connecting||state.maintaining));$('connect-strip')?.classList?.toggle('is-compact',connected&&hasData&&!state.reading);
   const busy=state.reading||state.connecting||state.applying||state.maintaining;
   $('connect-button').hidden=connected;$('connect-button').disabled=!supported||runtimeHidBlocked||busy;
   $('disconnect-button').hidden=!connected;$('disconnect-button').disabled=busy;

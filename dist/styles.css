@@ -45,7 +45,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
 .rt-visual-info strong{color:var(--text);font-family:var(--mono)}
 .preset-button.preset-game{border-style:dashed}
 .preset-game:first-of-type{margin-left:10px}
-.toast{position:fixed;right:24px;bottom:24px;z-index:50;max-width:380px;padding:14px 18px;border-radius:8px;background:#1f252b;color:var(--text);border:1px solid var(--line);border-left:4px solid var(--accent);box-shadow:0 12px 30px #0008;font-size:13px;line-height:1.5}
+.toast{position:fixed;right:24px;bottom:24px;z-index:var(--z-toast);max-width:380px;padding:14px 18px;border-radius:8px;background:#1f252b;color:var(--text);border:1px solid var(--line);border-left:4px solid var(--accent);box-shadow:0 12px 30px #0008;font-size:13px;line-height:1.5}
 .toast[data-kind=success]{border-left-color:#7bd88f}.toast[data-kind=warning]{border-left-color:#f0a35e}.toast[data-kind=error]{border-left-color:#ff7b6b}
 /* 0.3.8 · phím to và dễ đọc hơn */
 .keyboard{min-width:680px;padding:16px}
@@ -120,12 +120,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
 .connect-strip.is-compact .step-symbol{height:30px;width:30px}
 .connect-strip.is-compact .connect-copy p{display:none}
 /* Thanh Áp dụng: dính đáy khi có thay đổi hoặc đang ghi; chừa chỗ để không che vùng đang focus. */
-.draft-bar.is-active{position:sticky;bottom:12px;z-index:30;border-color:#48573b;box-shadow:0 -8px 28px #0008;background:#1b2219}
+.draft-bar.is-active{position:sticky;bottom:12px;z-index:var(--z-sticky);border-color:#48573b;box-shadow:0 -8px 28px #0008;background:#1b2219}
 .draft-bar.is-active #draft-count{color:var(--accent)}
 #apply-reason.error{color:#efbaac}
 html:has(.draft-bar.is-active){scroll-padding-bottom:140px}
 /* Bàn phím: viền focus rõ khi đi bằng phím mũi tên. */
-.key:focus-visible{outline:2px solid var(--accent);outline-offset:2px;z-index:1}
+.key:focus-visible{outline:2px solid var(--accent);outline-offset:2px;z-index:var(--z-raised)}
 .undo-button{margin-left:10px}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
@@ -143,3 +143,11 @@ html:has(.draft-bar.is-active){scroll-padding-bottom:140px}
 .keyboard.fn-layer .key.selected,.keyboard.fn-layer .key.fn-special.selected{background:#c3f56b;color:#19270a;border-color:#e2ffa9;border-bottom-color:#8ebc44}
 @media(min-width:1550px){.keyboard.fn-layer .key>span{font-size:11px}}
 .keyboard.fn-layer .key.fn-empty{color:#7d8790}
+/* ===== ui-skills pass (0.4.0-beta.8) =====
+   Thang z-index cố định; số liệu dùng chữ số đều; không animate width/left; xuống dòng gọn. */
+:root{--z-raised:1;--z-sticky:30;--z-toast:50}
+
+.stats strong,.travel-title strong,.travel-gauge-value,.selected-key>span,.battery-chip b,#draft-count,.key small,#device-meta dd,.mono,.selection-toolbar>span{font-variant-numeric:tabular-nums}
+.progress>div,.travel-track>div,.travel-track>i{transition:none}
+h1,h2,.connect-copy strong{text-wrap:balance}
+p,.editor-hint,.small-note,.notice,.message{text-wrap:pretty}

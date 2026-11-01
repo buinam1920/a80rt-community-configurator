@@ -110,7 +110,7 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
   const listen=(el,type,fn)=>{el.addEventListener(type,fn);listeners.push(()=>el.removeEventListener(type,fn));};
   listen(root,'pointerdown',onNavigate);listen(root,'focusin',onNavigate);
   const intro=make('div',null,'editor-heading'),title=make('h2','Chỉnh cấu hình'),selection=make('p');intro.append(title,selection);
-  const reason=make('p',null,'editor-reason'),error=make('p',null,'editor-error');error.setAttribute('role','alert');error.hidden=true;
+  const reason=make('p',null,'editor-reason'),error=make('p',null,'editor-error');error.id='core-editor-error';error.setAttribute('role','alert');error.hidden=true;
   const tabbar=make('div',null,'editor-tabs');tabbar.setAttribute('role','tablist');tabbar.setAttribute('aria-label','Nhóm chỉnh sửa');
   for(const [id,label]of [['rt','Rapid Trigger'],['binding','Gán phím / Fn'],['rgb','RGB']]){
     const tab=make('button',label);tab.type='button';tab.id=`editor-tab-${id}`;tab.setAttribute('role','tab');tab.setAttribute('aria-controls',`editor-panel-${id}`);
@@ -119,8 +119,11 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
     listen(tab,'keydown',event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();onNavigate();const ids=[...tabs.keys()],index=ids.indexOf(active);active=event.key==='Home'?ids[0]:event.key==='End'?ids.at(-1):ids[(index+(event.key==='ArrowRight'?1:2))%3];refresh();tabs.get(active).focus();});
   }
   const errorContext=()=>{const view=model.view();return JSON.stringify([view.layer,[...view.slots].sort((a,b)=>a-b),session?.draft,view.editable]);};
-  const clearError=()=>{invalidInput=null;error.hidden=true;error.textContent='';};
-  const showError=(problem,key)=>{const input=controls.get(key)?.input;invalidInput=input&&key!=='binding'?{input,value:input.value,checked:input.checked,context:errorContext()}:null;error.textContent=problem.message;error.hidden=false;};
+  // Ô đang sai được đánh dấu aria-invalid và trỏ tới dòng lỗi để trình đọc màn hình đọc kèm.
+  let invalidField=null;
+  const markInvalid=input=>{if(invalidField&&invalidField!==input){invalidField.removeAttribute?.('aria-invalid');invalidField.removeAttribute?.('aria-describedby');}invalidField=input??null;if(input){input.setAttribute('aria-invalid','true');input.setAttribute('aria-describedby',error.id);}};
+  const clearError=()=>{invalidInput=null;markInvalid(null);error.hidden=true;error.textContent='';};
+  const showError=(problem,key)=>{const input=controls.get(key)?.input;invalidInput=input&&key!=='binding'?{input,value:input.value,checked:input.checked,context:errorContext()}:null;markInvalid(input);error.textContent=problem.message;error.hidden=false;};
   const commit=(block,field,value)=>{try{model.edit(block,field,value);clearError();refresh();}catch(problem){showError(problem,block==='colors'?'selectedColor':field);}};
   const field=(panel,key,label,type='number')=>{
     const wrap=make('div',null,'editor-field'),caption=make('label',label),input=make(type==='select'?'select':'input');input.id=`core-${key}`;caption.htmlFor=input.id;if(type!=='select')input.type=type;

@@ -109,6 +109,22 @@ test('the Rapid Trigger panel saves a named profile as a button, assigns a short
   }finally{globalThis.document=old;}
 });
 
+test('an invalid editor value marks its field aria-invalid and points at the error text',async()=>{
+  const old=globalThis.document,elements=[];
+  globalThis.document={createElement:tag=>{const el=new Element(tag);elements.push(el);return el;}};
+  const get=id=>elements.findLast(el=>el.id===id);
+  try{
+    const mount=mountCoreEditors(new Element(),{session:session(),capability:cap,selectedSlots:[34],library:createPresetLibrary(memory())});
+    const input=get('core-actuationMm');input.value='9';await input.trigger('change');
+    assert.equal(input.attributes['aria-invalid'],'true');assert.equal(input.attributes['aria-describedby'],'core-editor-error');
+    assert.equal(get('core-editor-error').hidden,false);
+    input.removeAttribute=name=>{delete input.attributes[name];};
+    input.value='1.5';await input.trigger('change');
+    assert.equal(input.attributes['aria-invalid'],undefined,'cleared once the value is accepted');
+    mount.destroy();
+  }finally{globalThis.document=old;}
+});
+
 test('deleting a profile can be undone with its position and shortcut',()=>{
   const library=createPresetLibrary(memory()),s=session();
   const a=library.save('Alpha',presetFromDraft(cap,s.draft)),b=library.save('Beta',presetFromDraft(cap,s.draft));

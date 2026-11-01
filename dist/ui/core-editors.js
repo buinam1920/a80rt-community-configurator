@@ -69,7 +69,35 @@ const HID_NAMES={40:'Enter',41:'Esc',42:'Backspace',43:'Tab',44:'Space',57:'Caps
 const MOD_NAMES={1:'Ctrl',2:'Shift',4:'Alt',8:'Win',16:'Ctrl',32:'Shift',64:'Alt',128:'Win'};
 const MOD_USAGE={1:224,2:225,4:226,8:227,16:228,32:229,64:230,128:231};
 const SPECIAL_TYPES={mouse:'Chuột',macro:'Macro',combination:'Tổ hợp',dks:'DKS',mt:'MT',tgl:'TGL',socd:'SOCD',rs:'RS'};
+// Lớp Fn mặc định của firmware. Sau khi khôi phục cài đặt gốc, khối Fn đọc về toàn 0 và
+// firmware dùng bảng có sẵn (giống khối gán phím thường luôn đọc 0 mà vẫn gõ bình thường).
+// Bảng này đọc từ A80RT U firmware 1.37 trước khi reset: qua cáp (2026-10-25) và qua đầu thu
+// (2026-10-31), hai lần đọc giống hệt nhau. Chỉ dùng để HIỂN THỊ ô trống, không bao giờ để ghi.
+const FACTORY_FN={0:[13,0,0,1],1:[3,35,2,0],2:[3,138,1,0],3:[13,0,0,18],4:[13,0,0,19],5:[13,0,0,14],6:[13,0,0,13],7:[3,182,0,0],8:[3,205,0,0],9:[3,181,0,0],10:[3,226,0,0],11:[3,234,0,0],12:[3,233,0,0],
+  16:[13,0,0,5],17:[13,0,0,2],18:[13,0,0,3],19:[13,0,0,4],20:[2,0,33,0],21:[2,0,34,0],22:[2,0,35,0],23:[2,0,36,0],24:[2,0,37,0],25:[2,0,38,0],26:[2,0,39,0],27:[2,0,45,0],28:[2,0,46,0],
+  32:[13,0,0,12],33:[13,0,0,10],34:[13,0,0,8],35:[13,0,0,9],36:[13,0,0,58],37:[2,0,23,0],38:[2,0,28,0],39:[2,0,70,0],40:[2,0,71,0],41:[2,0,72,0],42:[2,0,19,0],43:[2,0,47,0],44:[2,0,48,0],
+  48:[2,0,57,0],49:[2,0,4,0],50:[2,0,22,0],51:[2,0,7,0],52:[2,0,9,0],53:[2,0,10,0],54:[2,0,11,0],55:[2,0,13,0],56:[2,0,14,0],57:[2,0,15,0],58:[2,0,51,0],59:[2,0,52,0],60:[13,0,0,11],
+  64:[2,2,0,0],65:[2,0,29,0],66:[2,0,27,0],67:[2,0,6,0],68:[2,0,25,0],69:[13,0,0,7],70:[2,0,17,0],71:[13,0,0,75],72:[2,0,54,0],73:[2,0,55,0],74:[2,0,56,0],75:[2,32,0,0],76:[2,0,40,0],
+  80:[2,1,0,0],81:[13,0,0,22],82:[2,4,0,0],83:[2,0,44,0],85:[2,0,175,0],87:[2,16,0,0],88:[13,0,0,16],89:[13,0,0,14],90:[13,0,0,13],91:[13,0,0,15],92:[2,0,42,0],
+  99:[2,0,70,0],103:[2,0,73,0],105:[2,0,75,0],106:[2,0,74,0],107:[2,0,77,0],108:[2,0,78,0]};
+export const FACTORY_SUFFIX=' (mặc định firmware)';
+const factoryRecords=new WeakMap();
+function factoryBinding(slot,capability){
+  if(!capability||!FACTORY_FN[slot])return null;
+  let records=factoryRecords.get(capability);
+  if(!records){const length=readPlan(capability).find(block=>block.id==='fn')?.length??512,bytes=new Uint8Array(length);
+    for(const [at,value]of Object.entries(FACTORY_FN))if(Number(at)*4+4<=length)bytes.set(value,Number(at)*4);
+    records=decodeBlock('fn',bytes,capability).records;factoryRecords.set(capability,records);}
+  return records[slot]?.binding??null;
+}
 export function fnKeyCap(binding,key,capability){
+  if(binding?.type==='empty'){
+    const fallback=factoryBinding(key.slot,capability),cap=fallback&&fnKeyCapRaw(fallback,key,capability);
+    if(cap)return {...cap,full:cap.full+FACTORY_SUFFIX,factory:true};
+  }
+  return fnKeyCapRaw(binding,key,capability);
+}
+function fnKeyCapRaw(binding,key,capability){
   if(!binding)return null;
   if(binding.type==='function'){
     const index=binding.code-1;

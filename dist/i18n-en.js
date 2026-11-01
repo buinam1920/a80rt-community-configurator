@@ -912,6 +912,7 @@ export const EXACT = {
   '"keys" phải là object, ví dụ {"W":{"actuation":0.4}}.': '"keys" must be an object, for example {"W":{"actuation":0.4}}.',
   '"deadZone" cần dạng {"top":0.1,"bottom":0.1} (mm).': '"deadZone" must look like {"top":0.1,"bottom":0.1} (mm).',
   // Fn layer key caps (0.4.0-beta.7)
+  'Khối Fn trên bàn phím đang trống (thường sau khi khôi phục cài đặt gốc), nên firmware dùng chức năng mặc định. Phím viền nét đứt hiển thị chức năng mặc định đó, đọc từ A80RT U firmware 1.37.': 'The Fn block on the keyboard is empty (usually after a factory reset), so the firmware uses its built-in functions. Keys with a dashed border show those defaults, as read from an A80RT U on firmware 1.37.',
   'Reset gốc': 'Factory reset',
   'Nối lại': 'Re-link',
   'Đổi F': 'F-key switch',
@@ -969,10 +970,13 @@ export const EXACT = {
 const USER_DESC = /^Profile của bạn: điểm nhận (.+?), (\d+) phím bật RT(?:, vùng chết (\d+)\/(\d+))?\.$/;
 const userDesc = text => text.replace(USER_DESC, (m, range, count, top, bottom) => `Your profile: actuation ${range}, RT on ${count} keys${top !== undefined ? `, dead zones ${top}/${bottom}` : ''}.`);
 
+// Fn function name, possibly marked as the firmware default.
+const fnName = text => text.endsWith(' (mặc định firmware)') ? `${EXACT[text.slice(0, -20)] ?? text.slice(0, -20)} (firmware default)` : (EXACT[text] ?? text);
+
 export const PATTERNS = [
-  [/^((?:[0-9a-f]{2} ){3}[0-9a-f]{2}) · (.+)$/, (m, bytes, fn) => `${bytes} · ${EXACT[fn] ?? fn}`],
-  [/^Phím (.+?), Fn: (.+)$/, (m, key, fn) => `Key ${key}, Fn: ${EXACT[fn] ?? fn}`],
-  [/^Fn \+ (.+?): (.+)$/, (m, key, fn) => `Fn + ${key}: ${EXACT[fn] ?? fn}`],
+  [/^((?:[0-9a-f]{2} ){3}[0-9a-f]{2}) · (.+)$/, (m, bytes, fn) => `${bytes} · ${fnName(fn)}`],
+  [/^Phím (.+?), Fn: (.+)$/, (m, key, fn) => `Key ${key}, Fn: ${fnName(fn)}`],
+  [/^Fn \+ (.+?): (.+)$/, (m, key, fn) => `Fn + ${key}: ${fnName(fn)}`],
   [/^Đã khôi phục hồ sơ “(.+?)”\.$/, 'Restored profile “$1”.'],
   // Profile files (0.4.0-beta.9)
   [/^Đã nhập profile (.+?) \((\d+) phím khác mặc định\)\. Bấm nút (.+?) để đưa vào bản nháp\.(.*)$/, (m, name, count, button, rest) => `Imported profile ${name} (${count} keys differ from the default). Press the ${button} button to bring it into the draft.${rest.replace(/Phím tắt (\S+) đang thuộc (.+?) nên chưa gán\./g, 'Shortcut $1 belongs to $2, so it was not assigned.').replace(/(\S+): bỏ qua trường lạ "(.+?)"\./g, '$1: ignored unknown field "$2".').replace(/Bỏ qua phím tắt: /g, 'Shortcut ignored: ')}`],

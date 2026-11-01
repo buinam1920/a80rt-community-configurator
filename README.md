@@ -1,8 +1,8 @@
-# A80RT Community Configurator — 0.4.0-beta.9
+# A80RT Community Configurator — 0.4.0-beta.10
 
 An unofficial community configurator compatible with LEOBOG A80RT keyboards. This project is not affiliated with or endorsed by LEOBOG. Product names identify compatible hardware only.
 
-**[Download the Windows beta](https://github.com/buinam1920/a80rt-community-configurator/releases/tag/v0.4.0-beta.9)** — choose `A80RT-Configurator-0.4.0-beta.9.exe` under Assets.
+**[Download the Windows beta](https://github.com/buinam1920/a80rt-community-configurator/releases/tag/v0.4.0-beta.10)** — choose `A80RT-Configurator-0.4.0-beta.10.exe` under Assets.
 
 ## Getting started
 
@@ -31,7 +31,7 @@ The executable is unsigned. Physical in-game hotkeys and a complete preset write
 - Read all nine configuration blocks, with raw data inspection.
 - Per-key actuation, Rapid Trigger press/release thresholds, and whole-travel RT.
 - Base/Fn mappings, lighting, per-key colors, macros, DKS, MT, TGL, RS/SOCD, and general settings, subject to model capabilities and write restrictions.
-- Fn layer view like the manufacturer driver: switching the key map to Fn labels each key with what Fn + key does (functions and media highlighted, keys that send another key in amber), with the full name on hover and in Key details.
+- Fn layer view like the manufacturer driver: switching the key map to Fn labels each key with what Fn + key does (functions and media highlighted, keys that send another key in amber), with the full name on hover and in Key details. Empty Fn slots (for example after a factory reset) show the firmware default with a dashed border.
 - Vendor-derived Office, Beginner, and Gaming presets; community LoL and Apex presets.
 - Your own Rapid Trigger profiles: name the current draft and save it as a button next to the presets, delete or hide any profile (built-ins can be restored), and assign a global shortcut to any profile (Ctrl, Alt or Win plus A–Z, 0–9 or F1–F24).
 - Shareable profile files: export any Rapid Trigger profile as a small JSON file, import one from a file or by pasting JSON, and use **Copy AI instructions** so ChatGPT, Claude or another assistant can write a profile for your game. See the [profile file format](docs/rt-profile-format.md) and the [example profiles](examples/rt-profiles/).
@@ -138,4 +138,4 @@ Manufacturer cloud libraries, music sync, calibration, reset, and firmware updat
 - **0.3.6:** installable PWA and offline interface caching.
 - **0.3.5:** draft context, macro ownership, DKS/profile validation, and import-race fixes. See the [historical correctness notes](docs/0.3.5-correctness.md).
 
-These older version numbers describe project history. The current release is **0.4.0-beta.9** ([release notes](docs/release-0.4.0-beta.9.md)); see also the notes for [0.4.0-beta.8](docs/release-0.4.0-beta.8.md), [0.4.0-beta.7](docs/release-0.4.0-beta.7.md), [0.4.0-beta.6](docs/release-0.4.0-beta.6.md), [0.4.0-beta.5](docs/release-0.4.0-beta.5.md), [0.4.0-beta.4](docs/release-0.4.0-beta.4.md) and [0.4.0-beta.3](docs/release-0.4.0-beta.3.md).
+These older version numbers describe project history. The current release is **0.4.0-beta.10** ([release notes](docs/release-0.4.0-beta.10.md)); see also the notes for [0.4.0-beta.9](docs/release-0.4.0-beta.9.md), [0.4.0-beta.8](docs/release-0.4.0-beta.8.md), [0.4.0-beta.7](docs/release-0.4.0-beta.7.md), [0.4.0-beta.6](docs/release-0.4.0-beta.6.md), [0.4.0-beta.5](docs/release-0.4.0-beta.5.md), [0.4.0-beta.4](docs/release-0.4.0-beta.4.md) and [0.4.0-beta.3](docs/release-0.4.0-beta.3.md).

@@ -156,3 +156,6 @@ p,.editor-hint,.small-note,.notice,.message{text-wrap:pretty}
 .preset-paste-text{width:100%;min-height:140px;background:#11171b;color:var(--text);border:1px solid #424d55;border-radius:5px;padding:9px 12px;font:12px/1.5 var(--mono);resize:vertical}
 .preset-paste-text:focus{outline:none;border-color:var(--accent)}
 .preset-paste>button{justify-self:start}
+/* Ô Fn trống: hiển thị chức năng mặc định của firmware, viền nét đứt để phân biệt dữ liệu thật. */
+.keyboard.fn-layer .key.fn-factory{border-style:dashed;border-bottom-style:dashed}
+.fn-factory-hint{margin:0 23px 12px;font-size:12px;line-height:1.6;color:var(--muted)}

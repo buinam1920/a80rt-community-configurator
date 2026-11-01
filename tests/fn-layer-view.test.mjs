@@ -29,8 +29,21 @@ test('Fn layer key caps name functions and media like the manufacturer driver',(
 
 test('mouse, macro and empty Fn bindings get readable labels',()=>{
   const key=KEYS.find(k=>k.label==='J');
-  assert.deepEqual(fnKeyCap({type:'empty'},key,cap),{short:'J',full:'Trống',special:false,empty:true},'an empty Fn slot keeps the key label, dimmed');
+  assert.deepEqual(fnKeyCap({type:'empty'},key,cap),{short:'J',full:'J (mặc định firmware)',special:false,remapped:false,factory:true},'an empty slot falls back to the firmware default (J sends J)');
+  assert.deepEqual(fnKeyCap({type:'empty'},{label:'X',slot:200,usage:0},cap),{short:'X',full:'Trống',special:false,empty:true},'no known default: key label, dimmed');
   assert.equal(fnKeyCap({type:'macro',index:0},key,cap).short,'Macro');
   assert.equal(fnKeyCap({type:'mouse',mouseCode:1,code:1},key,cap).short,'Chuột');
   assert.equal(fnKeyCap({type:'keyboard',usage:6,modifier:1},key,cap).short,'Ctrl+C');
+});
+
+test('an all-zero Fn block (after a factory reset) shows the firmware defaults, marked as defaults',()=>{
+  const records=decodeBlock('fn',new Uint8Array(512),cap).records;
+  const capFor=label=>{const key=KEYS.find(k=>k.label===label);return fnKeyCap(records[key.slot].binding,key,cap);};
+  for(const [label,short]of [['Esc','Reset gốc'],['F1','Home'],['1','BT 1'],['W','WIN'],['B','Xem pin'],['Win','Khóa Win'],['U','Print']]){
+    const value=capFor(label);assert.equal(value.short,short,label);assert.equal(value.factory,true,label);assert.match(value.full,/\(mặc định firmware\)$/,label);
+  }
+  assert.equal(capFor('W').special,true,'defaults keep their highlight');
+  const real=new Uint8Array(512);real.set([13,0,0,7],KEYS.find(k=>k.label==='W').slot*4);
+  const own=fnKeyCap(decodeBlock('fn',real,cap).records[34].binding,KEYS.find(k=>k.label==='W'),cap);
+  assert.equal(own.short,'Xem pin');assert.equal(own.factory,undefined,'a stored binding always wins over the default');
 });

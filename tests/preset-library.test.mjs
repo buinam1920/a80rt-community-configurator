@@ -152,3 +152,73 @@ test('the panel offers Undo right after a delete',async()=>{
     mount.destroy();
   }finally{globalThis.document=old;}
 });
+
+test('a failed storage write reports an error and rolls back instead of claiming success',()=>{
+  const storage=memory();let full=false;const real=storage.setItem;
+  storage.setItem=(key,value)=>{if(full)throw new DOMException('quota','QuotaExceededError');real(key,value);};
+  const library=createPresetLibrary(storage),s=session(),before=library.list().length;let changes=0;library.subscribe(()=>changes++);
+  const kept=library.save('Kept',presetFromDraft(cap,s.draft));changes=0;full=true;
+  assert.throws(()=>library.save('Lost',presetFromDraft(cap,s.draft)),/Không lưu được/);
+  assert.equal(library.list().length,before+1,'failed save is not visible in this session');
+  assert.throws(()=>library.remove(kept.id),/Không lưu được/);assert.ok(library.find(kept.id),'failed delete keeps the profile');
+  assert.throws(()=>library.setShortcut(kept.id,'Ctrl+Alt+9'),/Không lưu được/);assert.equal(library.find(kept.id).shortcut,null);
+  assert.throws(()=>library.remove('office'),/Không lưu được/);assert.equal(library.hiddenCount(),0);
+  assert.equal(changes,0,'listeners are not told about rolled-back changes');
+  full=false;assert.deepEqual(createPresetLibrary(storage).list().map(p=>p.id),library.list().map(p=>p.id),'memory matches storage');
+});
+
+test('the profile panel shows the storage error instead of a success note',async()=>{
+  const old=globalThis.document,elements=[];
+  globalThis.document={createElement:tag=>{const el=new Element(tag);elements.push(el);return el;}};
+  const get=id=>elements.findLast(el=>el.id===id);
+  try{
+    const storage=memory();storage.setItem=()=>{throw new DOMException('quota','QuotaExceededError');};
+    const library=createPresetLibrary(storage),mount=mountCoreEditors(new Element(),{session:session(),capability:cap,selectedSlots:[34],library});
+    get('core-preset-name').value='Valorant';await get('core-preset-save').trigger('click');
+    assert.equal(library.list().some(p=>p.label==='Valorant'),false);
+    assert.equal(get('core-editor-error').hidden,false);assert.match(get('core-editor-error').textContent,/Không lưu được/);
+    assert.equal(elements.some(el=>/Đã lưu profile/.test(el.textContent)),false,'no false success note');
+    mount.destroy?.();
+  }finally{globalThis.document=old;}
+});
+
+test('without usable storage (localStorage blocked) saving reports an error instead of a session-only success',()=>{
+  for(const storage of [null,{getItem:()=>null}]){
+    const library=createPresetLibrary(storage),before=library.list().length;
+    assert.throws(()=>library.save('Session only',presetFromDraft(cap,session().draft)),/Không lưu được/);
+    assert.equal(library.list().length,before);
+  }
+});
+
+test('two windows sharing storage never overwrite each other’s profiles',()=>{
+  const store=memory(),a=createPresetLibrary(store),b=createPresetLibrary(store),s=session();
+  b.list();// B has loaded the library before A saves
+  const saved=a.save('Window A',presetFromDraft(cap,s.draft));
+  const target=b.list().find(item=>item.builtin);b.setShortcut(target.id,'Ctrl+Alt+F9');
+  const fresh=createPresetLibrary(store);
+  assert.ok(fresh.find(saved.id),'A’s profile survives B’s later write');
+  assert.equal(fresh.find(target.id).shortcut,'Ctrl+Alt+F9');
+  let notified=0;a.subscribe(()=>notified++);a.refresh();assert.equal(notified,1,'B’s shortcut change reaches A');
+  b.save('From B',presetFromDraft(cap,s.draft));a.list();// A reads the change before the storage event arrives
+  a.refresh();assert.equal(notified,2,'refresh still notifies after an earlier read picked the change up');a.refresh();assert.equal(notified,2,'no change, no notification');
+});
+
+test('undo of a delete is refused when the library is already full, instead of losing a profile on reload',()=>{
+  const store=memory(),library=createPresetLibrary(store),preset=presetFromDraft(cap,session().draft);
+  for(let index=0;index<24;index++)library.save(`P${index}`,preset);
+  const token=library.remove(library.list().find(item=>item.label==='P0').id);library.save('Newcomer',preset);
+  assert.throws(()=>library.undoRemove(token),/24 profile/);
+  assert.equal(createPresetLibrary(store).list().filter(item=>!item.builtin).length,24);
+  assert.ok(createPresetLibrary(store).list().some(item=>item.label==='Newcomer'));
+});
+
+test('importing a profile whose name is taken gets a new name instead of replacing the existing one',()=>{
+  const library=createPresetLibrary(memory()),preset=presetFromDraft(cap,session().draft);
+  const original=library.save('Aim',preset);
+  assert.equal(library.uniqueLabel('aim'),'aim (2)');
+  assert.equal(library.uniqueLabel('Fresh'),'Fresh');
+  const builtin=library.list().find(item=>item.builtin);assert.equal(library.uniqueLabel(builtin.label),`${builtin.label} (2)`);
+  const copy=library.save(library.uniqueLabel('Aim'),preset);
+  assert.notEqual(copy.id,original.id);assert.ok(library.find(original.id));
+  assert.equal(library.uniqueLabel('x'.repeat(32)).length,32);
+});

@@ -31,9 +31,10 @@ let barNote=null,barNoteUntil=0,barNoteTimer=null;
 function message(text,error=false){$('message').hidden=!text;$('message').textContent=text;$('message').classList.toggle('error',error);
   if(state.applying&&text){barNote={text,error};barNoteUntil=Date.now()+8000;clearTimeout(barNoteTimer);barNoteTimer=setTimeout(()=>renderDraft(),8100);barNoteTimer?.unref?.();renderDraft();}}
 function clearMessage(){message('');}
+let revertUndo=null,revertUndoTimer=null;
 function setText(id,text){const el=$(id),svg=el.firstElementChild?.tagName?.toLowerCase?.()==='svg'?el.firstElementChild:null;el.textContent=text;if(svg)el.prepend(svg);}
 // Icon theo quy ước cho các nút tĩnh; nút chỉ có icon vẫn giữ aria-label và tooltip.
-const STATIC_ICONS={'connect-button':'plug','disconnect-button':'unplug','read-button':'download','cancel-button':'stop','revert-button':'undo','apply-button':'check',
+const STATIC_ICONS={'connect-button':'plug','disconnect-button':'unplug','read-button':'download','cancel-button':'stop','revert-button':'undo','revert-undo':'undo','apply-button':'check',
   'notify-enable':'bell','profile-save':'save','profile-rename':'pencil','profile-duplicate':'copy','profile-delete':'trash','profile-open':'eye','profile-import':'upload',
   'profile-export':'download','profile-recover':'history','profile-undo':'undo','profile-confirm':'check','profile-cancel':'close','import-button':'upload','export-button':'download'};
 function decorateStatic(){
@@ -44,7 +45,7 @@ function decorateStatic(){
 }
 function mode(){return state.snapshot?.source??'empty';}
 function describeSource(){if(mode()==='demo')return 'Dữ liệu mẫu';if(mode()==='import')return 'Bản đã lưu';if(mode()==='device')return state.reader?'Bàn phím thật':Object.keys(state.snapshot.blocks).length?'Bản đọc trước':'Thông tin thiết bị';return 'Chưa có dữ liệu';}
-function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.4.0-beta.13',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
+function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.4.0-beta.14',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
 function makeKeyboard(){
   for(const row of LAYOUT){
     const container=document.createElement('div');container.className='key-row';
@@ -269,8 +270,17 @@ function renderEditors(){
   editors={setSelection(slots){core.setSelection(slots);advanced.setSelection(slots);},setLayer(layer){core.setLayer(layer);advanced.setLayer(layer);},refresh(){core.refresh();advanced.refresh();settings.refresh();},stopRecording:()=>advanced.stopRecording(),cancelCalibration:()=>settings.cancelCalibration(),destroy(){core.destroy();advanced.destroy();settings.destroy();}};
   editors.setLayer(state.layer);
 }
+// Đầu thu sau khi ghép lại/reset trả về lớp Fn toàn số 0 (đo 2026-11-01), trong khi qua cáp
+// bàn phím luôn có 169 byte Fn khác 0. Bản đọc đó là bản sao trống của đầu thu, không phải
+// cấu hình bàn phím: ghi từ nó sẽ gửi số 0 (vd. switch ID) xuống bàn phím. Chặn và yêu cầu cáp.
+const RECEIVER_BLANK_REASON='Đầu thu trả về cấu hình trống (lớp Fn toàn số 0), có thể là bản sao của đầu thu chứ không phải của bàn phím. Cắm cáp USB và đọc lại để ghi.';
+function receiverCopyLooksBlank(){
+  if(state.reader?.device?.productId!==0xfefc)return false;
+  const fn=state.session?.snapshot?.blocks?.fn;return !!fn&&fn.length>0&&fn.every(byte=>byte===0);
+}
 function draftWriteState(){
   const transport=state.reader?.transport;if(!transport)return null;
+  if(state.session?.diff().length&&receiverCopyLooksBlank())return {qualified:false,ready:false,evidence:null,reason:RECEIVER_BLANK_REASON};
   for(const id of new Set(state.session?.diff().map(change=>change.block)??[])){
     const qualification=transport.getWriteState(state.capability.blocks[id].writeCommand);
     if(!qualification.ready)return qualification;
@@ -291,7 +301,8 @@ function renderDraft(){
   const count=state.session?.diff().length??0,busy=state.reading||state.connecting||state.applying||state.maintaining||!!state.session?.invalidated;
   const noting=!!barNote&&(state.applying||Date.now()<barNoteUntil);
   setText('draft-count',`${count} thay đổi trong bản nháp`);setText('apply-reason',noting?barNote.text:draftReason());
-  $('apply-reason')?.classList?.toggle('error',noting&&barNote.error);$('draft-bar')?.classList?.toggle('is-active',count>0||state.applying||noting);
+  $('apply-reason')?.classList?.toggle('error',noting&&barNote.error);if(revertUndo&&(revertUndo.session!==state.session||count>0||busy))offerRevertUndo(null);
+  $('draft-bar')?.classList?.toggle('is-active',count>0||state.applying||noting||!!revertUndo);
   $('revert-button').disabled=!state.session||!count||busy;
   $('apply-button').disabled=!state.session||!count||busy||mode()!=='device'||!state.reader||!draftWriteState().ready||state.session.snapshot.provenance.sessionId!==state.reader.getState().sessionId;
 }
@@ -412,7 +423,17 @@ $('cancel-button').addEventListener('click',()=>state.reader?.cancel());
 $('selection-multi').addEventListener('change',event=>{state.multi=event.target.checked;});
 $('select-all').addEventListener('click',()=>{state.selectedSlots=KEYS.map(key=>key.slot);renderSelection();editors?.setSelection(state.selectedSlots);});
 $('clear-selection').addEventListener('click',()=>{state.selectedSlots=[];renderSelection();editors?.setSelection([]);});
-$('revert-button').addEventListener('click',()=>{state.session?.revert();clearProfilePreview();editors?.refresh();clearMessage();renderSelection();renderDraft();scheduleRecovery();});
+// Hoàn tác bỏ cả bản nháp bằng một lần bấm; giữ 10 giây để "Lấy lại bản nháp" nếu bấm nhầm.
+function offerRevertUndo(value){
+  revertUndo=value;clearTimeout(revertUndoTimer);const button=$('revert-undo');if(button)button.hidden=!value;
+  if(value){revertUndoTimer=setTimeout(()=>{offerRevertUndo(null);renderDraft();},10000);revertUndoTimer?.unref?.();}
+}
+$('revert-undo')?.addEventListener('click',()=>{
+  const value=revertUndo;offerRevertUndo(null);if(!value||value.session!==state.session)return renderDraft();
+  try{state.session.restore(value.point);editors?.refresh();clearMessage();renderSelection();renderDraft();scheduleRecovery();toast('Đã lấy lại bản nháp.','success');}
+  catch(problem){message(problem.message,true);renderDraft();}
+});
+$('revert-button').addEventListener('click',()=>{const session=state.session,point=session&&session.diff().length?session.checkpoint():null;state.session?.revert();if(point)offerRevertUndo({session,point});clearProfilePreview();editors?.refresh();clearMessage();renderSelection();renderDraft();scheduleRecovery();});
 $('apply-button').addEventListener('click',applyDraft);
 $('sample-button').addEventListener('click',sample);
 $('exit-sample').addEventListener('click',()=>{invalidateImports();state.snapshot=null;state.session=null;state.capability=null;clearMessage();render();});
@@ -527,6 +548,8 @@ async function syncHotkeyBindings(){
   renderHotkeyStatus();
 }
 presetLibrary.subscribe(()=>{renderHotkeyStatus();void syncHotkeyBindings();});
+// Cửa sổ khác của app đổi thư viện profile: nạp lại để không ghi đè bằng dữ liệu cũ.
+globalThis.addEventListener?.('storage',event=>{if(event.key===null||event.key==='a80rt-rt-presets')presetLibrary.refresh();});
 function renderHotkeyStatus(){
   const box=$('hotkey-status');if(!box)return;
   const keys=presetLibrary.list().filter(item=>item.shortcut).map(item=>`${item.shortcut} → ${item.label}`).join(' · ')||'—';
@@ -535,7 +558,7 @@ function renderHotkeyStatus(){
     :hotkeyBridge?`Phím tắt (chỉ trong app): ${keys}`
     :`Phím tắt (chỉ trong app): ${keys}`;
   const canAsk=typeof Notification!=='undefined'&&Notification.permission==='default';
-  if(typeof Notification!=='undefined'&&Notification.permission==='denied')text.textContent+=' Thông báo Windows đang bị chặn trong cài đặt trang của trình duyệt; vẫn có tiếng báo và thông báo trong app.';
+  if(typeof Notification!=='undefined'&&Notification.permission==='denied')text.append(' ',document.createTextNode('Thông báo Windows đang bị chặn trong cài đặt trang của trình duyệt; vẫn có tiếng báo và thông báo trong app.'));// nút chữ riêng để i18n dịch được
   button.hidden=!canAsk;box.hidden=false;
 }
 async function connectHotkeyBridge(){
@@ -595,16 +618,25 @@ async function pollBattery(){
 }
 // ---------- Tự kết nối ----------
 // Thiết bị đã cho phép một lần được trình duyệt nhớ: mở và đọc (chỉ đọc) mà không
-// cần hộp chọn. Không tự kết nối khi bản nháp có thay đổi, vì kết nối mới bỏ bản nháp.
+// cần hộp chọn. Không tự kết nối khi bản nháp có thay đổi (kể cả phiên chưa xác nhận sau
+// một lần ghi lỗi), vì kết nối mới bỏ bản nháp. Người dùng tự quyết định bấm Kết nối.
 let autoConnectPaused=false;
+// Điều kiện được tự kết nối; kiểm lại sau mỗi await vì người dùng có thể mở dữ liệu mẫu,
+// sửa bản nháp hoặc tự bấm Kết nối trong lúc chờ danh sách thiết bị.
+const autoConnectBlocked=()=>!supported||autoConnectPaused||state.reader||state.connecting||state.reading||state.applying||state.maintaining;
 async function autoConnect(reason){
-  if(!supported||autoConnectPaused||state.reader||state.connecting||state.reading||state.applying||state.maintaining)return;
-  if(state.session&&state.session.diff().length&&!state.session.invalidated){if(reason==='plug')toast('Đã thấy bàn phím. Bản nháp chưa áp dụng nên chưa tự kết nối.','warning');return;}
+  if(autoConnectBlocked())return;
+  if(state.session&&state.session.diff().length){
+    if(reason==='plug')toast('Đã thấy bàn phím. Bản nháp chưa áp dụng nên chưa tự kết nối.','warning');
+    else if(reason==='relink')message('Bản nháp còn thay đổi nên app không tự kết nối lại. Bấm Kết nối khi sẵn sàng; kết nối mới sẽ bỏ bản nháp.',true);
+    return 'draft';
+  }
   if(mode()==='demo')return;
   let devices=[];try{devices=(await navigator.hid.getDevices()).filter(device=>DEVICE_FILTERS.some(filter=>filter.vendorId===device.vendorId&&filter.productId===device.productId));}catch{return;}
   // Quyền WebHID cấp riêng cho từng thiết bị: cáp (A80RT U) và đầu thu (A80RT U Dongle)
   // là hai thiết bị khác nhau, mỗi cái cần được chọn một lần trong hộp chọn.
   if(!devices.length){if(reason==='start'&&!state.snapshot)message('Bấm Kết nối, chọn “A80RT U” (cáp) hoặc “A80RT U Dongle” (đầu thu). Lần sau app tự kết nối.');return;}
+  if(autoConnectBlocked()||mode()==='demo'||(state.session&&state.session.diff().length))return;
   await connect(devices);
   if(state.reader&&state.capability&&!state.session)await read();
 }
@@ -627,7 +659,7 @@ function scheduleRelink(){
   relinkDelay=Math.min(relinkDelay?relinkDelay*2:3000,30000);
   relinkTimer=setTimeout(async()=>{
     relinkTimer=null;if(autoConnectPaused||state.reader)return;
-    await autoConnect('relink');
+    if(await autoConnect('relink')==='draft')return;
     if(!state.reader&&!autoConnectPaused&&!relinkTimer)scheduleRelink();
   },relinkDelay);
   relinkTimer?.unref?.();

@@ -413,6 +413,7 @@ namespace A80RT {
                 IntPtr buffer = Marshal.AllocHGlobal(frame.Length);
                 IntPtr overlapped = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(NativeOverlapped)));
                 var done = new ManualResetEvent(false);
+                bool stillPending = false;
                 try {
                     Marshal.Copy(frame, 0, buffer, frame.Length);
                     var ov = new NativeOverlapped(); ov.EventHandle = done.SafeWaitHandle.DangerousGetHandle();
@@ -423,16 +424,25 @@ namespace A80RT {
                         if (err != Native.ERROR_IO_PENDING) throw new IOException("Gửi report HID thất bại (mã lỗi " + err + ").");
                         if (!done.WaitOne(3000)) {
                             Native.CancelIoEx(_handle, overlapped);
+                            // Bounded wait for the cancellation: an unbounded GetOverlappedResult here
+                            // held _writeLock forever and froze Dispose()/CloseHandleOnce().
+                            if (!done.WaitOne(1000)) {
+                                // The kernel may still own buffer/overlapped/event: leak them rather than free memory in use.
+                                stillPending = true;
+                                throw new IOException("Gửi report HID quá thời gian.");
+                            }
                             // The write may have completed just as the timeout fired: then it was sent.
-                            if (Native.GetOverlappedResult(_handle, overlapped, out written, true) && written == frame.Length) return;
+                            if (Native.GetOverlappedResult(_handle, overlapped, out written, false) && written == frame.Length) return;
                             throw new IOException("Gửi report HID quá thời gian.");
                         }
                     }
                     if (!Native.GetOverlappedResult(_handle, overlapped, out written, true) || written != frame.Length) throw new IOException("Gửi report HID chưa trọn vẹn.");
                 } finally {
-                    Marshal.FreeHGlobal(buffer);
-                    Marshal.FreeHGlobal(overlapped);
-                    done.Close();
+                    if (!stillPending) {
+                        Marshal.FreeHGlobal(buffer);
+                        Marshal.FreeHGlobal(overlapped);
+                        done.Close();
+                    }
                 }
             }
         }

@@ -133,37 +133,62 @@ function describeUser(preset){
   return `Profile của bạn: điểm nhận ${range}, ${rt} phím bật RT${preset.deadZone?`, vùng chết ${preset.deadZone.top}/${preset.deadZone.bottom}`:''}.`;
 }
 
+const STORAGE_ERROR='Không lưu được vào bộ nhớ của app (bị chặn hoặc đã đầy). Chưa có thay đổi nào được lưu.';
 export function createPresetLibrary(storage=null){
-  let data={hidden:[],custom:[],shortcuts:{...DEFAULT_SHORTCUTS}};const listeners=new Set();
-  try{
-    const raw=storage?.getItem?.(STORE_KEY),parsed=raw?JSON.parse(raw):null;
-    if(parsed&&typeof parsed==='object'){
-      const hidden=Array.isArray(parsed.hidden)?parsed.hidden.filter(id=>RT_PRESETS.some(preset=>preset.id===id)):[];
-      const custom=Array.isArray(parsed.custom)?parsed.custom.map(validUserPreset).filter(Boolean).slice(0,MAX_USER_PRESETS):[];
-      const shortcuts={};
-      if(parsed.shortcuts&&typeof parsed.shortcuts==='object')for(const [id,keys]of Object.entries(parsed.shortcuts)){
-        try{const value=normalizeShortcut(keys);if(!Object.values(shortcuts).includes(value))shortcuts[id]=value;}catch{}
-      }
-      data={hidden,custom,shortcuts};
+  const empty=()=>({hidden:[],custom:[],shortcuts:{...DEFAULT_SHORTCUTS}});
+  const parse=raw=>{
+    const parsed=raw?JSON.parse(raw):null;
+    if(!parsed||typeof parsed!=='object')return empty();
+    const hidden=Array.isArray(parsed.hidden)?parsed.hidden.filter(id=>RT_PRESETS.some(preset=>preset.id===id)):[];
+    const custom=Array.isArray(parsed.custom)?parsed.custom.map(validUserPreset).filter(Boolean).slice(0,MAX_USER_PRESETS):[];
+    const shortcuts={};
+    if(parsed.shortcuts&&typeof parsed.shortcuts==='object')for(const [id,keys]of Object.entries(parsed.shortcuts)){
+      try{const value=normalizeShortcut(keys);if(!Object.values(shortcuts).includes(value))shortcuts[id]=value;}catch{}
     }
-  }catch{}
+    return {hidden,custom,shortcuts};
+  };
+  let data=empty(),lastRaw,notifiedRaw;const listeners=new Set();
+  // Nhiều cửa sổ dùng chung localStorage: đọc lại bản đã lưu trước mỗi lần đọc/ghi để
+  // không ghi đè profile mà cửa sổ khác vừa lưu bằng dữ liệu cũ trong bộ nhớ.
+  const sync=()=>{
+    try{const raw=storage?.getItem?.(STORE_KEY)??null;if(raw===lastRaw)return false;lastRaw=raw;data=parse(raw);return true;}catch{return false;}
+  };
+  sync();notifiedRaw=lastRaw;
   const known=id=>RT_PRESETS.some(preset=>preset.id===id)||data.custom.some(preset=>preset.id===id);
-  const persist=()=>{
+  // Mọi thay đổi chạy trong commit(): không có bộ nhớ (localStorage bị chặn) hoặc ghi
+  // thất bại (vd. đầy dung lượng) thì
+  // hoàn nguyên dữ liệu trong phiên và báo lỗi, không báo lưu thành công giả.
+  const commit=mutate=>{
+    const previous=JSON.stringify(data),result=mutate();
     for(const id of Object.keys(data.shortcuts))if(!known(id)||data.hidden.includes(id))delete data.shortcuts[id];
-    try{storage?.setItem?.(STORE_KEY,JSON.stringify(data));}catch{}
+    try{if(typeof storage?.setItem!=='function')throw new Error('no storage');const raw=JSON.stringify(data);storage.setItem(STORE_KEY,raw);lastRaw=raw;notifiedRaw=raw;}
+    catch{data=JSON.parse(previous);throw new Error(STORAGE_ERROR);}
     for(const listener of [...listeners]){try{listener();}catch{}}
+    return result;
   };
   const decorate=(preset,builtin)=>({...preset,builtin,shortcut:data.shortcuts[preset.id]??null,description:builtin?preset.description:describeUser(preset)});
   const library={
-    list(){return [...RT_PRESETS.filter(preset=>!data.hidden.includes(preset.id)).map(preset=>decorate(preset,true)),...data.custom.map(preset=>decorate(preset,false))];},
+    list(){sync();return [...RT_PRESETS.filter(preset=>!data.hidden.includes(preset.id)).map(preset=>decorate(preset,true)),...data.custom.map(preset=>decorate(preset,false))];},
     find(id){
-      const builtin=RT_PRESETS.find(preset=>preset.id===id);if(builtin)return decorate(builtin,true);
+      sync();const builtin=RT_PRESETS.find(preset=>preset.id===id);if(builtin)return decorate(builtin,true);
       const custom=data.custom.find(preset=>preset.id===id);return custom?decorate(custom,false):null;
     },
-    hiddenCount(){return data.hidden.length;},
+    hiddenCount(){sync();return data.hidden.length;},
+    // Gọi khi cửa sổ khác đổi thư viện (sự kiện storage): nạp lại và báo cho giao diện.
+    // So với bản đã báo (không phải bản đã đọc): list() có thể đã nạp thay đổi trước khi sự kiện tới.
+    refresh(){sync();if(lastRaw===notifiedRaw)return;notifiedRaw=lastRaw;for(const listener of [...listeners]){try{listener();}catch{}}},
+    // Tên chưa dùng cho profile nhập từ file: trùng thì thêm " (2)", " (3)"… để nhập không
+    // bao giờ âm thầm thay thế profile đang có.
+    uniqueLabel(label){
+      sync();const base=typeof label==='string'?label.trim().replace(/\s+/g,' ').slice(0,MAX_PRESET_LABEL):'';
+      const taken=name=>data.custom.some(item=>item.label.toLowerCase()===name.toLowerCase())||RT_PRESETS.some(item=>!data.hidden.includes(item.id)&&item.label.toLowerCase()===name.toLowerCase());
+      if(!base||!taken(base))return base;
+      for(let index=2;index<100;index++){const suffix=` (${index})`,name=base.slice(0,MAX_PRESET_LABEL-suffix.length).trimEnd()+suffix;if(!taken(name))return name;}
+      return base;
+    },
     // Lưu bản chụp thành profile mới; trùng tên với profile của bạn thì ghi đè (giữ phím tắt).
     save(label,preset){
-      const name=typeof label==='string'?label.trim().replace(/\s+/g,' '):'';
+      sync();const name=typeof label==='string'?label.trim().replace(/\s+/g,' '):'';
       if(!name)throw new Error('Nhập tên profile trước khi lưu.');
       if(name.length>MAX_PRESET_LABEL)throw new Error(`Tên profile tối đa ${MAX_PRESET_LABEL} ký tự.`);
       if(RT_PRESETS.some(item=>item.label.toLowerCase()===name.toLowerCase()&&!data.hidden.includes(item.id)))throw new Error(`“${name}” trùng tên profile cài sẵn; chọn tên khác.`);
@@ -172,35 +197,44 @@ export function createPresetLibrary(storage=null){
       const id=existing?.id??`u-${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`;
       const stored=validUserPreset({...preset,id,label:name,savedAt:new Date().toISOString()});
       if(!stored)throw new Error('Dữ liệu profile không hợp lệ.');
-      if(existing)data.custom[data.custom.indexOf(existing)]=stored;else data.custom.push(stored);
-      persist();return library.find(id);
+      commit(()=>{if(existing)data.custom[data.custom.indexOf(existing)]=stored;else data.custom.push(stored);});
+      return library.find(id);
     },
     // Trả về một "vé" để hoàn tác ngay sau khi xóa (khôi phục cả vị trí và phím tắt).
     remove(id){
-      const token={id,shortcut:data.shortcuts[id]??null,builtin:RT_PRESETS.some(preset=>preset.id===id)};
-      if(token.builtin){if(!data.hidden.includes(id))data.hidden.push(id);}
-      else{const index=data.custom.findIndex(preset=>preset.id===id);if(index<0)throw new Error('Không tìm thấy profile.');token.index=index;token.preset=data.custom.splice(index,1)[0];}
-      delete data.shortcuts[id];persist();return token;
+      sync();const token={id,shortcut:data.shortcuts[id]??null,builtin:RT_PRESETS.some(preset=>preset.id===id)};
+      if(!token.builtin&&!data.custom.some(preset=>preset.id===id))throw new Error('Không tìm thấy profile.');
+      return commit(()=>{
+        if(token.builtin){if(!data.hidden.includes(id))data.hidden.push(id);}
+        else{const index=data.custom.findIndex(preset=>preset.id===id);token.index=index;token.preset=data.custom.splice(index,1)[0];}
+        delete data.shortcuts[id];return token;
+      });
     },
     undoRemove(token){
-      if(!token)return;
-      if(token.builtin)data.hidden=data.hidden.filter(id=>id!==token.id);
-      else if(token.preset&&!data.custom.some(preset=>preset.id===token.id))data.custom.splice(Math.min(token.index??data.custom.length,data.custom.length),0,token.preset);
-      if(token.shortcut&&!Object.values(data.shortcuts).includes(token.shortcut))data.shortcuts[token.id]=token.shortcut;
-      persist();
+      if(!token)return;sync();
+      if(!token.builtin&&token.preset&&!data.custom.some(preset=>preset.id===token.id)&&data.custom.length>=MAX_USER_PRESETS)
+        throw new Error(`Đã đủ ${MAX_USER_PRESETS} profile nên không hoàn tác được; xóa bớt một profile rồi lưu lại.`);
+      commit(()=>{
+        if(token.builtin)data.hidden=data.hidden.filter(id=>id!==token.id);
+        else if(token.preset&&!data.custom.some(preset=>preset.id===token.id))data.custom.splice(Math.min(token.index??data.custom.length,data.custom.length),0,token.preset);
+        if(token.shortcut&&!Object.values(data.shortcuts).includes(token.shortcut))data.shortcuts[token.id]=token.shortcut;
+      });
     },
     restoreDefaults(){
-      data.hidden=[];
-      for(const [id,keys]of Object.entries(DEFAULT_SHORTCUTS))if(!data.shortcuts[id]&&!Object.values(data.shortcuts).includes(keys))data.shortcuts[id]=keys;
-      persist();
+      sync();commit(()=>{
+        data.hidden=[];
+        for(const [id,keys]of Object.entries(DEFAULT_SHORTCUTS))if(!data.shortcuts[id]&&!Object.values(data.shortcuts).includes(keys))data.shortcuts[id]=keys;
+      });
     },
     // Gán phím tắt (null để bỏ). Tổ hợp đang thuộc profile khác được chuyển sang profile này.
     setShortcut(id,keys){
-      if(!known(id)||data.hidden.includes(id))throw new Error('Không tìm thấy profile.');
-      if(keys==null||keys===''){delete data.shortcuts[id];persist();return null;}
+      sync();if(!known(id)||data.hidden.includes(id))throw new Error('Không tìm thấy profile.');
+      if(keys==null||keys==='')return commit(()=>{delete data.shortcuts[id];return null;});
       const value=normalizeShortcut(keys);
-      for(const [other,current]of Object.entries(data.shortcuts))if(current===value&&other!==id)delete data.shortcuts[other];
-      data.shortcuts[id]=value;persist();return value;
+      return commit(()=>{
+        for(const [other,current]of Object.entries(data.shortcuts))if(current===value&&other!==id)delete data.shortcuts[other];
+        data.shortcuts[id]=value;return value;
+      });
     },
     bindings(){return library.list().filter(preset=>preset.shortcut).map(preset=>({preset:preset.id,label:preset.label,keys:preset.shortcut}));},
     subscribe(listener){listeners.add(listener);return ()=>listeners.delete(listener);},

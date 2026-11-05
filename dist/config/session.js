@@ -107,6 +107,12 @@ export class ConfigSession {
     this.#draft=draft;this.#edits=saved;return this.diff();
   }
   revert(){this.#editable();this.#edits.clear();this.#draft=copyBlocks(this.#blocks);}
+  // Chụp bản nháp để "Lấy lại" sau khi người dùng bấm Hoàn tác nhầm.
+  checkpoint(){return {draft:copyBlocks(this.#draft),edits:new Map([...this.#edits].map(([id,fields])=>[id,new Map(fields)]))};}
+  restore(point){
+    this.#editable();if(!point?.draft||!(point.edits instanceof Map))throw new Error('Không có bản nháp để lấy lại.');
+    this.#draft=copyBlocks(point.draft);this.#edits=new Map([...point.edits].map(([id,fields])=>[id,new Map(fields)]));return this.diff();
+  }
   diff(){
     return this.#plan.flatMap(({id})=>this.#edits.has(id)?fieldChanges(id,this.#blocks[id],this.#draft[id],[...this.#edits.get(id).values()],this.#capability):[]);
   }
@@ -186,7 +192,7 @@ export class ConfigSession {
       },{signal,sessionId:this.#origin.sessionId,writeEpoch:this.#origin.writeEpoch});
     }catch(error){
       const mayHaveWritten=result.writtenBlocks.length>0||(error.writeProgress?.sentChunks??0)>0;
-      if(mayHaveWritten)this.invalidate('Chưa xác nhận trạng thái thiết bị sau khi ghi; đọc lại đủ 9 nhóm cấu hình trước khi chỉnh sửa hoặc áp dụng tiếp. Bản nháp vẫn được giữ; hoàn tác cục bộ không chứng minh thiết bị đã khôi phục.');
+      if(mayHaveWritten)this.invalidate('Chưa xác nhận trạng thái thiết bị sau khi ghi; đọc lại đủ 9 nhóm cấu hình trước khi chỉnh sửa hoặc áp dụng tiếp. Bản nháp chỉ còn đến khi đọc lại; hoàn tác cục bộ không chứng minh thiết bị đã khôi phục.');
       if(activeBlock&&(error.writeProgress?.sentChunks??0)>0)result.partialBlock=activeBlock;
       if(error.writeProgress)result.writeProgress=copy(error.writeProgress);
       return {...result,status:mayHaveWritten?'unconfirmed':'failed',error:error.message??String(error)};

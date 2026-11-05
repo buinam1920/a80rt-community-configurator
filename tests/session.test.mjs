@@ -50,11 +50,11 @@ function api(){
   assert.equal(typeof protocol.readSnapshot,'function','complete read provenance must be exposed');
   return protocol;
 }
-async function setup({qualified=true,packetSize=32,cleanAdvanced=false}={}){
+async function setup({qualified=true,packetSize=32,cleanAdvanced=false,timeoutMs=10}={}){
   const {ConfigSession,readSnapshot}=api(),device=new Receiver();
   if(cleanAdvanced)for(const id of ['macro','dks','keymap','fn'])device.blocks[id].fill(0);
   device.collections[0].outputReports[0].items[0].reportCount=packetSize;
-  const transport=new (qualified?QualifiedSyntheticTransport:protocol.A80Transport)(device,{timeoutMs:10});
+  const transport=new (qualified?QualifiedSyntheticTransport:protocol.A80Transport)(device,{timeoutMs});
   await transport.open();const snapshot=await readSnapshot(transport,capability);
   device.sent=[];return {device,transport,snapshot,session:new ConfigSession(snapshot,capability)};
 }
@@ -157,7 +157,9 @@ test('disconnect after the first group retains acknowledged blocks and draft, th
 });
 
 test('apply overlap across sessions and edits during apply are blocked; cancellation preserves draft without more writes',async()=>{
-  const {ConfigSession}=api(),{device,transport,snapshot,session}=await setup();
+  // The Apply must still be pending at every check below; a 10 ms ACK timeout could expire
+  // under CPU load and made this test flaky. The Apply is ended by abort, not by the timeout.
+  const {ConfigSession}=api(),{device,transport,snapshot,session}=await setup({timeoutMs:5000});
   try{
     session.edit('colors',[rgb]);const second=new ConfigSession(snapshot,capability);second.edit('colors',[rgb]);
     device.silent=true;const abort=new AbortController(),pending=session.apply(transport,{signal:abort.signal});await tick();

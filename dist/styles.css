@@ -124,6 +124,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
 .draft-bar.is-active #draft-count{color:var(--accent)}
 #apply-reason.error{color:#efbaac}
 html:has(.draft-bar.is-active){scroll-padding-bottom:140px}
+/* Toast không được che nút Áp dụng/Hoàn tác của thanh bản nháp dính đáy. */
+html:has(.draft-bar.is-active) .toast{bottom:auto;top:24px}
 /* Bàn phím: viền focus rõ khi đi bằng phím mũi tên. */
 .key:focus-visible{outline:2px solid var(--accent);outline-offset:2px;z-index:var(--z-raised)}
 .undo-button{margin-left:10px}

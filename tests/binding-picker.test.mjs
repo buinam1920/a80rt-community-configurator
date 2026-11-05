@@ -20,7 +20,7 @@ class Element{
 }
 function mount(selectedSlots=[34]){
   const elements=[];globalThis.document={createElement:tag=>{const el=new Element(tag);elements.push(el);return el;}};
-  const s=session(),m=mountCoreEditors(new Element(),{session:s,capability:cap,selectedSlots,library:createPresetLibrary()});
+  const s=session(),m=mountCoreEditors(new Element(),{session:s,capability:cap,selectedSlots,library:createPresetLibrary({getItem:()=>null,setItem(){}})});
   const get=id=>elements.findLast(el=>el.id===id),grid=()=>get('core-binding-grid').children,labels=()=>grid().map(el=>el.textContent);
   return {s,m,get,grid,labels};
 }

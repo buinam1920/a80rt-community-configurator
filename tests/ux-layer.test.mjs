@@ -63,6 +63,11 @@ test('the draft bar becomes sticky while the draft has changes and clears on rev
     input.value='1.25';await input.trigger('change');
     assert.match(get('draft-count').textContent,/^[1-9]\d* thay đổi/);assert.equal(get('draft-bar').classList.contains('is-active'),true);
     await get('revert-button').trigger('click');
-    assert.equal(get('draft-bar').classList.contains('is-active'),false);
+    // Revert offers "Restore draft" for 10 s, so the bar stays in view until then.
+    assert.match(get('draft-count').textContent,/^0 thay đổi/);assert.equal(get('revert-undo').hidden,false);assert.equal(get('draft-bar').classList.contains('is-active'),true);
+    await get('revert-undo').trigger('click');
+    assert.match(get('draft-count').textContent,/^[1-9]\d* thay đổi/);assert.equal(get('revert-undo').hidden,true);assert.equal(input.value,'1.25');
+    await get('revert-button').trigger('click');input.value='0.9';await input.trigger('change');
+    assert.equal(get('revert-undo').hidden,true,'a new edit withdraws the restore offer');
   }finally{restore();}
 });

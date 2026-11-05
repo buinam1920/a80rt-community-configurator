@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {identifyDevice} from '../dist/device/capabilities.js';
+import {ConfigSession} from '../dist/config/session.js';
 
 const measured=JSON.parse(fs.readFileSync(new URL('./fixtures/a80rt-dongle-write-qualification.json',import.meta.url)));
 const synthetic=JSON.parse(fs.readFileSync(new URL('./fixtures/synthetic/config-blocks.json',import.meta.url)));
@@ -110,5 +111,48 @@ test('a manual disconnect after a link loss stops automatic reconnection',async(
     await get('disconnect-button').trigger('click');device.asleep=false;
     const before=device.sent.length;await wait(3300);await settle();
     assert.equal(device.sent.length,before,'no traffic after the user disconnected');
+  }finally{await restore();}
+});
+
+// A write that fails after sending leaves the session invalidated but keeps its edits
+// (session.test covers that transition). Reconnecting would replace the session, so
+// neither a relink nor a re-plug may connect on its own while those edits exist.
+// The app's real session is captured; only its state is driven directly.
+async function withUnconfirmedDraft(tag){
+  const sessions=new Set(),diff=ConfigSession.prototype.diff;
+  ConfigSession.prototype.diff=function(){sessions.add(this);return diff.call(this);};
+  const device=new SleepyReceiver(80),hosted=await host(tag,{permitted:[device]});
+  ConfigSession.prototype.diff=diff;
+  const session=[...sessions].at(-1);assert.ok(session,'the app read a session');
+  session.transaction({rt:[{slot:34,field:'actuationMm',value:0.45}]});
+  session.invalidate('Chưa xác nhận trạng thái thiết bị sau khi ghi.');
+  assert.ok(session.diff().length>0&&session.invalidated);
+  return {...hosted,device,session};
+}
+
+test('a link loss with an unconfirmed draft does not reconnect by itself and keeps the draft',async()=>{
+  const {get,device,session,restore}=await withUnconfirmedDraft('relink-draft');
+  try{
+    device.asleep=true;device.linkLoss();await settle();
+    assert.equal(device.opened,false);
+    device.asleep=false;const before=device.sent.length;
+    await wait(3300);await settle();
+    assert.equal(device.sent.length,before,'no reconnect traffic while the draft exists');
+    assert.match(get('message').textContent,/không tự kết nối lại/);
+    assert.ok(session.diff().length>0,'draft edits are still there');
+    await wait(6300);await settle();
+    assert.equal(device.sent.length,before,'relink stopped instead of retrying in the background');
+  }finally{await restore();}
+});
+
+test('re-plugging with an unconfirmed draft only warns and does not connect',async()=>{
+  const {get,hid,device,session,restore}=await withUnconfirmedDraft('plug-draft');
+  try{
+    await get('disconnect-button').trigger('click');assert.equal(device.opened,false);
+    const before=device.sent.length;
+    hid.dispatchEvent(new Event('connect'));await wait(900);await settle();
+    assert.equal(device.sent.length,before,'no traffic after the plug event');assert.equal(device.opened,false);
+    assert.match(get('toast').textContent,/chưa tự kết nối/);
+    assert.ok(session.diff().length>0,'draft edits are still there');
   }finally{await restore();}
 });

@@ -184,7 +184,8 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
   pasteBox.append(pasteText,pasteImport);ioTools.append(importButton,pasteButton,aiButton,importFile);
   const importProfileText=text=>{
     try{
-      const parsed=parseRtProfile(text,capability),saved=library.save(parsed.label,parsed.preset),notes=[...parsed.warnings];
+      const parsed=parseRtProfile(text,capability),label=library.uniqueLabel(parsed.label),saved=library.save(label,parsed.preset),notes=[...parsed.warnings];
+      if(label!==parsed.label)notes.unshift(`Tên “${parsed.label}” đã có nên lưu thành profile mới.`);
       if(parsed.shortcut){const owner=library.list().find(item=>item.shortcut===parsed.shortcut&&item.id!==saved.id);
         if(owner)notes.push(`Phím tắt ${parsed.shortcut} đang thuộc ${owner.label} nên chưa gán.`);else library.setShortcut(saved.id,parsed.shortcut);}
       clearError();presetNote.textContent=`Đã nhập profile ${saved.label}.${notes.length?` ${notes.join(' ')}`:''}`;
@@ -224,12 +225,13 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
     if(capturing!==preset.id)return;
     event.preventDefault?.();event.stopPropagation?.();
     if(event.key==='Escape'){stopCapture();renderPresets();return;}
-    if(event.key==='Backspace'||event.key==='Delete'){stopCapture();library.setShortcut(preset.id,null);presetNote.textContent=`Đã bỏ phím tắt của ${preset.label}.`;return;}
+    if(event.key==='Backspace'||event.key==='Delete'){stopCapture();try{library.setShortcut(preset.id,null);clearError();presetNote.textContent=`Đã bỏ phím tắt của ${preset.label}.`;}catch(problem){showPresetError(problem);renderPresets();}return;}
     const keys=shortcutFromEvent(event);
     if(!keys){if(!['Control','Alt','Shift','Meta'].includes(event.key))button.textContent='Cần Ctrl/Alt/Win + chữ, số hoặc F1–F24';return;}
     const owner=library.list().find(item=>item.shortcut===keys&&item.id!==preset.id);
-    stopCapture();library.setShortcut(preset.id,keys);clearError();
-    presetNote.textContent=`Đã gán ${keys} → ${preset.label}${owner?` (bỏ khỏi ${owner.label})`:''}.`;
+    stopCapture();
+    try{library.setShortcut(preset.id,keys);clearError();presetNote.textContent=`Đã gán ${keys} → ${preset.label}${owner?` (bỏ khỏi ${owner.label})`:''}.`;}
+    catch(problem){showPresetError(problem);renderPresets();}
   };
   function renderPresets(){
     for(const remove of dynamic)remove();dynamic=[];presetButtons.clear();
@@ -246,17 +248,17 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
       dlisten(keys,'click',()=>{onNavigate();capturing=capturing===preset.id?null:preset.id;renderPresets();});
       dlisten(keys,'keydown',captureKeys(preset,keys));dlisten(keys,'blur',()=>{if(capturing===preset.id){stopCapture();renderPresets();}});
       const drop=make('button',confirmDelete===preset.id?'Bấm lần nữa để xóa':'Xóa','preset-tool preset-delete');drop.type='button';drop.id=`core-preset-delete-${preset.id}`;
-      drop.title=preset.builtin?'Ẩn (khôi phục được)':'Xóa hẳn';if(confirmDelete!==preset.id)withIcon(drop,'trash',{iconOnly:true});
+      drop.title=preset.builtin?'Ẩn (khôi phục được)':'Xóa hẳn';if(confirmDelete!==preset.id){withIcon(drop,'trash',{iconOnly:true});drop.setAttribute('aria-label',`Xóa profile ${preset.label}`);}else drop.setAttribute('aria-label',`Bấm lần nữa để xóa profile ${preset.label}`);
       dlisten(drop,'click',()=>{onNavigate();clearTimeout(confirmTimer);
         if(confirmDelete!==preset.id){confirmDelete=preset.id;confirmTimer=setTimeout(()=>{confirmDelete=null;if(!destroyed)renderPresets();},3000);renderPresets();return;}
         confirmDelete=null;try{const token=library.remove(preset.id);presetNote.textContent=`Đã xóa profile ${preset.label}.`;offerUndo(token);}catch(problem){showPresetError(problem);}
       });
-      const out=make('button','Xuất','preset-tool');out.type='button';out.id=`core-preset-export-${preset.id}`;out.title='Tải file JSON';withIcon(out,'download',{iconOnly:true});
+      const out=make('button','Xuất','preset-tool');out.type='button';out.id=`core-preset-export-${preset.id}`;out.title='Tải file JSON';withIcon(out,'download',{iconOnly:true});out.setAttribute('aria-label',`Xuất profile ${preset.label}`);
       dlisten(out,'click',()=>{onNavigate();downloadProfile(preset);});
       row.append(name,kind,keys,out,drop);return row;
     });
     const hidden=library.hiddenCount(),restore=make('button',`Khôi phục profile cài sẵn đã xóa (${hidden})`,'preset-tool');restore.type='button';restore.id='core-preset-restore';withIcon(restore,'history');restore.hidden=!hidden;
-    dlisten(restore,'click',()=>{onNavigate();library.restoreDefaults();presetNote.textContent='Đã khôi phục profile cài sẵn.';});
+    dlisten(restore,'click',()=>{onNavigate();try{library.restoreDefaults();clearError();presetNote.textContent='Đã khôi phục profile cài sẵn.';}catch(problem){showPresetError(problem);}});
     presetManage.replaceChildren(make('p','Lưu trên máy này · phím tắt chạy cả trong game','editor-hint'),ioTools,pasteBox,...rows,restore);
     if(capturing)document.getElementById?.(`core-preset-keys-${capturing}`)?.focus?.();
     if(!destroyed)syncPresetState();
@@ -274,7 +276,7 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
     }catch(problem){showPresetError(problem);}
   };
   listen(presetSaveButton,'click',savePreset);
-  listen(presetUndo,'click',()=>{onNavigate();const token=undoToken;offerUndo(null);if(!token)return;library.undoRemove(token);presetNote.textContent='Đã hoàn tác xóa profile.';});
+  listen(presetUndo,'click',()=>{onNavigate();const token=undoToken;offerUndo(null);if(!token)return;try{library.undoRemove(token);clearError();presetNote.textContent='Đã hoàn tác xóa profile.';}catch(problem){showPresetError(problem);offerUndo(token);}});
   listen(presetName,'keydown',event=>{if(event.key==='Enter'){event.preventDefault?.();savePreset();}});
   const unsubscribe=library.subscribe(()=>{if(!destroyed)renderPresets();});listeners.push(()=>{unsubscribe();for(const remove of dynamic)remove();dynamic=[];clearTimeout(confirmTimer);clearTimeout(undoTimer);});
   renderPresets();
@@ -335,7 +337,7 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
   const pickerTop=make('div',null,'binding-picker-top'),bindingCurrent=make('p',null,'binding-current'),bindingSearch=make('input',null,'binding-search'),bindingEmpty=make('button','Bỏ gán (Trống)','preset-tool');
   bindingCurrent.id='core-binding-current';bindingSearch.type='search';bindingSearch.id='core-binding-search';bindingSearch.placeholder='Tìm phím hoặc chức năng (vd. F5, Mute, Bluetooth)';bindingSearch.setAttribute('aria-label','Tìm gán phím');bindingSearch.autocomplete='off';
   bindingEmpty.type='button';bindingEmpty.id='core-binding-empty';withIcon(bindingEmpty,'close');
-  const bindingTabs=make('div',null,'binding-tabs'),bindingGrid=make('div',null,'binding-grid');bindingTabs.setAttribute('role','tablist');bindingTabs.setAttribute('aria-label','Nhóm gán phím');bindingGrid.id='core-binding-grid';
+  const bindingTabs=make('div',null,'binding-tabs'),bindingGrid=make('div',null,'binding-grid');bindingTabs.setAttribute('role','tablist');bindingTabs.setAttribute('aria-label','Nhóm gán phím');bindingGrid.id='core-binding-grid';bindingGrid.setAttribute('role','tabpanel');bindingGrid.setAttribute('aria-label','Phím có thể gán');
   pickerTop.append(bindingCurrent,bindingSearch,bindingEmpty);picker.append(pickerTop,bindingTabs,bindingGrid);bindingPanel.append(picker);
   const BINDING_GROUPS=[['key','Phím'],['modifier','Modifier'],['media','Media'],['mouse','Chuột'],['function','Chức năng']];
   const groupOf=item=>item.value.type==='keyboard'?(item.value.usage?'key':'modifier'):item.value.type;
@@ -345,9 +347,15 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
   let bindingGroup='key',bindingSlotsSeen=null,pickerListeners=[];
   const bindingTabButtons=new Map();
   for(const [id,label]of BINDING_GROUPS){
-    const tab=make('button',label,'binding-tab');tab.type='button';tab.id=`core-binding-tab-${id}`;tab.setAttribute('role','tab');bindingTabs.append(tab);bindingTabButtons.set(id,tab);
+    const tab=make('button',label,'binding-tab');tab.type='button';tab.id=`core-binding-tab-${id}`;tab.setAttribute('role','tab');tab.setAttribute('aria-controls','core-binding-grid');bindingTabs.append(tab);bindingTabButtons.set(id,tab);
     listen(tab,'click',()=>{onNavigate();bindingGroup=id;bindingSearch.value='';renderBindingPicker();});
   }
+  // Mũi tên trái/phải, Home/End chuyển nhóm như tablist chuẩn (WAI-ARIA APG).
+  listen(bindingTabs,'keydown',event=>{
+    const ids=BINDING_GROUPS.map(([id])=>id),current=Math.max(0,ids.indexOf(bindingGroup));
+    const next={ArrowRight:(current+1)%ids.length,ArrowLeft:(current-1+ids.length)%ids.length,Home:0,End:ids.length-1}[event.key];
+    if(next===undefined)return;event.preventDefault();onNavigate();bindingGroup=ids[next];bindingSearch.value='';renderBindingPicker();bindingTabButtons.get(bindingGroup)?.focus?.();
+  });
   listen(bindingSearch,'input',()=>renderBindingPicker());
   listen(bindingEmpty,'click',()=>{onNavigate();if(emptyIndex>=0)commit('binding','binding',options[emptyIndex].value);});
   function renderBindingPicker(){
@@ -363,7 +371,7 @@ export function mountCoreEditors(root,{session,capability,selectedSlots=[],onEdi
       return button;
     });
     bindingGrid.replaceChildren(...(buttons.length?buttons:[make('p','Không có kết quả.','editor-hint')]));
-    for(const [id,tab]of bindingTabButtons){tab.setAttribute('aria-selected',String(!query&&id===bindingGroup));tab.disabled=binding.disabled;}
+    for(const [id,tab]of bindingTabButtons){tab.setAttribute('aria-selected',String(!query&&id===bindingGroup));tab.tabIndex=id===bindingGroup?0:-1;tab.disabled=binding.disabled;}
     bindingSearch.disabled=binding.disabled;bindingEmpty.disabled=binding.disabled;bindingEmpty.setAttribute('aria-pressed',String(index===emptyIndex));
     const soleKey=view.slots.length===1?KEYS.find(key=>key.slot===view.slots[0]):null,fallback=view.layer==='fn'&&index===emptyIndex&&soleKey?fnKeyCap(view.binding.value,soleKey,capability):null;
     bindingCurrent.textContent=fallback?.factory?`Đang gán: Trống · firmware dùng mặc định ${fallback.full.slice(0,-FACTORY_SUFFIX.length)}`:view.binding.mixed?'Đang gán: giá trị khác nhau giữa các phím đã chọn':index>=0?`Đang gán: ${options[index].label}`:view.binding.value?`Đang gán: ${view.binding.value.type} (mã ${view.binding.value.typeCode}) · giữ nguyên`:'Đang gán: —';

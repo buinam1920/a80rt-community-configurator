@@ -371,6 +371,8 @@ namespace A80RT {
             body["failed"] = _hotkeyWin.Failed.ToArray();
             body["sound"] = _sound;
             body["bindable"] = true;
+            // The exe shows hotkey results as tray balloons, so the page needs no web notifications.
+            body["tray"] = true;
             return new JavaScriptSerializer().Serialize(body);
         }
 
@@ -757,6 +759,16 @@ namespace A80RT {
                         if (status == "verified" || status == "already") Beep("ok");
                         else if (status == "staged") Beep("info");
                         else Beep("error");
+                        // WebView2 blocks web notifications, so the result of a global hotkey is shown
+                        // here as a tray balloon (visible over games). Only answers to a pending event get here.
+                        string rMessage = ExtractJsonString(trimmed, "message");
+                        string rLabel = ExtractJsonString(trimmed, "label") ?? "";
+                        if (_tray != null && !string.IsNullOrEmpty(rMessage)) {
+                            if (rMessage.Length > 250) rMessage = rMessage.Substring(0, 250);
+                            if (rLabel.Length > 40) rLabel = rLabel.Substring(0, 40);
+                            ToolTipIcon rIcon = status == "verified" || status == "already" || status == "staged" ? ToolTipIcon.Info : ToolTipIcon.Warning;
+                            try { _tray.ShowBalloonTip(2500, rLabel.Length > 0 ? "A80RT · " + rLabel : "A80RT", rMessage, rIcon); } catch {}
+                        }
                         WriteJson(ns, 200, "{\\"ok\\":true}");
                         return;
                     }

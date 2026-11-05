@@ -31,6 +31,8 @@ So reads through the receiver come from the keyboard, and the 2026-10-31 receive
 
 - **No freeze on disconnect after a stuck write.** After cancelling a write that timed out, the exe waits at most 1 second instead of indefinitely while holding the write lock. If Windows still owns the buffer, it is left allocated instead of being freed while in use.
 
+- **Profile hotkey results show as Windows tray balloons.** WebView2 blocks web notifications, so a global Ctrl+Alt+… switch used to give only a sound. The exe now shows the result (for example *Switched to profile Apex*) as a balloon from its tray icon, which is visible over games. The "Windows notifications are blocked in the browser site settings" hint no longer appears in the exe, where it did not apply; the browser version still shows it.
+
 ## Accessibility
 
 - Each profile's export and delete buttons name the profile for screen readers, including in the "click again" state.

@@ -492,7 +492,7 @@ function reportHotkeyState(active=false){
 async function switchPreset(preset,{global=false,event=null}={}){
   const finish=(status,text,kind)=>{
     toast(text,kind);if(global||document.hidden||!document.hasFocus?.())systemNotify(text,kind);
-    if(global)fetch('./hotkeys/result',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client:hotkeyClient,event,preset:preset.id,label:preset.label,status,message:text})}).catch(()=>{});
+    if(global)fetch('./hotkeys/result',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client:hotkeyClient,event,preset:preset.id,label:preset.label,status,message:localize(text)})}).catch(()=>{});
     return status;
   };
   if(presetSwitching)return finish('busy',`Đang đổi profile, bỏ qua ${preset.label}.`,'warning');
@@ -549,7 +549,8 @@ function renderHotkeyStatus(){
     :hotkeyBridge?`Phím tắt (chỉ trong app): ${keys}`
     :`Phím tắt (chỉ trong app): ${keys}`;
   const canAsk=typeof Notification!=='undefined'&&Notification.permission==='default';
-  if(typeof Notification!=='undefined'&&Notification.permission==='denied')text.append(' ',document.createTextNode('Thông báo Windows đang bị chặn trong cài đặt trang của trình duyệt; vẫn có tiếng báo và thông báo trong app.'));// nút chữ riêng để i18n dịch được
+  // The exe shows hotkey results in the tray (bridge reports tray:true); the browser-settings hint does not apply there.
+  if(!hotkeyBridge?.tray&&typeof Notification!=='undefined'&&Notification.permission==='denied')text.append(' ',document.createTextNode('Thông báo Windows đang bị chặn trong cài đặt trang của trình duyệt; vẫn có tiếng báo và thông báo trong app.'));// nút chữ riêng để i18n dịch được
   button.hidden=!canAsk;box.hidden=false;
 }
 async function connectHotkeyBridge(){

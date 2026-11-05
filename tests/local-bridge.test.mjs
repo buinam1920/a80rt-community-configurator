@@ -94,6 +94,7 @@ test('standalone A80RT-Configurator.exe serves embedded assets and dispatches si
   const realBase=base;base=`http://127.0.0.1:${port3}`;origin=`http://localhost:${port3}`;
   t.after(()=>{base=realBase;origin=`http://localhost:${port}`;});
   const config=await waitReady();assert.equal(config.status,200);
+  assert.equal(JSON.parse(config.body).tray,true,'the exe shows hotkey results as tray balloons');
   const index=await request('/');assert.equal(index.status,200);assert.match(index.body,/A80RT Configurator/);assert.equal(index.headers['cache-control'],'no-cache');
   const appJs=await request('/app.js?v=0.3.9');assert.equal(appJs.status,200);assert.match(appJs.headers['content-type'],/javascript/);
   const a=openWindow('exeWinAAAA'),b=openWindow('exeWinBBBB');t.after(()=>{a.close();b.close();});

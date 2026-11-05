@@ -64,6 +64,11 @@ export function setLang(next){
   try{localStorage.setItem(STORAGE_KEY,next);}catch{}
   document.documentElement.lang=next;
   walk(document.documentElement);observer?.takeRecords();renderSwitch();
+  // Giá trị mặc định của ô nhập (vd. tên hồ sơ) đổi theo ngôn ngữ, trừ khi người dùng đã gõ tên khác.
+  for(const el of document.querySelectorAll('[data-i18n-value]')){
+    const vi=el.getAttribute('data-i18n-value'),en=translate(vi);
+    if(el.value===vi||el.value===en)el.value=lang==='en'?en:vi;
+  }
 }
 
 // Không có DOM thật (Node test, công cụ cũ): bỏ qua hoàn toàn.

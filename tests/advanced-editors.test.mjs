@@ -21,7 +21,7 @@ test('actual host locks editors during Apply and preserves unsaved macro input a
  const device=new EventTarget();Object.assign(device,{vendorId:cap.vendorId,productId:cap.productId,productName:cap.name,opened:false,collections:[{usagePage:0xff80,usage:1,outputReports:[{reportId:0,items:[{reportSize:8,reportCount:32}]}]}],async open(){this.opened=true;},async close(){this.opened=false;}});
  const hid=new EventTarget();hid.requestDevice=async()=>[device];globalThis.document=Object.assign(new EventTarget(),{getElementById:get,createElement:tag=>{const el=new Element(tag);all.push(el);return el;},createTextNode:text=>({textContent:text}),hasFocus:()=>true});globalThis.window=Object.assign(new EventTarget(),{isSecureContext:true});Object.defineProperty(globalThis,'navigator',{configurable:true,value:{hid}});
  const oldRead=A80Reader.prototype.readConfiguration,oldQualification=A80Transport.prototype.getWriteState,oldApply=ConfigSession.prototype.apply;let release,activeSession;
- A80Reader.prototype.readConfiguration=async function(){const blocks=Object.fromEntries(readPlan(cap).map(({id,length})=>[id,new Uint8Array(length)]));for(const slot of cap.slots)blocks.rt[slot*8]=1;blocks.fn.set([2,0,0x3a,0],0);return {identity:cap.identity,blocks,coverage:Object.fromEntries(readPlan(cap).map(({id,length})=>[id,{complete:true,expectedBytes:length,receivedBytes:length}])),provenance:{source:'device',sessionId:this.getState().sessionId}};};
+ A80Reader.prototype.readConfiguration=async function(){const blocks=Object.fromEntries(readPlan(cap).map(({id,length})=>[id,new Uint8Array(length)]));for(const slot of cap.slots)blocks.rt[slot*8]=1;return {identity:cap.identity,blocks,coverage:Object.fromEntries(readPlan(cap).map(({id,length})=>[id,{complete:true,expectedBytes:length,receivedBytes:length}])),provenance:{source:'device',sessionId:this.getState().sessionId}};};
  A80Transport.prototype.getWriteState=()=>({qualified:true,ready:true,evidence:'synthetic host busy-state fixture only',reason:null});ConfigSession.prototype.apply=function(){activeSession=this;return new Promise(resolve=>release=resolve);};
  let applying;
  try{
@@ -73,24 +73,4 @@ test('actual host stops recording on core entry and tab navigation while retaini
    }finally{await get('macro-record-stop').trigger('click');}
   });
  }finally{globalThis.document=old.document;globalThis.window=old.window;if(old.navigator)Object.defineProperty(globalThis,'navigator',old.navigator);else delete globalThis.navigator;}
-});
-
-test('a blank receiver copy (Fn layer all zeros) blocks Apply and asks for the cable',async()=>{
- const {identifyDevice,readPlan}=await import('../dist/device/capabilities.js');const {A80Reader,A80Transport,ConfigSession}=await import('../dist/protocol.js');
- const cap=identifyDevice({vendorId:0x0c45,productId:0xfefc,productName:'A80RT U Dongle'});
- class Element{constructor(tag='div'){this.tag=tag;this.children=[];this.listeners=new Map();this.attributes={};this.value='';this.disabled=false;this.hidden=false;this.style={setProperty(){}};this.classList={toggle(){}};this.textContent='';}
-  append(...nodes){for(const node of nodes){node.parentElement=this;this.children.push(node);if(this.tag==='select'&&this.children.length===1)this.value=node.value;}}replaceChildren(...nodes){this.children=[];this.append(...nodes);}setAttribute(k,v){this.attributes[k]=v;}get options(){return this.children;}addEventListener(t,fn){this.listeners.set(t,fn);}removeEventListener(t){this.listeners.delete(t);}async trigger(t,event={}){await this.listeners.get(t)?.({target:this,...event});}querySelectorAll(){return this.children.flatMap(c=>[c,...(c.querySelectorAll?.()??[])]).filter(c=>['input','select','button'].includes(c.tag));}}
- const all=[],roots=new Map(),get=id=>all.findLast(el=>el.id===id)??roots.get(id)??(()=>{const el=new Element();roots.set(id,el);return el;})();
- const oldDocument=globalThis.document,oldWindow=globalThis.window,oldNavigator=Object.getOwnPropertyDescriptor(globalThis,'navigator');
- const device=new EventTarget();Object.assign(device,{vendorId:cap.vendorId,productId:cap.productId,productName:cap.name,opened:false,collections:[{usagePage:0xff80,usage:1,outputReports:[{reportId:0,items:[{reportSize:8,reportCount:32}]}]}],async open(){this.opened=true;},async close(){this.opened=false;}});
- const hid=new EventTarget();hid.requestDevice=async()=>[device];globalThis.document=Object.assign(new EventTarget(),{getElementById:get,createElement:tag=>{const el=new Element(tag);all.push(el);return el;},createTextNode:text=>({textContent:text}),hasFocus:()=>true});globalThis.window=Object.assign(new EventTarget(),{isSecureContext:true});Object.defineProperty(globalThis,'navigator',{configurable:true,value:{hid}});
- const oldRead=A80Reader.prototype.readConfiguration,oldQualification=A80Transport.prototype.getWriteState;
- A80Transport.prototype.getWriteState=()=>({qualified:true,ready:true,evidence:'synthetic receiver fixture only',reason:null});
- A80Reader.prototype.readConfiguration=async function(){const blocks=Object.fromEntries(readPlan(cap).map(({id,length})=>[id,new Uint8Array(length)]));for(const slot of cap.slots)blocks.rt[slot*8]=1;return {identity:cap.identity,blocks,coverage:Object.fromEntries(readPlan(cap).map(({id,length})=>[id,{complete:true,expectedBytes:length,receivedBytes:length}])),provenance:{source:'device',sessionId:this.getState().sessionId}};};
- try{
-  await import('../dist/app.js?receiver-blank-copy');await get('connect-button').trigger('click');await get('read-button').trigger('click');
-  await get('macro-add-event').trigger('click');await get('macro-save').trigger('click');assert.match(get('draft-count').textContent,/1 thay đổi/);
-  assert.equal(get('apply-button').disabled,true);assert.match(get('apply-reason').textContent,/Đầu thu trả về cấu hình trống.*cáp USB/);
-  await get('disconnect-button').trigger('click');
- }finally{A80Reader.prototype.readConfiguration=oldRead;A80Transport.prototype.getWriteState=oldQualification;globalThis.document=oldDocument;globalThis.window=oldWindow;if(oldNavigator)Object.defineProperty(globalThis,'navigator',oldNavigator);else delete globalThis.navigator;}
 });

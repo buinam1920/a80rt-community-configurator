@@ -2,14 +2,17 @@
 
 This release builds on [0.4.0-beta.13](release-0.4.0-beta.13.md). It fixes the findings of an independent review: one safety issue with writes, data-loss risks in the profile library, and a possible freeze on disconnect.
 
-## Safety: blank receiver copy blocks Apply
+## Finding: the receiver relays the keyboard's real configuration (except Fn)
 
-After the receiver is re-paired or reset, it can answer reads with its **own blank configuration**: the Fn layer is all zeros, while the same keyboard over the USB cable always has 169 non-zero Fn bytes. Applying from that reading would send zeros, including switch ID 0, to the keyboard.
+On 2026-11-05 the owner read the same keyboard twice, once through the 2.4 GHz receiver and once over the USB cable, right after applying the Apex profile over the cable:
 
-- When the reading came through the receiver and its Fn block is all zeros, Apply is blocked with: *The receiver returned a blank configuration… Connect the USB cable and read again to write.*
-- Profile hotkeys go through the same check.
-- Verified on the owner's keyboard on 2026-11-05: the receiver returned the blank copy and Apply was blocked; the same Apex profile applied over the USB cable and the read-back matched.
-- Receiver writes from a normal (non-blank) reading are unchanged.
+| Block | Receiver vs. cable |
+|---|---|
+| settings, keymap, lighting, colors, macro, RT, DKS | identical, byte for byte (RT: 98 non-zero bytes, the Apex values) |
+| device info | 3 bytes differ (16, 17, 20: battery and link status) |
+| Fn layer | receiver returns all zeros; cable returns 169 non-zero bytes |
+
+So reads through the receiver come from the keyboard, and the 2026-10-31 receiver write qualification (RT 0x27 and settings 0x21, read back through the receiver) stands. The receiver simply does not relay the Fn block; Fn writes over the receiver were already blocked. An all-zero Fn block is therefore **not** a sign of a blank receiver copy, and no write guard is based on it. This replaces the open question in REVIEW-SOL-6.1.md §4.
 
 ## Draft safety
 
@@ -35,13 +38,14 @@ After the receiver is re-paired or reset, it can answer reads with its **own bla
 
 ## English mode
 
+- The default profile name ("Cấu hình của tôi") now follows the language ("My configuration"), unless you typed your own name.
 - The "Windows notifications are blocked…" notice next to the shortcuts stayed in Vietnamese because it was appended to the same text as the shortcut list. It is now a separate text node and is translated. A scan of every tab in English mode found no other Vietnamese text.
 
 ## Tests
 
-- `npm test`: 283 tests, all passing in three consecutive runs.
+- `npm test`: 282 tests, all passing.
 - Fixed a flaky test: "apply overlap across sessions…" used a 10 ms ACK timeout, which could expire under CPU load before its checks ran. It now uses 5 s; the Apply is still ended by the abort it tests.
-- New tests cover the two-window library, Undo when full, duplicate import names, Restore draft, and the blank-receiver block.
+- New tests cover the two-window library, Undo when full, duplicate import names and Restore draft. The receiver Apply test keeps an all-zero Fn block, as the real receiver returns.
 - Checked in a browser with sample data: Revert/Restore, toast position, picker tabs, labels, duplicate import and two windows.
 - Not yet verified on hardware: the disconnect freeze fix (it cannot be triggered on demand).
 - Known and accepted: two windows saving a profile in the same millisecond can still lose one save, because `localStorage` has no lock.

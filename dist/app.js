@@ -270,17 +270,8 @@ function renderEditors(){
   editors={setSelection(slots){core.setSelection(slots);advanced.setSelection(slots);},setLayer(layer){core.setLayer(layer);advanced.setLayer(layer);},refresh(){core.refresh();advanced.refresh();settings.refresh();},stopRecording:()=>advanced.stopRecording(),cancelCalibration:()=>settings.cancelCalibration(),destroy(){core.destroy();advanced.destroy();settings.destroy();}};
   editors.setLayer(state.layer);
 }
-// Đầu thu sau khi ghép lại/reset trả về lớp Fn toàn số 0 (đo 2026-11-01), trong khi qua cáp
-// bàn phím luôn có 169 byte Fn khác 0. Bản đọc đó là bản sao trống của đầu thu, không phải
-// cấu hình bàn phím: ghi từ nó sẽ gửi số 0 (vd. switch ID) xuống bàn phím. Chặn và yêu cầu cáp.
-const RECEIVER_BLANK_REASON='Đầu thu trả về cấu hình trống (lớp Fn toàn số 0), có thể là bản sao của đầu thu chứ không phải của bàn phím. Cắm cáp USB và đọc lại để ghi.';
-function receiverCopyLooksBlank(){
-  if(state.reader?.device?.productId!==0xfefc)return false;
-  const fn=state.session?.snapshot?.blocks?.fn;return !!fn&&fn.length>0&&fn.every(byte=>byte===0);
-}
 function draftWriteState(){
   const transport=state.reader?.transport;if(!transport)return null;
-  if(state.session?.diff().length&&receiverCopyLooksBlank())return {qualified:false,ready:false,evidence:null,reason:RECEIVER_BLANK_REASON};
   for(const id of new Set(state.session?.diff().map(change=>change.block)??[])){
     const qualification=transport.getWriteState(state.capability.blocks[id].writeCommand);
     if(!qualification.ready)return qualification;

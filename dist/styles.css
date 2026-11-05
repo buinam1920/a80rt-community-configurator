@@ -125,7 +125,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
 #apply-reason.error{color:#efbaac}
 html:has(.draft-bar.is-active){scroll-padding-bottom:140px}
 /* Toast không được che nút Áp dụng/Hoàn tác của thanh bản nháp dính đáy. */
-html:has(.draft-bar.is-active) .toast{bottom:auto;top:24px}
+html:has(.draft-bar.is-active) .toast{bottom:124px}
+@media(max-width:850px){html:has(.draft-bar.is-active) .toast{bottom:200px}}
 /* Bàn phím: viền focus rõ khi đi bằng phím mũi tên. */
 .key:focus-visible{outline:2px solid var(--accent);outline-offset:2px;z-index:var(--z-raised)}
 .undo-button{margin-left:10px}
@@ -144,7 +145,7 @@ html:has(.draft-bar.is-active) .toast{bottom:auto;top:24px}
 .keyboard.fn-layer .key.fn-remapped{color:#f0d08a}
 .keyboard.fn-layer .key.selected,.keyboard.fn-layer .key.fn-special.selected{background:#c3f56b;color:#19270a;border-color:#e2ffa9;border-bottom-color:#8ebc44}
 @media(min-width:1550px){.keyboard.fn-layer .key>span{font-size:11px}}
-.keyboard.fn-layer .key.fn-empty{color:#7d8790}
+.keyboard.fn-layer .key.fn-empty{color:#9aa4ad}
 /* ===== ui-skills pass (0.4.0-beta.8) =====
    Thang z-index cố định; số liệu dùng chữ số đều; không animate width/left; xuống dòng gọn. */
 :root{--z-raised:1;--z-sticky:30;--z-toast:50}

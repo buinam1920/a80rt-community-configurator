@@ -131,7 +131,16 @@ export function createIndexedDBStorage(indexedDB=globalThis.indexedDB){
 }
 const newId=()=>globalThis.crypto?.randomUUID?.()??`${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 export async function saveProfile(profile,storage){const p=normalized(profile),id=p.id??newId();p.id=id;await storage.put(`profile:${keyFor(p.identity)}:${id}`,p);return id;}
-export async function listProfiles(identity,storage){const key=keyFor(identity);return (await storage.values()).filter(p=>p?.schema===SCHEMA&&p.id&&keyFor(p.identity)===key).map(p=>normalized(p,capabilityFor(identity))).sort((a,b)=>a.name.localeCompare(b.name,'vi'));}
+// Một bản ghi hỏng (identity/khối sai) chỉ bị bỏ qua, không làm mất cả danh sách; onSkip nhận số bản ghi bỏ qua.
+export async function listProfiles(identity,storage,{onSkip}={}){
+ const key=keyFor(identity),items=[];let skipped=0;
+ for(const p of await storage.values()){
+  if(p?.schema!==SCHEMA||!p.id)continue;
+  try{if(keyFor(p.identity)===key)items.push(normalized(p,capabilityFor(identity)));}catch{skipped++;}
+ }
+ if(skipped)onSkip?.(skipped);
+ return items.sort((a,b)=>a.name.localeCompare(b.name,'vi'));
+}
 export async function deleteProfile(id,identity,storage){await storage.delete(`profile:${keyFor(identity)}:${id}`);}
 export async function saveRecovery(profile,storage){const p=normalized(profile);delete p.id;await storage.put(`recovery:${keyFor(p.identity)}`,p);}
 export async function readRecovery(identity,storage){const p=await storage.get(`recovery:${keyFor(identity)}`);return p?normalized(p,capabilityFor(identity)):null;}

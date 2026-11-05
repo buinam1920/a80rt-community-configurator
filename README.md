@@ -1,30 +1,37 @@
-# A80RT Community Configurator — 0.4.0-beta.14
+# A80RT Community Configurator — 1.0.0
 
 An unofficial community configurator compatible with LEOBOG A80RT keyboards. This project is not affiliated with or endorsed by LEOBOG. Product names identify compatible hardware only.
 
-**[Download the Windows beta](https://github.com/buinam1920/a80rt-community-configurator/releases/tag/v0.4.0-beta.14)** — choose `A80RT-Configurator-0.4.0-beta.14.exe` under Assets.
+**[Download for Windows](https://github.com/buinam1920/a80rt-community-configurator/releases/tag/v1.0.0)** — choose `A80RT-Configurator-1.0.0.exe` under Assets.
 
 ## Getting started
 
-1. Run the executable. It opens its own window using Microsoft WebView2, which is built into Windows 10/11; Edge or Chrome is only needed for the `--browser` fallback. Python is not required.
+1. Run the executable. It opens its own window using Microsoft WebView2 (see [Requirements](#requirements)); Edge or Chrome is only needed for the `--browser` fallback. Python is not required.
 2. Close the manufacturer's configuration page. In the app, connect the keyboard and read its configuration. All nine configuration blocks must be read before editing.
 3. Edit the draft, review the changes, then click Apply. Sliders and preset buttons only change the local draft.
 4. Keep the app running (closing the window keeps it in the tray) while using global shortcuts. Defaults are **Ctrl+Alt+1 → LoL** and **Ctrl+Alt+2 → Apex**; assign your own under **Manage profiles & shortcuts** in the Rapid Trigger tab. A shortcut applies its profile automatically only when the existing draft has no changes. Otherwise, review the staged profile and click Apply.
 5. Use the system tray menu to reopen the window, toggle sound, create a desktop shortcut, or exit completely.
 
-Profiles are stored in the browser on this machine, not inside the executable. Export profile JSON files to keep separate backups. Changing the browser, origin, or clearing site data can make existing profiles unavailable.
+Profiles are stored on this machine (in the app window's WebView2 storage, or in the browser for the browser version), not inside the executable. Export profile JSON files to keep separate backups. Changing the browser, origin, or clearing site data can make existing profiles unavailable.
 
-## Beta status and compatibility
+## Requirements
+
+- Windows 10 version 1809 or later, or Windows 11 (x64 or x86).
+- .NET Framework 4.x, included with Windows 10/11.
+- Microsoft Edge WebView2 Runtime. It is installed on most Windows 10/11 machines; if it is missing, install the Evergreen Runtime from Microsoft. Without it the exe opens Edge or Chrome instead.
+- A80RT U on firmware 1.37, connected with a USB data cable or the A80RT U Dongle (2.4 GHz). See the compatibility notes below.
+
+## Status and compatibility
 
 Live writes are qualified for the **wired A80RT U, firmware 1.37**, using interface FF68/61, report ID 0, 64-byte reports.
 
-Through the **A80RT U Dongle** (2.4 GHz receiver, FEFC, interface FF80/1, 32-byte reports) only **Rapid Trigger (0x27)** and **general settings (0x21, including dead zones)** are writable, after a fresh read that attests an inner A80RT U at firmware 1.37. This covers every RT preset and the LoL/Apex profiles, so hotkey profile switching works wirelessly. It is based on a native measurement on 2026-10-31: W actuation raw 120→121→120 and top dead zone 30→31→30, each verified by readback and followed by a byte-for-byte match of all nine blocks; ACKs have the wired header shape in 32-byte reports. Other groups (key bindings, colors, lighting, macros, DKS) still require the USB cable, and a mixed draft is blocked before any byte is sent. Plain A80RT and other firmware/interface variants are not enabled for live writes.
+Through the **A80RT U Dongle** (2.4 GHz receiver, FEFC, interface FF80/1, 32-byte reports) only **Rapid Trigger (0x27)** and **general settings (0x21, including dead zones)** are writable, after a fresh read that attests an inner A80RT U at firmware 1.37. This covers every RT preset and the LoL/Apex profiles, so hotkey profile switching works wirelessly. It is based on a native measurement on 2026-10-31: W actuation raw 120→121→120 and top dead zone 30→31→30, each verified by readback and followed by a byte-for-byte match of all nine blocks; ACKs have the wired header shape in 32-byte reports. Other groups (key bindings, colors, lighting, macros, DKS) still require the USB cable, and a mixed draft is blocked before any byte is sent. On 2026-11-05 the same keyboard was read through the receiver and over the cable: every block matched byte for byte except the Fn layer, which the receiver returns as all zeros. Reads through the receiver therefore show the keyboard's real configuration; **connect the cable to see the Fn layer**. Plain A80RT and other firmware/interface variants are not enabled for live writes.
 
 **Fn writes are blocked.** Fn mappings can be edited and saved locally, but any draft with Fn changes blocks the entire Apply operation before transmission. Revert those changes to apply supported blocks.
 
 A successful Apply means the changed fields matched a fresh readback. It does not establish persistence after power loss, visible lighting behavior, key output, or gameplay behavior. Unconfirmed writes preserve the draft and lock editing, Apply, and Revert until a fresh complete read. Export the draft first if needed.
 
-The executable is unsigned. Physical in-game hotkeys and a complete preset write have not been validated on hardware for this beta. Automated tests do not replace hardware measurements.
+The executable is unsigned, so Windows SmartScreen may warn on first launch. On 2026-11-05 the owner applied the full Apex preset over the cable with a matching readback, and switched profiles with the global hotkeys over 2.4 GHz. Automated tests do not replace hardware measurements.
 
 ## Features
 
@@ -40,7 +47,7 @@ The executable is unsigned. Physical in-game hotkeys and a complete preset write
 - A standalone Windows executable with embedded interface assets and system tray controls. Since 0.4.0-beta.3 it opens its **own window (WebView2)** instead of a browser: the exe talks to the keyboard through the Windows HID API and exposes the same `navigator.hid` surface to the app (`scripts/native/hid-shim.js`, `scripts/native/NativeShell.cs`). Report bytes pass through unchanged, so every measured protocol rule is still enforced by the same JavaScript; the host never builds, alters, retries or originates a report. No device chooser is needed and the keyboard is detected automatically. Closing the window keeps the app in the tray (hotkeys, battery); use the tray menu to exit. `--browser` forces the previous Edge/Chrome app window, which is also the automatic fallback when WebView2 is unavailable. Profiles saved in the browser version live in that browser's storage: export them as JSON there and import them in the window. WebView2 SDK 1.0.4314.35 is redistributed under its license (`vendor/webview2/`).
 - English or Vietnamese interface (VI/EN switch in the top bar; follows the system language by default).
 - Readable and keyboard-friendly: text contrast meets WCAG AA, the key map is one Tab stop with arrow-key navigation (Shift+arrow extends the selection), a sticky Apply bar shows write progress and results, deletes ask for confirmation and offer Undo, and motion follows the Windows "reduce motion" setting.
-- Global profile shortcuts with sound feedback and optional Windows notifications. The app window sends its shortcut list to the exe (or `scripts/a80rt_local.py`), which registers them with `RegisterHotKey`.
+- Global profile shortcuts with sound feedback and a result balloon from the tray icon (visible over games; the browser version uses web notifications instead). The app window sends its shortcut list to the exe (or `scripts/a80rt_local.py`), which registers them with `RegisterHotKey`.
 - Single-window event dispatch: the bridge selects one app window, prioritizes a connected/read session, and accepts only the first matching result for each event. Events time out after 45 seconds.
 - Installable browser app (PWA) with an offline interface cache.
 
@@ -92,6 +99,8 @@ Measurements below apply only to the stated device and procedure:
 - **2026-10-24:** browser Apply/readback verified W RT press threshold 0→0.01→0 mm, global top dead zone 0.30→0.31→0.30 mm, and base W mapping [0,0,0,0]→[2,0,26,0]→[0,0,0,0], including restoration.
 - **2026-10-25:** native USB tooling using production codec commit `9697747` passed ten write/readback/restoration cases: unassigned macro, assigned macro, TGL, MT, RS, SOCD, DKS, polling, brightness, and actuation. The run used 6,036 frames; all nine blocks matched the original after each case. Assignments used Print slot 99 and Insert slot 103; DKS used empty pattern 1 with [16,30,30,16]. Polling codes were 6→3→6, brightness 5→4→5, and Print actuation raw 0→120→0. See the [sanitized fixture](tests/fixtures/a80rt-wired-feature-qualification.json).
 
+- **2026-11-05:** the full Apex preset (98 changed RT bytes) applied over the USB cable with a matching readback. A read through the receiver and a read over the cable then matched byte for byte in every block except Fn (receiver: all zeros; cable: 169 non-zero bytes) and the battery/link bytes of device info. Profile hotkeys over 2.4 GHz switched profiles and showed the tray result.
+
 Those ten native USB cases have **not** all been exercised through browser Apply. Key output, timing, visible lighting, power-cycle persistence, full-profile Apply, maintenance operations, receivers, and other model/firmware combinations remain unverified.
 
 Fn W/U changes failed in app versions 0.3.0/0.3.1 and in a native USB attempt without control 0. The manufacturer UI changed Fn+U visually, but a fresh USB read still showed Print and the user's Fn+U press still produced PrintScreen. The original state was restored and all nine blocks matched. Fn writes have therefore been blocked since 0.3.2 for this qualified device/firmware. The cause is not established; do not generalize to other models. See [binding evidence](docs/binding-source-evidence.md).
@@ -105,7 +114,7 @@ npm run build
 npm test
 ```
 
-The beta passed **229 automated tests**, including an executable bridge test. To build without overwriting an executable that is already running, set `A80RT_BUILD_OUTPUT`. Set `A80RT_TEST_EXE` to test that specific output.
+The 1.0.0 build passes **285 automated tests**, including executable and Python bridge tests. To build without overwriting an executable that is already running, set `A80RT_BUILD_OUTPUT`. Set `A80RT_TEST_EXE` to test that specific output.
 
 For source-based serving, Python's standard library is sufficient:
 
@@ -139,4 +148,22 @@ Manufacturer cloud libraries, music sync, calibration, reset, and firmware updat
 - **0.3.6:** installable PWA and offline interface caching.
 - **0.3.5:** draft context, macro ownership, DKS/profile validation, and import-race fixes. See the [historical correctness notes](docs/0.3.5-correctness.md).
 
-These older version numbers describe project history. The current release is **0.4.0-beta.14** ([release notes](docs/release-0.4.0-beta.14.md)); see also the notes for [0.4.0-beta.13](docs/release-0.4.0-beta.13.md), [0.4.0-beta.12](docs/release-0.4.0-beta.12.md), [0.4.0-beta.11](docs/release-0.4.0-beta.11.md), [0.4.0-beta.10](docs/release-0.4.0-beta.10.md), [0.4.0-beta.9](docs/release-0.4.0-beta.9.md), [0.4.0-beta.8](docs/release-0.4.0-beta.8.md), [0.4.0-beta.7](docs/release-0.4.0-beta.7.md), [0.4.0-beta.6](docs/release-0.4.0-beta.6.md), [0.4.0-beta.5](docs/release-0.4.0-beta.5.md), [0.4.0-beta.4](docs/release-0.4.0-beta.4.md) and [0.4.0-beta.3](docs/release-0.4.0-beta.3.md).
+These older version numbers describe project history. The current release is **1.0.0** ([release notes](docs/release-1.0.0.md), [changelog](CHANGELOG.md)); see also the notes for [0.4.0-beta.14](docs/release-0.4.0-beta.14.md), [0.4.0-beta.13](docs/release-0.4.0-beta.13.md), [0.4.0-beta.12](docs/release-0.4.0-beta.12.md), [0.4.0-beta.11](docs/release-0.4.0-beta.11.md), [0.4.0-beta.10](docs/release-0.4.0-beta.10.md), [0.4.0-beta.9](docs/release-0.4.0-beta.9.md), [0.4.0-beta.8](docs/release-0.4.0-beta.8.md), [0.4.0-beta.7](docs/release-0.4.0-beta.7.md), [0.4.0-beta.6](docs/release-0.4.0-beta.6.md), [0.4.0-beta.5](docs/release-0.4.0-beta.5.md), [0.4.0-beta.4](docs/release-0.4.0-beta.4.md) and [0.4.0-beta.3](docs/release-0.4.0-beta.3.md).
+
+## Troubleshooting
+
+- **The app cannot find or read the keyboard.** Close the manufacturer's configuration page (two programs cannot share the keyboard), plug the USB data cable directly into the PC rather than a hub, and press a key to wake the keyboard in 2.4 GHz mode.
+- **"Cannot write yet".** All nine configuration groups must be read in the current connection first. Over the receiver only Rapid Trigger and general settings can be written; connect the cable for the other groups.
+- **The Fn layer looks empty.** The receiver does not pass the Fn layer through. Connect the cable to see and edit it.
+- **"Partially sent, unconfirmed".** Press Read configuration to check what the keyboard now holds. Export the draft first if you want to keep it.
+- **"A stuck HID write could not be cancelled".** Disconnect and connect again; nothing more is sent on the old connection.
+- **Profiles are missing.** Profiles live in the storage of the app window (or of the browser you used). Clearing site data removes them; export profiles as JSON for backups.
+- **"Port 8787 is used by another program".** Close that program, or start the app with `--port <other number>`.
+
+## Reporting bugs
+
+Open an issue at <https://github.com/buinam1920/a80rt-community-configurator/issues> with the app version, the connection (USB cable or 2.4 GHz dongle), the keyboard firmware, what you did and what you expected. **Export reading** (Data & diagnostics) saves a JSON file with the configuration and the packet log, which helps diagnose read and write problems. Do not attach private USB captures.
+
+## License
+
+MIT; see [LICENSE](LICENSE). The executable bundles the Microsoft Edge WebView2 SDK; see [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt). LEOBOG and A80RT are trademarks of their owner; this project is unofficial.

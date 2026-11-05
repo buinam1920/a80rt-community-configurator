@@ -24,17 +24,17 @@ Importing only adds the profile to the app's local library. Nothing is sent to t
 | Field | Required | Meaning |
 |---|---|---|
 | `schema` | yes | Always `"a80rt-rt-profile/v1"`. |
-| `name` | yes | Profile name, up to 32 characters. Importing a profile with the name of one of your own profiles replaces that profile. A name that matches a built-in profile is rejected. |
+| `name` | yes | Profile name, up to 32 characters. If the name is already used by one of your profiles or a built-in profile, the import is saved as `Name (2)` (or the next free number) and the message says so; nothing is replaced. The library holds up to 24 of your own profiles. |
 | `default` | no | Settings for every key. Defaults to `{"actuation": 1.5}`. |
 | `keys` | no | Only the keys that differ from `default`. A field left out of a key takes its value from `default`. |
-| `deadZone` | no | Dead zones for the whole keyboard, `top` and `bottom`, from 0 to 0.5 mm. If omitted, the dead zones are left as they are. |
+| `deadZone` | no | Dead zones for the whole keyboard, `top` and `bottom`, from 0 to 0.5 mm. Give both values. If omitted, the dead zones are left as they are. |
 | `shortcut` | no | Global shortcut that switches to this profile. It must use Ctrl, Alt or Win plus A–Z, 0–9 or F1–F24, for example `"Ctrl+Alt+3"`. If another profile already uses the combination, it is not assigned. |
 
 ### Per-key settings (millimetres, at most 2 decimals)
 
 | Setting | Range | Meaning |
 |---|---|---|
-| `actuation` | 0.01 – 3.3 | How far the key travels before it registers. Lower is more sensitive. `0` keeps the manufacturer default, which the vendor app shows as 1.2 mm. |
+| `actuation` | `0`, or 0.01 – 3.3 | How far the key travels before it registers. Lower is more sensitive. `0` keeps the manufacturer default, which the vendor app shows as 1.2 mm. |
 | `rtPress` | 0 – 3.3 | Rapid Trigger press distance. `0` turns Rapid Trigger off for the key. |
 | `rtRelease` | 0 – 3.3 | Rapid Trigger release distance. |
 | `wholeTravel` | `true` / `false` | `true` keeps Rapid Trigger active over the whole key travel. `false` activates it only after the actuation point. |

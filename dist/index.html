@@ -3,43 +3,43 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="Cấu hình bàn phím LEOBOG A80RT: Rapid Trigger, gán phím, đèn, profile.">
-  <meta name="theme-color" content="#111519"><title>A80RT Configurator · 0.4.0-beta.14</title>
+  <meta name="theme-color" content="#111519"><title>A80RT Configurator · 1.0.0</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23c3f56b'/%3E%3Cpath d='M16 43L29 19h7l13 24h-8l-3-6H27l-3 6zm14-12h5l-2-5z' fill='%23111519'/%3E%3C/svg%3E">
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=0.4.0-beta.14">
+  <link rel="stylesheet" href="./styles.css?v=1.0.0">
   <script type="importmap">
   {"imports":{
-    "./app.js":"./app.js?v=0.4.0-beta.14",
-    "./layout.js":"./layout.js?v=0.4.0-beta.14",
-    "./protocol.js":"./protocol.js?v=0.4.0-beta.14",
-    "./device/capabilities.js":"./device/capabilities.js?v=0.4.0-beta.14",
-    "./device/transport.js":"./device/transport.js?v=0.4.0-beta.14",
-    "./config/session.js":"./config/session.js?v=0.4.0-beta.14",
-    "./config/codecs.js":"./config/codecs.js?v=0.4.0-beta.14",
-    "./config/macros.js":"./config/macros.js?v=0.4.0-beta.14",
-    "./config/advanced.js":"./config/advanced.js?v=0.4.0-beta.14",
-    "./config/profiles.js":"./config/profiles.js?v=0.4.0-beta.14",
-    "./config/presets.js":"./config/presets.js?v=0.4.0-beta.14",
-    "./i18n.js":"./i18n.js?v=0.4.0-beta.14",
-    "./i18n-en.js":"./i18n-en.js?v=0.4.0-beta.14",
-    "./ui/core-editors.js":"./ui/core-editors.js?v=0.4.0-beta.14",
-    "./ui/advanced-editors.js":"./ui/advanced-editors.js?v=0.4.0-beta.14",
-    "./ui/device-settings.js":"./ui/device-settings.js?v=0.4.0-beta.14",
-    "./ui/icons.js":"./ui/icons.js?v=0.4.0-beta.14"
+    "./app.js":"./app.js?v=1.0.0",
+    "./layout.js":"./layout.js?v=1.0.0",
+    "./protocol.js":"./protocol.js?v=1.0.0",
+    "./device/capabilities.js":"./device/capabilities.js?v=1.0.0",
+    "./device/transport.js":"./device/transport.js?v=1.0.0",
+    "./config/session.js":"./config/session.js?v=1.0.0",
+    "./config/codecs.js":"./config/codecs.js?v=1.0.0",
+    "./config/macros.js":"./config/macros.js?v=1.0.0",
+    "./config/advanced.js":"./config/advanced.js?v=1.0.0",
+    "./config/profiles.js":"./config/profiles.js?v=1.0.0",
+    "./config/presets.js":"./config/presets.js?v=1.0.0",
+    "./i18n.js":"./i18n.js?v=1.0.0",
+    "./i18n-en.js":"./i18n-en.js?v=1.0.0",
+    "./ui/core-editors.js":"./ui/core-editors.js?v=1.0.0",
+    "./ui/advanced-editors.js":"./ui/advanced-editors.js?v=1.0.0",
+    "./ui/device-settings.js":"./ui/device-settings.js?v=1.0.0",
+    "./ui/icons.js":"./ui/icons.js?v=1.0.0"
   }}
   </script>
-  <script type="module" src="./app.js?v=0.4.0-beta.14"></script>
+  <script type="module" src="./app.js?v=1.0.0"></script>
 </head>
 <body>
   <aside class="sidebar">
-    <a class="brand" href="./" aria-label="A80RT Configurator"><span class="brand-icon">A<span>↗</span></span><span>A80RT<span class="brand-sub">CONFIG / 0.4.0-beta.14</span></span></a>
+    <a class="brand" href="./" aria-label="A80RT Configurator"><span class="brand-icon">A<span>↗</span></span><span>A80RT<span class="brand-sub">CONFIG / 1.0.0</span></span></a>
     <div class="nav-current"><span class="nav-icon" data-icon="keyboard"></span> Cấu hình bàn phím <span class="nav-dot"></span></div>
     <div class="side-device"><div class="eyebrow">THIẾT BỊ</div><strong id="device-name">Chưa kết nối</strong><div id="device-sub">LEOBOG A80RT / A80RT U</div><div class="device-visual" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><dl id="device-meta"><dt>Kết nối</dt><dd>USB / 2.4 GHz</dd><dt>Trạng thái</dt><dd>Đang chờ</dd></dl></div>
     <div class="side-bottom"><span class="readonly-dot"></span> XỬ LÝ CỤC BỘ<a href="https://leobog.driveall.cn/" target="_blank" rel="noopener noreferrer" data-icon-after="external">Driver hãng</a></div>
   </aside>
   <main>
-    <header class="topbar"><span>A80RT Configurator</span><span class="topbar-right"><span class="lang-switch" role="group" aria-label="Ngôn ngữ / Language" data-i18n="off"><button type="button" data-lang="vi" aria-pressed="true">VI</button><button type="button" data-lang="en" aria-pressed="false">EN</button></span><span id="battery-chip" class="battery-chip" hidden><span class="battery-shell"><i></i></span><b></b></span><span class="build-tag">0.4.0-beta.14</span></span></header>
+    <header class="topbar"><span>A80RT Configurator</span><span class="topbar-right"><span class="lang-switch" role="group" aria-label="Ngôn ngữ / Language" data-i18n="off"><button type="button" data-lang="vi" aria-pressed="true">VI</button><button type="button" data-lang="en" aria-pressed="false">EN</button></span><span id="battery-chip" class="battery-chip" hidden><span class="battery-shell"><i></i></span><b></b></span><span class="build-tag">1.0.0</span></span></header>
     <section class="page-heading"><div><div class="eyebrow accent">LEOBOG · 82 PHÍM</div><h1>Cấu hình bàn phím<span>.</span></h1></div><span id="connection-pill" class="pill"><i></i> Chưa kết nối</span></section>
     <details class="scope-note"><summary>Ghi được: USB — mọi nhóm · 2.4 GHz — RT và thiết lập chung · Fn — khóa</summary><p>Firmware 1.37. Bản nháp có thay đổi Fn sẽ không áp dụng được.</p></details>
     <div id="hotkey-status" class="hotkey-status" hidden><span id="hotkey-status-text"></span><button id="notify-enable" type="button" class="preset-button" hidden>Bật thông báo</button></div>
@@ -63,15 +63,15 @@
         <div class="editor-field"><label for="profile-name">Tên</label><input id="profile-name" maxlength="120" value="Cấu hình của tôi" data-i18n-value="Cấu hình của tôi"></div>
       </div>
       <div class="actions profile-actions"><button id="profile-save" class="button quiet small">Lưu bản nháp</button><button id="profile-rename" class="button quiet small">Đổi tên</button><button id="profile-duplicate" class="button quiet small">Nhân bản</button><button id="profile-delete" class="button quiet small">Xóa đã chọn</button></div>
-      <div class="actions profile-actions"><button id="profile-open" class="button quiet small">Xem trước</button><button id="profile-import" class="button quiet small">Nhập JSON</button><button id="profile-export" class="button quiet small">Xuất JSON</button><button id="profile-recover" class="button quiet small">Khôi phục phiên</button><input id="profile-file" type="file" accept=".json,application/json" hidden></div>
+      <div class="actions profile-actions"><button id="profile-open" class="button quiet small">Xem trước</button><button id="profile-import" class="button quiet small" title="Hồ sơ đủ 9 nhóm cấu hình (JSON)">Nhập hồ sơ</button><button id="profile-export" class="button quiet small" title="Hồ sơ đủ 9 nhóm cấu hình (JSON)">Xuất hồ sơ</button><button id="profile-recover" class="button quiet small">Khôi phục phiên</button><input id="profile-file" type="file" accept=".json,application/json" hidden></div>
       <p id="profile-status" class="editor-hint" role="status" aria-live="polite">Chưa chọn hồ sơ.</p><div class="actions"><button id="profile-undo" class="button quiet small" hidden>Hoàn tác xóa</button></div>
       <pre id="profile-preview" class="profile-preview" hidden></pre>
       <div class="actions"><button id="profile-confirm" class="button primary small" disabled>Đưa vào bản nháp</button><button id="profile-cancel" class="button quiet small" disabled>Đóng xem trước</button></div>
       <p class="small-note">Đám mây, đồng bộ nhạc: <a href="https://leobog.driveall.cn/" target="_blank" rel="noopener noreferrer" data-icon-after="external">driver hãng</a></p>
     </section>
     <section id="draft-bar" class="panel draft-bar" aria-label="Bản nháp"><div><strong id="draft-count">0 thay đổi trong bản nháp</strong><p id="apply-reason"></p></div><div class="actions"><button id="revert-undo" class="button quiet" hidden>Lấy lại bản nháp</button><button id="revert-button" class="button quiet" disabled>Hoàn tác</button><button id="apply-button" class="button primary" disabled>Áp dụng</button></div></section>
-    <section class="panel data-panel"><div class="panel-heading"><div><h2>Dữ liệu & chẩn đoán</h2></div><div class="actions"><button id="import-button" class="button quiet small">Mở bản đã lưu</button><button id="export-button" class="button quiet small" disabled>Xuất JSON</button><input id="import-file" type="file" accept=".json,application/json" hidden></div></div><div id="block-list" class="block-list"></div><details id="diagnostics"><summary><span>Nhật ký giao tiếp</span><span id="packet-count" class="mono muted">0 gói</span></summary><pre id="log">Trống.</pre></details></section>
-    <footer><span>A80RT CONFIG <span class="muted">/</span> 0.4.0-beta.14</span><a href="https://github.com/buinam1920/a80rt-community-configurator#hardware-evidence" target="_blank" rel="noopener noreferrer" data-icon-after="external">Bằng chứng phần cứng</a></footer>
+    <section class="panel data-panel"><div class="panel-heading"><div><h2>Dữ liệu & chẩn đoán</h2></div><div class="actions"><button id="import-button" class="button quiet small">Mở bản đã lưu</button><button id="export-button" class="button quiet small" title="Bản đọc thô và nhật ký gói tin (JSON), dùng để báo lỗi" disabled>Xuất bản đọc</button><input id="import-file" type="file" accept=".json,application/json" hidden></div></div><div id="block-list" class="block-list"></div><details id="diagnostics"><summary><span>Nhật ký giao tiếp</span><span id="packet-count" class="mono muted">0 gói</span></summary><pre id="log">Trống.</pre></details></section>
+    <footer><span>A80RT CONFIG <span class="muted">/</span> 1.0.0</span><a href="https://github.com/buinam1920/a80rt-community-configurator#hardware-evidence" target="_blank" rel="noopener noreferrer" data-icon-after="external">Bằng chứng phần cứng</a></footer>
   </main>
 </body>
 </html>

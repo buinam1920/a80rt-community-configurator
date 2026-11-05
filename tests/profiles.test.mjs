@@ -143,3 +143,13 @@ test('offline raw restoration retains captured unsupported bytes without authori
  target.edit('colors',[{slot:49,field:'rgb',value:{red:9,green:8,blue:7}}]);const before=target.draft,diff=target.diff();assert.throws(()=>api.loadProfile(p,target),/brightness.*1.*5/);assert.deepEqual(target.draft,before);assert.deepEqual(target.diff(),diff);
  p.blocks.lighting[9]=5;api.loadProfile(p,target);assert.equal(target.draft.lighting[9],5);assert.equal(target.draft.rt[272],240);assert.deepEqual(target.draft.fn,before.fn);assert.equal(target.draft.settings[0],231);assert.equal(target.draft.colors[137],12);
 });
+
+test('one damaged stored profile is skipped and reported; healthy profiles still list',async()=>{
+ const storage=api.createMemoryStorage(),p=profile(),id=await api.saveProfile(p,storage);
+ const stored=(await storage.values()).find(item=>item.id===id);
+ await storage.put('profile:broken',{...stored,id:'broken-1',blocks:{...stored.blocks,rt:[1,2,3]}});
+ await storage.put('profile:broken-identity',{...stored,id:'broken-2',identity:{vendorId:'x'}});
+ let skipped=0;const list=await api.listProfiles(cap.identity,storage,{onSkip:count=>{skipped=count;}});
+ assert.deepEqual(list.map(item=>item.id),[id]);
+ assert.equal(skipped,2);
+});

@@ -273,8 +273,11 @@ namespace A80RT {
                     try { return HidSelfTest.Run(); } catch (Exception ex) { Console.WriteLine("error: " + ex); return 1; }
                 }
             }
-            string mutexName = "Local\\\\A80RTConfigurator_" + _port;
-            string showEventName = "Local\\\\A80RTConfigurator_show_" + _port;
+            // One app per Windows session, whatever --port says: two instances could both open
+            // the keyboard and overwrite each other's writes. Test runs keep per-port names.
+            string instanceSuffix = _testTrigger ? "_" + _port : "";
+            string mutexName = "Local\\\\A80RTConfigurator" + instanceSuffix;
+            string showEventName = "Local\\\\A80RTConfigurator_show" + instanceSuffix;
             bool createdNew;
             using (Mutex mutex = new Mutex(true, mutexName, out createdNew)) {
                 if (!createdNew && !_testTrigger) {
@@ -301,7 +304,9 @@ namespace A80RT {
                     server.Start();
                 } catch (Exception ex) {
                     if (!_testTrigger) {
-                        OpenBrowserWindow("http://localhost:" + _port + "/");
+                        // Only hand over to the port's owner when it is an A80RT bridge; otherwise say why.
+                        if (PortServesA80RT(_port)) OpenBrowserWindow("http://localhost:" + _port + "/");
+                        else MessageBox.Show("Cổng " + _port + " đang được chương trình khác dùng nên A80RT Configurator không khởi động được. Đóng chương trình đó, hoặc chạy A80RT-Configurator.exe --port <số cổng khác>.", "A80RT Configurator", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                         return 0;
                     }
                     Console.Error.WriteLine(ex.Message);
@@ -498,7 +503,22 @@ namespace A80RT {
 
         // Standalone window (WebView2 + native HID). Falls back to a browser app
         // window when WebView2 is unavailable or --browser was given.
+        private static bool PortServesA80RT(int port) {
+            try {
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:" + port + "/hotkeys/config");
+                request.Timeout = 1500;
+                request.ReadWriteTimeout = 1500;
+                using (WebResponse response = request.GetResponse())
+                using (StreamReader reader = new StreamReader(response.GetResponseStream(), Encoding.UTF8))
+                    return reader.ReadToEnd().Contains("bindable");
+            } catch { return false; }
+        }
+
         private static void OpenAppWindow(string url) {
+            NativeShell.InitFailed = failedUrl => {
+                TrayHint("Không mở được cửa sổ riêng (" + NativeShell.LastError + "); dùng trình duyệt thay thế.");
+                OpenBrowserWindow(failedUrl);
+            };
             if (!_forceBrowser && NativeShell.Show(url, _appIcon)) return;
             if (!_forceBrowser && NativeShell.LastError != null) TrayHint("Không mở được cửa sổ riêng (" + NativeShell.LastError + "); dùng trình duyệt thay thế.");
             OpenBrowserWindow(url);

@@ -102,6 +102,12 @@ export function mountDeviceSettings(root,context){
    const panel=element('div',`settings-panel-${id}`,undefined,'settings-panel');panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',`settings-tab-${id}`);panels.set(id,panel);
    const tab=button(tabbar,`settings-tab-${id}`,label,async()=>{context.onNavigate?.();if(active===id)return;active=id;refresh();await cancelCalibration();});tab.setAttribute('role','tab');tab.setAttribute('aria-controls',panel.id);tabs.set(id,tab);
  }
+ // Mũi tên trái/phải, Home/End chuyển tab như các tablist khác của app.
+ listen(tabbar,'keydown',event=>{
+   const ids=[...tabs.keys()],current=Math.max(0,ids.indexOf(active));
+   const next={ArrowRight:(current+1)%ids.length,ArrowLeft:(current-1+ids.length)%ids.length,Home:0,End:ids.length-1}[event.key];
+   if(next===undefined)return;event.preventDefault?.();const tab=tabs.get(ids[next]);if(tab.disabled)return;tab.focus?.();tab.click?.();
+ });
  const general=panels.get('general'),grid=make('div',undefined,'editor-panel');general.append(grid);
  for(const field of view().fields){
    const wrapper=make('div',undefined,'editor-field'),label=make('label',field.label),input=element(field.options?'select':'input',`settings-${field.id}`);label.htmlFor=input.id;wrapper.append(label,input);grid.append(wrapper);inputs.set(field.id,input);
@@ -136,7 +142,7 @@ export function mountDeviceSettings(root,context){
      if(field.options&&value!==null&&!field.options.some(option=>option.value===value)&&!input._unknownValue){const option=make('option',`Giá trị gốc chưa nhận diện (${value})`);option.value=String(value);input.append(option);input._unknownValue=true;}
      input.value=value===null?'':String(value/(field.scale??1));
    }}
-   for(const [id,tab]of tabs){tab.setAttribute('aria-selected',String(active===id));panels.get(id).hidden=active!==id;}
+   for(const [id,tab]of tabs){tab.setAttribute('aria-selected',String(active===id));tab.tabIndex=active===id?0:-1;panels.get(id).hidden=active!==id;}
    const live=!!transport&&session?.snapshot.provenance.source==='device',externalBusy=!!context.isBusy?.(),gate=transport?.getMaintenanceState('beginCalibration'),resetGate=transport?.getMaintenanceState('reset');
    maintenanceReason.textContent=session?.invalidated?session.invalidReason:!live?'Đọc snapshot đầy đủ từ thiết bị thật trước khi bảo trì. Chưa có xác minh ACK bảo trì từ thiết bị thật.':gate?.reason??'Đọc lại cấu hình sau khi bảo trì.';
    begin.hidden=!capability.maintenance.manualCalibration;begin.disabled=!live||!canEdit||!gate?.ready;end.disabled=cancel.disabled=!calibrating;confirm.disabled=busy||externalBusy||!live||!resetGate?.ready;reset.disabled=!live||!canEdit||!resetGate?.ready||!confirm.checked;

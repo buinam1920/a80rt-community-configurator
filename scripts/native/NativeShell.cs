@@ -51,12 +51,17 @@ namespace A80RT {
         public static string LastError { get; private set; }
         public static string UserDataFolder;
         public static int RemoteDebuggingPort; // test-only: inspect the page over DevTools
+        // Called (UI thread) when WebView2 fails after the window was shown, e.g. an unwritable
+        // user-data folder; the launcher falls back to the browser window.
+        public static Action<string> InitFailed;
+        private static bool _initFailed;
 
         // Returns false when WebView2 cannot be used (no runtime, load failure);
         // the caller then falls back to opening the browser.
         public static bool Show(string url, Icon icon) {
             try {
                 if (_form != null && !_form.IsDisposed) { _form.Reveal(); return true; }
+                if (_initFailed) return false;
                 PrepareLoader();
                 CoreWebView2Environment.GetAvailableBrowserVersionString();
                 _form = new ShellForm(url, icon);
@@ -68,6 +73,17 @@ namespace A80RT {
                 Available = false;
                 return false;
             }
+        }
+
+        internal static void ReportInitFailure(ShellForm form, string url, Exception ex) {
+            _initFailed = true;
+            Available = false;
+            LastError = ex.GetType().Name + ": " + ex.Message;
+            if (_form == form) _form = null;
+            try { form.AllowClose(); form.Close(); form.Dispose(); } catch {}
+            Action<string> fallback = InitFailed;
+            if (fallback != null) fallback(url);
+            else MessageBox.Show("Không mở được cửa sổ ứng dụng: " + ex.Message, "A80RT Configurator", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
         public static void ExitRequested() {
@@ -143,7 +159,7 @@ namespace A80RT {
                     core.DocumentTitleChanged += (sender, args) => { Text = core.DocumentTitle.Length > 0 ? core.DocumentTitle : "A80RT Configurator"; };
                     core.Navigate(_url);
                 } catch (Exception ex) {
-                    MessageBox.Show(this, "Không mở được cửa sổ ứng dụng: " + ex.Message, "A80RT Configurator", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    NativeShell.ReportInitFailure(this, _url, ex);
                 }
             };
         }
@@ -330,6 +346,12 @@ namespace A80RT {
         private readonly ManualResetEvent _stop = new ManualResetEvent(false);
         private readonly object _writeLock = new object();
         private volatile bool _disposed;
+        // Set when a timed-out write could not be cancelled: Windows may still complete it later,
+        // so nothing more is sent on this handle. Reconnecting opens a fresh handle.
+        private volatile bool _writeFaulted;
+        private const string WriteFaultedMessage = "Một lần ghi HID bị kẹt chưa hủy được. Ngắt kết nối rồi kết nối lại bàn phím trước khi đọc hoặc ghi tiếp.";
+        // Keeps abandoned write buffers/events reachable until the kernel completes them.
+        private static readonly List<ManualResetEvent> AbandonedWrites = new List<ManualResetEvent>();
         private Thread _reader;
         private int _handleClosed;
 
@@ -404,6 +426,7 @@ namespace A80RT {
 
         private void WriteCore(int reportId, byte[] data) {
             if (_disposed) throw new IOException("Thiết bị đã đóng.");
+            if (_writeFaulted) throw new IOException(WriteFaultedMessage);
             if (data.Length > _outputLength - 1) throw new ArgumentException("Report dài hơn kích thước output của thiết bị.");
             // Windows expects [reportId][payload padded to OutputReportByteLength-1].
             byte[] frame = new byte[_outputLength];
@@ -427,9 +450,12 @@ namespace A80RT {
                             // Bounded wait for the cancellation: an unbounded GetOverlappedResult here
                             // held _writeLock forever and froze Dispose()/CloseHandleOnce().
                             if (!done.WaitOne(1000)) {
-                                // The kernel may still own buffer/overlapped/event: leak them rather than free memory in use.
+                                // The kernel still owns buffer/overlapped/event and may yet complete the write.
+                                // Quarantine this handle and free the memory only once the I/O has completed.
                                 stillPending = true;
-                                throw new IOException("Gửi report HID quá thời gian.");
+                                _writeFaulted = true;
+                                AbandonWrite(done, buffer, overlapped);
+                                throw new IOException(WriteFaultedMessage);
                             }
                             // The write may have completed just as the timeout fired: then it was sent.
                             if (Native.GetOverlappedResult(_handle, overlapped, out written, false) && written == frame.Length) return;
@@ -445,6 +471,16 @@ namespace A80RT {
                     }
                 }
             }
+        }
+
+        private static void AbandonWrite(ManualResetEvent done, IntPtr buffer, IntPtr overlapped) {
+            lock (AbandonedWrites) AbandonedWrites.Add(done);
+            ThreadPool.RegisterWaitForSingleObject(done, (state, timedOut) => {
+                Marshal.FreeHGlobal(buffer);
+                Marshal.FreeHGlobal(overlapped);
+                lock (AbandonedWrites) AbandonedWrites.Remove(done);
+                done.Close();
+            }, null, Timeout.Infinite, true);
         }
 
         public void Dispose() {

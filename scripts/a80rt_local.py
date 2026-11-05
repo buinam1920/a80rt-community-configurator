@@ -280,7 +280,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self._json(404, {'error': 'not found'})
         if not self._same_origin():
             return self._json(403, {'error': 'origin'})
-        length = min(int(self.headers.get('Content-Length') or 0), 8192)
+        try:
+            length = int(self.headers.get('Content-Length') or 0)
+        except ValueError:
+            return self._json(400, {'error': 'length'})
+        if length < 0:
+            return self._json(400, {'error': 'length'})
+        if length > 8192:
+            return self._json(413, {'error': 'too large'})
         try:
             data = json.loads(self.rfile.read(length) or b'{}')
         except ValueError:

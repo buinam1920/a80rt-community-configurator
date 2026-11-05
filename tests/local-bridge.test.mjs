@@ -136,3 +136,19 @@ test('standalone exe accepts user hotkey bindings from the app',{skip:process.pl
   const realBase=base;base=`http://127.0.0.1:${port5}`;origin=`http://localhost:${port5}`;t.after(()=>{base=realBase;origin=`http://localhost:${port}`;});
   await waitReady();await checkBindings(t);
 });
+
+// A raw request can claim any Content-Length; the bridge must not read without a bound.
+test('the Python bridge rejects negative and oversized Content-Length',{skip:!python&&'python not available'},async t=>{
+  const net=await import('node:net');
+  const port6=port+5,child=spawn(python,['-I',script,'--port',String(port6),'--no-hotkeys','--no-sound','--test-trigger'],{stdio:'ignore'});
+  t.after(()=>child.kill());process.once('exit',()=>child.kill());
+  const realBase=base;base=`http://127.0.0.1:${port6}`;t.after(()=>{base=realBase;});
+  await waitReady();
+  const raw=length=>new Promise((resolve,reject)=>{
+    const socket=net.connect(port6,'127.0.0.1',()=>socket.write(`POST /hotkeys/state HTTP/1.1\r\nHost: 127.0.0.1\r\nOrigin: http://localhost:${port6}\r\nContent-Type: application/json\r\nContent-Length: ${length}\r\n\r\n{}`));
+    let data='';socket.setTimeout(3000,()=>{socket.destroy();resolve('timeout');});
+    socket.on('data',chunk=>{data+=chunk;if(/\r\n\r\n/.test(data)){socket.destroy();resolve(data.split(' ')[1]);}});socket.on('error',reject);
+  });
+  assert.equal(await raw(-1),'400');
+  assert.equal(await raw(999999),'413');
+});

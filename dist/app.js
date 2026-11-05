@@ -45,7 +45,7 @@ function decorateStatic(){
 }
 function mode(){return state.snapshot?.source??'empty';}
 function describeSource(){if(mode()==='demo')return 'Dữ liệu mẫu';if(mode()==='import')return 'Bản đã lưu';if(mode()==='device')return state.reader?'Bàn phím thật':Object.keys(state.snapshot.blocks).length?'Bản đọc trước':'Thông tin thiết bị';return 'Chưa có dữ liệu';}
-function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'0.4.0-beta.14',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
+function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'1.0.0',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
 function makeKeyboard(){
   for(const row of LAYOUT){
     const container=document.createElement('div');container.className='key-row';
@@ -143,7 +143,7 @@ function renderSelection(){
 function renderLog(){
   const packets=state.snapshot?.packets??[];
   setText('packet-count',`${state.snapshot?.totalPackets??0} gói`);
-  setText('log',packets.length?packets.slice(-80).map(p=>`${p.at}  ${p.direction==='out'?'TX →':'RX ←'}  ${bytesHex(p.bytes)}`).join('\n'):'Trống.');
+  setText('log',packets.length?packets.slice(-80).map(p=>`${p.at}  ${p.direction==='out'?'TX →':'RX ←'}  ${bytesHex(p.bytes)}`).join('\n'):localize('Trống.'));
 }
 function render(){
   reportHotkeyState();
@@ -199,12 +199,14 @@ const devicePriority=device=>device.productId===0x80a1?0:device.productId===0xfe
 async function connect(permitted=null){
   if(!supported||state.connecting||state.reading)return;
   invalidateImports();
-  clearMessage();state.connecting=true;render();let reader;
+  clearMessage();state.connecting=true;render();let reader,previous=null;
   try{
     if(!await acquireDeviceLock()){message('Cửa sổ A80RT khác đang dùng bàn phím.',true);return;}
     const devices=Array.isArray(permitted)?permitted:await navigator.hid.requestDevice({filters:DEVICE_FILTERS.map(filter=>({...filter}))});
     devices.sort((a,b)=>devicePriority(a)-devicePriority(b));
     if(!devices.length){dropDeviceLock();message('Chưa chọn thiết bị. Đầu thu: chọn “A80RT U Dongle”.');return;}
+    // Giữ bản nháp cũ đến khi thiết bị mới mở được: kết nối thất bại không được làm mất bản nháp.
+    previous={session:state.session,capability:state.capability,snapshot:state.snapshot};
     state.session=null;state.capability=null;state.snapshot=deviceSnapshot(devices[0]);
     let lastError;
     for(const device of devices){try{reader=new A80Reader(device,{onPacket:(direction,bytes)=>{if(state.reader===reader)addPacket(direction,bytes);}});break;}catch(error){lastError=error;}}
@@ -213,8 +215,8 @@ async function connect(permitted=null){
     await reader.open();state.reader=reader;
     reader.transport.onSessionEnd(()=>{if(state.reader===reader&&reader.getState().linkLost)void onLinkLost(reader);});
     try{state.capability=identifyDevice(reader.device);}catch{state.capability=null;}state.progress=0;state.snapshot.session=reader.getState();
-    message(`Đã kết nối qua ${transportName(reader.device).toLocaleLowerCase('vi-VN')}. Bấm Đọc cấu hình.`);
-  }catch(error){if(reader)await reader.close().catch(()=>{});if(!state.reader)dropDeviceLock();message(error.name==='NotAllowedError'?'Trình duyệt chưa cấp quyền kết nối. Hãy mở trang trực tiếp trong Chrome/Edge rồi thử lại.':`Kết nối chưa thành công: ${error.message}`,true);}
+    message(`Đã kết nối qua ${transportName(reader.device)}. Bấm Đọc cấu hình.`);
+  }catch(error){if(reader)await reader.close().catch(()=>{});if(!state.reader){dropDeviceLock();if(previous&&!state.session){state.session=previous.session;state.capability=previous.capability;state.snapshot=previous.snapshot;}}message(error.name==='NotAllowedError'?'Trình duyệt chưa cấp quyền kết nối. Hãy mở trang trực tiếp trong Chrome/Edge rồi thử lại.':`Kết nối chưa thành công: ${error.message}`,true);}
   finally{state.connecting=false;render();}
 }
 async function disconnect(){
@@ -237,7 +239,7 @@ async function read(){
   state.reading=true;state.progress=0;clearMessage();render();
   try{
     const captured=await reader.readConfiguration(state.capability,{onProgress:progress=>{if(!current())return;state.activeBlock=progress.block;state.progress=100*progress.completed/progress.total;render();}});
-    if(current()){state.session=new ConfigSession(captured,state.capability);snapshot.blocks=captured.blocks;snapshot.complete=true;relinkDelay=0;if(isReceiver())setBattery(batteryOf(captured.blocks.device));message(reader.transport.getWriteState().qualified?'Đã đọc đủ 9 nhóm. Chỉnh rồi bấm Áp dụng.':'Đã đọc đủ 9 nhóm. Model/firmware này chưa ghi được.');}
+    if(current()){state.session=new ConfigSession(captured,state.capability);snapshot.blocks=captured.blocks;snapshot.complete=true;relinkDelay=0;if(isReceiver())setBattery(batteryOf(captured.blocks.device));message(reader.transport.getWriteState().qualified?'Đã đọc đủ 9 nhóm. Chỉnh rồi bấm Áp dụng.':'Đã đọc đủ 9 nhóm. Model/firmware này chưa ghi được; vẫn chỉnh, lưu hồ sơ và xuất JSON được.');}
   }catch(error){if(ownsRead())message(error.name==='AbortError'?'Đã dừng đọc. Chưa có snapshot hoàn chỉnh để chỉnh sửa.':`Đọc chưa hoàn tất: ${error.message}`,error.name!=='AbortError');}
   finally{if(ownsRead()){snapshot.session=reader.getState();state.reading=false;state.activeBlock=null;render();}}
 }
@@ -300,7 +302,9 @@ function renderDraft(){
 async function applyDraft(){
   if($('apply-button').disabled)return;
   invalidateImports();
-  const reader=state.reader,session=state.session,abort=new AbortController();state.applyAbort=abort;state.applying=true;render();
+  const reader=state.reader,session=state.session,abort=new AbortController();
+  clearTimeout(recoveryTimer);if(globalThis.indexedDB)persistRecovery(session);
+  state.applyAbort=abort;state.applying=true;render();
   const pending=session.apply(reader.transport,{signal:abort.signal,onProgress:progress=>{if(state.reader===reader&&state.session===session)message(`Đang ${progress.phase==='readback'?'đọc lại xác minh':'gửi bản nháp'}${progress.block?` · ${BLOCK_NAMES[progress.block]}`:''}…`);}});
   editors?.refresh();
   let result;try{result=await pending;}catch(error){result={status:'failed',error:error.message};}
@@ -338,8 +342,11 @@ function renderProfiles(){
 async function refreshProfiles(selectId){
  const request=++profileRefresh,cap=libraryCapability();
  try{
-  const [items,recovery]=await Promise.all([listProfiles(cap.identity,profileStorage),readRecovery(cap.identity,profileStorage)]);
+  let skipped=0;
+  // Bản phục hồi hỏng không được chặn danh sách hồ sơ còn tốt.
+  const [items,recovery]=await Promise.all([listProfiles(cap.identity,profileStorage,{onSkip:count=>{skipped=count;}}),readRecovery(cap.identity,profileStorage).catch(()=>null)]);
   if(request!==profileRefresh)return;profileItems=items;profileRecovery=recovery;
+  if(skipped)profileStatus(`Bỏ qua ${skipped} hồ sơ hỏng trong kho cục bộ; các hồ sơ khác vẫn dùng được.`,true);
   const select=$('profile-list'),previous=selectId??select.value;select.replaceChildren();
   const option=document.createElement('option');option.value='';option.textContent=items.length?'Chọn hồ sơ…':'Chưa có hồ sơ';select.append(option);
   for(const p of items){const option=document.createElement('option');option.value=p.id;option.textContent=`${p.name} · ${p.source==='sample'?'Mẫu':p.source==='device'?'Bản lưu từ thiết bị':'Đã lưu'}`;select.append(option);}
@@ -354,9 +361,9 @@ function stageProfile(profile){
  const session=state.session,changes=profile.readOnly?[]:session?previewProfile(profile,session):[];
  invalidateImports();
  profilePending={profile,session,draft:session?JSON.stringify(session.draft):null};
- $('profile-preview').textContent=profile.readOnly?'JSON v1 · chỉ xem, không tạo hồ sơ đầy đủ.\n'+JSON.stringify(profile.blocks,null,2):session?`${profile.name} · ${profile.source==='sample'?'Dữ liệu mẫu':'Bản đã lưu'} · ${changes.length} thay đổi so với bản nháp hiện tại\n`+changes.map(change=>`${change.block} · ${change.path}: ${JSON.stringify(change.before)} → ${JSON.stringify(change.after)}`).join('\n'):`${profile.name} · Bản đã lưu · ${profile.identity.productName}\nMở 9 vùng cấu hình trong phiên ngoại tuyến. Không có quyền ghi thiết bị.`;
+ $('profile-preview').textContent=profile.readOnly?localize('JSON v1 · chỉ xem, không tạo hồ sơ đầy đủ.')+'\n'+JSON.stringify(profile.blocks,null,2):session?`${profile.name} · ${localize(profile.source==='sample'?'Dữ liệu mẫu':'Bản đã lưu')} · ${localize(`${changes.length} thay đổi so với bản nháp hiện tại`)}\n`+changes.map(change=>`${change.block} · ${change.path}: ${JSON.stringify(change.before)} → ${JSON.stringify(change.after)}`).join('\n'):`${profile.name} · ${localize('Bản đã lưu')} · ${profile.identity.productName}\n${localize('Mở 9 vùng cấu hình trong phiên ngoại tuyến. Không có quyền ghi thiết bị.')}`;
  $('profile-preview').hidden=false;profileStatus(profile.readOnly?'Bản cũ chỉ để xem.':session?'Xem trước xong · bấm Đưa vào bản nháp.':'Xác nhận để mở hồ sơ ngoại tuyến.');renderProfiles();
- if(session&&!profile.readOnly){const skipped=profileSkippedFields(profile,session);if(skipped.length)$('profile-preview').textContent+=`\nBỏ qua ${skipped.length} trường chưa được hỗ trợ cho model này; giữ giá trị hiện tại:\n`+skipped.map(({block,path})=>`${block} · ${path}`).join('\n');}
+ if(session&&!profile.readOnly){const skipped=profileSkippedFields(profile,session);if(skipped.length)$('profile-preview').textContent+=`\n${localize(`Bỏ qua ${skipped.length} trường chưa được hỗ trợ cho model này; giữ giá trị hiện tại:`)}\n`+skipped.map(({block,path})=>`${block} · ${path}`).join('\n');}
 }
 function installOfflineProfile(profile){
  state.session=restoreProfile(profile);state.capability=identifyDevice(profile.identity);
@@ -367,9 +374,14 @@ function scheduleRecovery(){
  if(!globalThis.indexedDB){profileStatus('Chưa lưu phục hồi: trình duyệt không hỗ trợ IndexedDB. Bản nháp vẫn còn.',true);return;}
  recoveryTimer=setTimeout(()=>{
   if(state.session!==session||session.invalidated||session.applying)return;
+  persistRecovery(session);
+ },350);
+}
+// Lưu bản nháp để phục hồi sau tải lại. Gọi cả ngay trước Áp dụng: lần ghi lỗi một phần làm
+// phiên hết hiệu lực, sau đó không lưu phục hồi được nữa.
+function persistRecovery(session){
   let profile;try{profile=createProfile(session,$('profile-name').value||'Phiên gần nhất');}catch(error){profileStatus(`Chưa lưu phục hồi: ${error.message}`,true);return;}
   recoveryQueue=recoveryQueue.catch(()=>{}).then(()=>saveRecovery(profile,profileStorage)).then(()=>{if(state.session===session&&identifyDevice(profile.identity)===libraryCapability()){profileRecovery=profile;profileStatus('Đã giữ bản nháp để phục hồi sau tải lại.');renderProfiles();}}).catch(error=>{if(state.session===session&&identifyDevice(profile.identity)===libraryCapability())profileStatus(`Chưa lưu phục hồi; bản nháp vẫn còn: ${error.message}`,true);});
- },350);
 }
 function downloadProfile(profile){const blob=new Blob([exportProfile(profile)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`${profile.identity?.model??'a80rt'}-profile.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 async function importConfigurationProfile(event){

@@ -71,3 +71,17 @@ test('the draft bar becomes sticky while the draft has changes and clears on rev
     assert.equal(get('revert-undo').hidden,true,'a new edit withdraws the restore offer');
   }finally{restore();}
 });
+
+test('a failed connection keeps the current draft',async()=>{
+  const {get,restore}=await host('ux-connect-fail');
+  try{
+    await get('sample-button').trigger('click');await settle();
+    const input=[...walk(get('core-editors'))].find(el=>el.id==='core-actuationMm');input.value='1.25';await input.trigger('change');
+    const before=get('draft-count').textContent;assert.match(before,/^[1-9]\d* thay đổi/);
+    // A device that matches the filter but exposes no usable configuration interface.
+    navigator.hid.requestDevice=async()=>[{vendorId:0x0c45,productId:0x80a1,productName:'A80RT U',collections:[],opened:false,async open(){},async close(){},addEventListener(){},removeEventListener(){}}];
+    await get('connect-button').trigger('click');await settle();
+    assert.match(get('message').textContent,/Kết nối chưa thành công/);
+    assert.equal(get('draft-count').textContent,before,'the draft survives the failed connection');
+  }finally{restore();}
+});

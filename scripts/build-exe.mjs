@@ -6,6 +6,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {deflateRawSync} from 'node:zlib';
 import {fileURLToPath} from 'node:url';
+import {iconPng} from './make-icons.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const distDir = path.join(root, 'dist');
@@ -15,7 +16,10 @@ const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
 function makeIco() {
   const png192 = fs.readFileSync(path.join(distDir, 'icons', 'icon-192.png'));
   const png512 = fs.readFileSync(path.join(distDir, 'icons', 'icon-512.png'));
+  // Small sizes are drawn for their pixel size (bigger glyph, thicker arrow) so the taskbar,
+  // title bar and tray do not shrink the 192 px image themselves.
   const images = [
+    ...[16, 20, 24, 32, 40, 48, 64].map(s => ({w: s, h: s, data: iconPng(s)})),
     {w: 192, h: 192, data: png192},
     {w: 0, h: 0, data: png512}, // 0 means 256+ in ICO header
   ];

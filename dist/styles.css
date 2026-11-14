@@ -299,6 +299,8 @@ html.has-bg .topbar{border-bottom-color:color-mix(in srgb,var(--line) 70%,transp
 .theme-dialog input[type=range]:disabled{opacity:.4}
 @media(max-width:520px){.theme-dialog{padding:18px 16px}.theme-bg-row{flex-direction:column;align-items:stretch}.theme-preview{width:100%}.theme-grid{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){.theme-dialog[open]{animation:none}}
-/* Logo: chữ A đặc với mũi tên cắt rỗng (Rapid Trigger), theo màu nhấn. */
-.brand-icon{flex:none}.brand-icon svg{width:26px;height:26px;display:block}
+/* Logo: chữ A đặc với mũi tên cắt rỗng (Rapid Trigger). Luôn giữ màu thương hiệu, giống icon
+   của file .exe, thanh tác vụ và khay hệ thống; màu nhấn chỉ đổi phần còn lại của giao diện. */
+:root{--brand:#c3f56b;--brand-ink:#19270a}
+.brand-icon{flex:none;background:var(--brand);color:var(--brand-ink)}.brand-icon svg{width:26px;height:26px;display:block}
 @media(max-width:650px){.brand-icon svg{width:21px;height:21px}}

@@ -28,8 +28,8 @@ test('the picked accent follows the most vivid color, not the dark background',(
 });
 
 test('accent-derived colors in the stylesheet come from --accent tokens',()=>{
-  // Token defaults (--accent:…, --accent-ink:…) are the one place a literal belongs.
-  const css=fs.readFileSync(new URL('../dist/styles.css',import.meta.url),'utf8').replace(/--accent(-ink)?:#[0-9a-f]{6}/gi,'');
+  // Token defaults (--accent, --accent-ink, and the fixed logo colours --brand, --brand-ink) are the one place a literal belongs.
+  const css=fs.readFileSync(new URL('../dist/styles.css',import.meta.url),'utf8').replace(/--(accent|brand)(-ink)?:#[0-9a-f]{6}/gi,'');
   for(const hex of ['#d5ff8c','#19270a','#252f23','#36472c','#8ebc44','#a2c97b'])assert.ok(!css.toLowerCase().includes(hex),hex);
   assert.match(css,/--accent-soft:color-mix\(in srgb,var\(--accent\)/);
 });

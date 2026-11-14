@@ -22,6 +22,13 @@ export const ICONS={
   plus:'M12 5v14M5 12h14',
   record:'M12 7a5 5 0 1 0 0 10a5 5 0 1 0 0-10z',
   keys:'M4 7h16v10H4zM8 11h.01M12 11h.01M16 11h.01M8 14h8',
+  sliders:'M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1M15 4v4M9 10v4M17 16v4',
+  bolt:'M13 2L4 14h7l-1 8 9-12h-7z',
+  nut:'M12 3l7.8 4.5v9L12 21l-7.8-4.5v-9zM12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6z',
+  folder:'M3 6h6l2 3h10v10H3z',
+  pulse:'M3 12h4l3-7 4 14 3-7h4',
+  palette:'M12 3a9 9 0 1 0 0 18c1.4 0 2-1 2-2s-1-1.6-1-2.6 1-1.4 2-1.4h2a4 4 0 0 0 4-4c0-4.4-4-8-9-8zM7.5 11h.01M10 7h.01M15 7.5h.01',
+  image:'M3 5h18v14H3zM3 16l5-5 4 4 3-3 6 6M15.5 8.5h.01',
 };
 const NS='http://www.w3.org/2000/svg';
 // Tạo <svg> cho một icon; trả về null nếu môi trường không có SVG (test không có DOM thật).

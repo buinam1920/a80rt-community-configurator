@@ -2,8 +2,10 @@
 // Chạy: node scripts/make-icons.mjs
 import {writeFileSync} from 'node:fs';
 import {deflateSync} from 'node:zlib';
-const outer=[[16,43],[29,19],[36,19],[49,43],[41,43],[38,37],[27,37],[24,43]],hole=[[30,31],[35,31],[33,26]];
-const BG=[0xc3,0xf5,0x6b],FG=[0x11,0x15,0x19];
+// Logo "Arrow-A" (viewBox 24, cùng path với index.html), đặt giữa ô 64 với tỉ lệ 26/39 như thanh bên.
+const K=64*26/39/24,O=(64-24*K)/2,fit=pts=>pts.map(([x,y])=>[O+x*K,O+y*K]);
+const outer=fit([[11.1,3],[12.9,3],[21.4,20.8],[2.6,20.8]]),hole=fit([[12,10],[15.9,15.2],[13.4,15.2],[13.4,20.8],[10.6,20.8],[10.6,15.2],[8.1,15.2]]);
+const BG=[0xc3,0xf5,0x6b],FG=[0x19,0x27,0x0a];
 const inside=(poly,x,y)=>{let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const [xi,yi]=poly[i],[xj,yj]=poly[j];if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)c=!c;}return c;};
 const inRounded=(x,y,r)=>{const cx=Math.min(Math.max(x,r),64-r),cy=Math.min(Math.max(y,r),64-r);return (x-cx)**2+(y-cy)**2<=r*r;};
 const crcTable=Array.from({length:256},(_,n)=>{let c=n;for(let k=0;k<8;k++)c=c&1?0xedb88320^(c>>>1):c>>>1;return c>>>0;});

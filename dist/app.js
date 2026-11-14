@@ -43,6 +43,17 @@ function decorateStatic(){
   for(const el of document.querySelectorAll?.('[data-icon]')??[]){const svg=icon(el.dataset.icon);if(svg)el.replaceChildren(svg);}
   for(const el of document.querySelectorAll?.('[data-icon-after]')??[]){const svg=icon(el.dataset.iconAfter,'i i-after');if(svg)el.append(svg);}
 }
+// Điều hướng theo phần ở thanh bên: đánh dấu phần đang nằm trong vùng nhìn.
+function initSectionNav(){
+  const links=[...(document.querySelectorAll?.('.side-nav a')??[])];if(!links.length||typeof IntersectionObserver==='undefined')return;
+  const byId=new Map(links.map(link=>[link.getAttribute('href').slice(1),link])),visible=new Set();
+  const mark=id=>{for(const [key,link]of byId){if(key===id)link.setAttribute('aria-current','true');else link.removeAttribute('aria-current');}};
+  const observer=new IntersectionObserver(entries=>{
+    for(const entry of entries){if(entry.isIntersecting)visible.add(entry.target.id);else visible.delete(entry.target.id);}
+    const first=[...byId.keys()].find(id=>visible.has(id));if(first)mark(first);
+  },{rootMargin:'-15% 0px -55% 0px'});
+  for(const id of byId.keys()){const el=document.getElementById(id);if(el)observer.observe(el);}
+}
 function mode(){return state.snapshot?.source??'empty';}
 function describeSource(){if(mode()==='demo')return 'Dữ liệu mẫu';if(mode()==='import')return 'Bản đã lưu';if(mode()==='device')return state.reader?'Bàn phím thật':Object.keys(state.snapshot.blocks).length?'Bản đọc trước':'Thông tin thiết bị';return 'Chưa có dữ liệu';}
 function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'1.0.0',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
@@ -669,6 +680,6 @@ function scheduleRelink(){
   relinkTimer?.unref?.();
 }
 navigator.hid?.addEventListener('connect',()=>{autoConnectPaused=false;setTimeout(()=>void autoConnect('plug'),800);});
-decorateStatic();makeKeyboard();checkBrowser();render();void refreshProfiles();void connectHotkeyBridge();void autoConnect('start');
+decorateStatic();initSectionNav();makeKeyboard();checkBrowser();render();void refreshProfiles();void connectHotkeyBridge();void autoConnect('start');
 // Cho phép cài thành app (PWA). Service worker chỉ phục vụ file giao diện tĩnh.
 if('serviceWorker' in navigator&&window.isSecureContext)navigator.serviceWorker.register('./service-worker.js').catch(()=>{});

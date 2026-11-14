@@ -421,6 +421,10 @@ namespace A80RT {
             }
             _baseIcon = ico;
             _appIcon = ico;
+            // Logo in the accent colour chosen in the app (saved by an earlier run).
+            if (AccentIcon.LoadSaved()) {
+                try { _appIcon = new Icon(AccentIcon.IcoPath); _baseIcon = new Icon(AccentIcon.IcoPath, SystemInformation.SmallIconSize); ico = _baseIcon; } catch { }
+            }
             ContextMenuStrip menu = new ContextMenuStrip();
             var titleItem = new ToolStripMenuItem("A80RT Configurator ${pkg.version}") { Enabled = false };
             _hkItem = new ToolStripMenuItem("") { Enabled = false };
@@ -452,6 +456,20 @@ namespace A80RT {
             var batteryTimer = new System.Windows.Forms.Timer { Interval = 2000 };
             batteryTimer.Tick += (s, e) => RefreshBatteryTray();
             batteryTimer.Start();
+        }
+
+        // Accent colour from the app: redraw the logo for the window, taskbar button and tray.
+        private static bool ApplyAccent(string hex) {
+            if (string.Equals(hex, AccentIcon.Hex, StringComparison.OrdinalIgnoreCase)) return true;
+            if (!AccentIcon.Prepare(hex)) return false;
+            try {
+                Icon app = new Icon(AccentIcon.IcoPath), small = new Icon(AccentIcon.IcoPath, SystemInformation.SmallIconSize);
+                _appIcon = app;
+                _baseIcon = small;
+                if (_tray != null && _batteryShown < 0) _tray.Icon = small;
+                NativeShell.SetIcon(app);
+                return true;
+            } catch { return false; }
         }
 
         private static void RefreshBatteryTray() {
@@ -702,7 +720,7 @@ namespace A80RT {
                         }
                         string bodyText = Encoding.UTF8.GetString(bodyBytes, 0, read);
 
-                        if (path != "/hotkeys/result" && path != "/hotkeys/state" && path != "/hotkeys/test-trigger" && path != "/hotkeys/bindings") {
+                        if (path != "/hotkeys/result" && path != "/hotkeys/state" && path != "/hotkeys/test-trigger" && path != "/hotkeys/bindings" && path != "/hotkeys/accent") {
                             WriteJson(ns, 404, "{\\"error\\":\\"not found\\"}");
                             return;
                         }
@@ -739,6 +757,14 @@ namespace A80RT {
                             try { next = ParseBindings(trimmed); } catch { next = null; }
                             if (next == null) { WriteJson(ns, 400, "{\\"error\\":\\"bindings\\"}"); return; }
                             WriteJson(ns, 200, OnUiThread(() => { _hotkeyWin.Apply(next); UpdateTrayHotkeys(); return HotkeyConfigJson(); }));
+                            return;
+                        }
+
+                        if (path == "/hotkeys/accent") {
+                            string accent = ExtractJsonString(trimmed, "accent");
+                            string hex = accent != null && accent.Length == 7 && accent[0] == '#' ? accent.Substring(1) : null;
+                            if (!AccentIcon.IsHex(hex)) { WriteJson(ns, 400, "{\\"error\\":\\"accent\\"}"); return; }
+                            WriteJson(ns, 200, OnUiThread(() => ApplyAccent(hex) ? "{\\"native\\":true}" : "{\\"native\\":false}"));
                             return;
                         }
 

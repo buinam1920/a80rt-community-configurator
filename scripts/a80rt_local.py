@@ -276,7 +276,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         path = self.path.split('?', 1)[0]
-        if path not in ('/hotkeys/result', '/hotkeys/state', '/hotkeys/test-trigger', '/hotkeys/bindings'):
+        if path not in ('/hotkeys/result', '/hotkeys/state', '/hotkeys/test-trigger', '/hotkeys/bindings', '/hotkeys/accent'):
             return self._json(404, {'error': 'not found'})
         if not self._same_origin():
             return self._json(403, {'error': 'origin'})
@@ -310,6 +310,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 return self._json(400, {'error': 'bindings'})
             apply_bindings(clean_bindings(data['bindings']))
             return self._json(200, hotkey_config())
+        if path == '/hotkeys/accent':
+            # Accent-coloured window/taskbar icons exist only in the .exe; the browser version has nothing to redraw.
+            return self._json(200, {'native': False})
         if path == '/hotkeys/state':
             with listeners_lock:
                 cid = data.get('client')

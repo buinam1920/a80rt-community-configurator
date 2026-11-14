@@ -97,6 +97,26 @@ function applyVars(){
   root.setProperty('--accent',settings.accent);root.setProperty('--accent-ink',inkFor(settings.accent));
   root.setProperty('--bg-scrim',`${settings.scrim}%`);root.setProperty('--bg-blur',`${settings.blur}px`);root.setProperty('--panel-alpha',`${settings.panel}%`);
   document.documentElement.dataset.bgFocus=settings.focus;
+  syncLogo();
+}
+// Logo theo màu nhấn: biểu tượng tab trình duyệt ngay tại đây; cửa sổ, thanh tác vụ và khay
+// hệ thống do bản .exe tự vẽ lại khi nhận màu (POST /hotkeys/accent; bản trình duyệt bỏ qua).
+export const LOGO_PATH='M11.1 3h1.8l8.5 17.8H2.6ZM12 10 15.9 15.2H13.4v5.6h-2.8v-5.6H8.1Z';
+export function faviconSvg(accent){
+  return `<svg xmlns='http://www.w3.org/2000/svg' viewBox='-6 -6 36 36'><rect x='-6' y='-6' width='36' height='36' rx='9' fill='${accent}'/><path fill='${inkFor(accent)}' fill-rule='evenodd' d='${LOGO_PATH}'/></svg>`;
+}
+let logoFor=null,nativeFor=null,nativeTimer=0;
+function syncLogo(){
+  if(logoFor===settings.accent)return;
+  logoFor=settings.accent;
+  const href='data:image/svg+xml,'+encodeURIComponent(faviconSvg(settings.accent));
+  for(const link of document.querySelectorAll('link[rel="icon"]')){link.href=href;link.removeAttribute('type');link.removeAttribute('sizes');}
+  // Kéo bảng chọn màu bắn nhiều sự kiện; chỉ gửi màu cuối cùng.
+  clearTimeout(nativeTimer);
+  nativeTimer=setTimeout(()=>{
+    const accent=settings.accent;if(nativeFor===accent)return;
+    fetch('./hotkeys/accent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accent})}).then(r=>{if(r.ok)nativeFor=accent;}).catch(()=>{});
+  },400);
 }
 function loadImage(url){return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error('decode'));img.src=url;});}
 function loadVideo(url){return new Promise((resolve,reject)=>{const v=document.createElement('video');v.muted=true;v.preload='auto';v.onloadeddata=()=>resolve(v);v.onerror=()=>reject(new Error('decode'));v.src=url;});}

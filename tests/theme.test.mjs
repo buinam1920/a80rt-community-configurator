@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {normalizeSettings,inkFor,dominantAccent,SWATCHES} from '../dist/ui/theme.js';
+import {normalizeSettings,inkFor,dominantAccent,SWATCHES,LOGO_PATH,faviconSvg} from '../dist/ui/theme.js';
 
 test('theme settings are clamped and fall back to defaults',()=>{
   assert.deepEqual(normalizeSettings(null),{accent:'#c3f56b',scrim:60,blur:0,panel:88,paused:false,focus:'center'});
@@ -28,8 +28,23 @@ test('the picked accent follows the most vivid color, not the dark background',(
 });
 
 test('accent-derived colors in the stylesheet come from --accent tokens',()=>{
-  // Token defaults (--accent, --accent-ink, and the fixed logo colours --brand, --brand-ink) are the one place a literal belongs.
-  const css=fs.readFileSync(new URL('../dist/styles.css',import.meta.url),'utf8').replace(/--(accent|brand)(-ink)?:#[0-9a-f]{6}/gi,'');
+  // Token defaults (--accent:…, --accent-ink:…) are the one place a literal belongs.
+  const css=fs.readFileSync(new URL('../dist/styles.css',import.meta.url),'utf8').replace(/--accent(-ink)?:#[0-9a-f]{6}/gi,'');
   for(const hex of ['#d5ff8c','#19270a','#252f23','#36472c','#8ebc44','#a2c97b'])assert.ok(!css.toLowerCase().includes(hex),hex);
   assert.match(css,/--accent-soft:color-mix\(in srgb,var\(--accent\)/);
+});
+
+test('the logo follows the accent: tab icon colours and one shared shape',()=>{
+  const svg=faviconSvg('#7cc8ff');
+  assert.match(svg,/fill='#7cc8ff'/);assert.match(svg,new RegExp(`fill='${inkFor('#7cc8ff')}'`));
+  const html=fs.readFileSync(new URL('../dist/index.html',import.meta.url),'utf8');
+  assert.ok(html.includes(`d="${LOGO_PATH}"`),'sidebar logo uses the same path');
+  const native=fs.readFileSync(new URL('../scripts/native/NativeShell.cs',import.meta.url),'utf8');
+  assert.match(native,/Outer = \{ 11\.1f, 3f, 12\.9f, 3f, 21\.4f, 20\.8f, 2\.6f, 20\.8f \}/,'exe draws the same outline');
+});
+
+test('the exe and the Python bridge both accept the accent colour',()=>{
+  const exe=fs.readFileSync(new URL('../scripts/build-exe.mjs',import.meta.url),'utf8'),py=fs.readFileSync(new URL('../scripts/a80rt_local.py',import.meta.url),'utf8');
+  assert.match(exe,/path == "\/hotkeys\/accent"/);assert.match(exe,/AccentIcon\.LoadSaved\(\)/);
+  assert.match(py,/'\/hotkeys\/accent'/);
 });

@@ -58,6 +58,13 @@ namespace A80RT {
 
         // Returns false when WebView2 cannot be used (no runtime, load failure);
         // the caller then falls back to opening the browser.
+        // New accent icon from the page: window icon now, taskbar button via the window's app ID.
+        public static void SetIcon(Icon icon) {
+            if (_form == null || _form.IsDisposed) return;
+            _form.Icon = icon;
+            AccentIcon.ApplyToWindow(_form.Handle);
+        }
+
         public static bool Show(string url, Icon icon) {
             try {
                 if (_form != null && !_form.IsDisposed) { _form.Reveal(); return true; }
@@ -186,6 +193,11 @@ namespace A80RT {
         }
 
         public void AllowClose() { _allowClose = true; }
+
+        protected override void OnHandleCreated(EventArgs e) {
+            base.OnHandleCreated(e);
+            AccentIcon.ApplyToWindow(Handle);
+        }
 
         protected override void OnFormClosing(FormClosingEventArgs e) {
             // Closing the window keeps the app in the tray so hotkeys and the
@@ -587,6 +599,166 @@ namespace A80RT {
                 } finally { dev.Dispose(); }
             }
             return 0;
+        }
+    }
+    // The logo in the user's accent colour for the window, the taskbar button and the tray.
+    // The page sends only the colour (POST /hotkeys/accent); the icon is drawn here, saved
+    // once per colour under %LocalAppData%\A80RT-Configurator\accent and reused at the next
+    // start. Windows 11 draws the taskbar button from the exe file, so the window is given its
+    // own app ID and relaunch icon (the same mechanism Chrome uses for profile icons).
+    internal static class AccentIcon {
+        // Same shape as the SVG in dist/index.html and scripts/make-icons.mjs (viewBox 24).
+        private static readonly float[] Outer = { 11.1f, 3f, 12.9f, 3f, 21.4f, 20.8f, 2.6f, 20.8f };
+        private static readonly float[] Hole = { 12f, 10f, 15.9f, 15.2f, 13.4f, 15.2f, 13.4f, 20.8f, 10.6f, 20.8f, 10.6f, 15.2f, 8.1f, 15.2f };
+        private static readonly float[] HoleSmall = { 12f, 8.6f, 17f, 15f, 13.9f, 15f, 13.9f, 20.8f, 10.1f, 20.8f, 10.1f, 15f, 7f, 15f };
+        private static readonly int[] Sizes = { 16, 20, 24, 32, 40, 48, 64, 256 };
+
+        public static string Hex { get; private set; }     // "rrggbb", or null while the built-in icon is used
+        public static string IcoPath { get; private set; }
+
+        private static string Dir {
+            get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "A80RT-Configurator", "accent"); }
+        }
+
+        public static bool IsHex(string s) {
+            if (s == null || s.Length != 6) return false;
+            foreach (char c in s) if (!Uri.IsHexDigit(c)) return false;
+            return true;
+        }
+
+        // Colour saved by an earlier run; false when there is none.
+        public static bool LoadSaved() {
+            try {
+                string file = Path.Combine(Dir, "accent.txt");
+                if (!File.Exists(file)) return false;
+                return Prepare(File.ReadAllText(file).Trim());
+            } catch { return false; }
+        }
+
+        // One file per colour, so Windows' icon cache can never show an older colour for it.
+        public static bool Prepare(string hex) {
+            if (!IsHex(hex)) return false;
+            hex = hex.ToLowerInvariant();
+            try {
+                Directory.CreateDirectory(Dir);
+                string path = Path.Combine(Dir, "accent-" + hex + ".ico");
+                if (!File.Exists(path)) File.WriteAllBytes(path, BuildIco(hex));
+                File.WriteAllText(Path.Combine(Dir, "accent.txt"), hex);
+                foreach (string old in Directory.GetFiles(Dir, "accent-*.ico")) {
+                    if (string.Equals(old, path, StringComparison.OrdinalIgnoreCase) || string.Equals(old, IcoPath, StringComparison.OrdinalIgnoreCase)) continue;
+                    try { File.Delete(old); } catch { }
+                }
+                Hex = hex;
+                IcoPath = path;
+                return true;
+            } catch { return false; }
+        }
+
+        public static void ApplyToWindow(IntPtr hwnd) {
+            if (IcoPath == null || hwnd == IntPtr.Zero) return;
+            try {
+                Guid iid = new Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99");
+                IPropertyStoreShim store;
+                if (SHGetPropertyStoreForWindow(hwnd, ref iid, out store) != 0 || store == null) return;
+                try {
+                    SetString(store, 2, "\"" + Application.ExecutablePath + "\"");
+                    SetString(store, 4, "A80RT Configurator");
+                    SetString(store, 3, IcoPath + ",0");
+                    // A new app ID per colour makes the taskbar redraw the button.
+                    SetString(store, 5, "A80RT.Configurator." + Hex);
+                    store.Commit();
+                } finally { Marshal.ReleaseComObject(store); }
+            } catch { }
+        }
+
+        private static byte[] BuildIco(string hex) {
+            Color bg = Color.FromArgb(Convert.ToInt32(hex.Substring(0, 2), 16), Convert.ToInt32(hex.Substring(2, 2), 16), Convert.ToInt32(hex.Substring(4, 2), 16));
+            Color fg = Ink(bg);
+            List<byte[]> images = new List<byte[]>();
+            foreach (int size in Sizes) images.Add(Png(size, bg, fg));
+            using (MemoryStream ms = new MemoryStream())
+            using (BinaryWriter w = new BinaryWriter(ms)) {
+                w.Write((ushort)0); w.Write((ushort)1); w.Write((ushort)images.Count);
+                int offset = 6 + 16 * images.Count;
+                for (int i = 0; i < images.Count; i++) {
+                    int size = Sizes[i];
+                    w.Write((byte)(size >= 256 ? 0 : size)); w.Write((byte)(size >= 256 ? 0 : size));
+                    w.Write((byte)0); w.Write((byte)0); w.Write((ushort)1); w.Write((ushort)32);
+                    w.Write(images[i].Length); w.Write(offset);
+                    offset += images[i].Length;
+                }
+                foreach (byte[] img in images) w.Write(img);
+                w.Flush();
+                return ms.ToArray();
+            }
+        }
+
+        private static byte[] Png(int size, Color bg, Color fg) {
+            using (Bitmap bmp = new Bitmap(size, size, System.Drawing.Imaging.PixelFormat.Format32bppArgb))
+            using (Graphics g = Graphics.FromImage(bmp)) {
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                g.Clear(Color.Transparent);
+                bool small = size <= 32;
+                float d = size * (small ? 0.22f : 0.25f) * 2f;
+                using (System.Drawing.Drawing2D.GraphicsPath box = new System.Drawing.Drawing2D.GraphicsPath()) {
+                    box.AddArc(0, 0, d, d, 180, 90);
+                    box.AddArc(size - d, 0, d, d, 270, 90);
+                    box.AddArc(size - d, size - d, d, d, 0, 90);
+                    box.AddArc(0, size - d, d, d, 90, 90);
+                    box.CloseFigure();
+                    using (SolidBrush b = new SolidBrush(bg)) g.FillPath(b, box);
+                }
+                // Small sizes: bigger letter and a thicker arrow so the arrow survives at 16-24 px.
+                float k = size * (small ? 0.8f : 26f / 39f) / 24f, o = (size - 24f * k) / 2f, dy = 0.1f * k;
+                using (System.Drawing.Drawing2D.GraphicsPath glyph = new System.Drawing.Drawing2D.GraphicsPath(System.Drawing.Drawing2D.FillMode.Alternate)) {
+                    glyph.AddPolygon(Points(Outer, k, o, dy));
+                    glyph.AddPolygon(Points(small ? HoleSmall : Hole, k, o, dy));
+                    using (SolidBrush b = new SolidBrush(fg)) g.FillPath(b, glyph);
+                }
+                using (MemoryStream ms = new MemoryStream()) {
+                    bmp.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                    return ms.ToArray();
+                }
+            }
+        }
+
+        private static PointF[] Points(float[] xy, float k, float o, float dy) {
+            PointF[] pts = new PointF[xy.Length / 2];
+            for (int i = 0; i < pts.Length; i++) pts[i] = new PointF(o + xy[2 * i] * k, o + xy[2 * i + 1] * k + dy);
+            return pts;
+        }
+
+        // Text on the accent: a dark tint or white, whichever contrasts more (same rule as dist/ui/theme.js).
+        private static Color Ink(Color a) {
+            Color dark = Color.FromArgb((int)Math.Round(a.R * 0.13), (int)Math.Round(a.G * 0.13), (int)Math.Round(a.B * 0.13));
+            return Contrast(a, dark) >= Contrast(a, Color.White) ? dark : Color.White;
+        }
+        private static double Channel(int v) { double x = v / 255.0; return x <= 0.03928 ? x / 12.92 : Math.Pow((x + 0.055) / 1.055, 2.4); }
+        private static double Lum(Color c) { return 0.2126 * Channel(c.R) + 0.7152 * Channel(c.G) + 0.0722 * Channel(c.B); }
+        private static double Contrast(Color a, Color b) { double x = Lum(a), y = Lum(b); if (y > x) { double t = x; x = y; y = t; } return (x + 0.05) / (y + 0.05); }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        private struct PropKey { public Guid FormatId; public uint PropertyId; }
+        [StructLayout(LayoutKind.Explicit, Size = 16)]
+        private struct PropVariantString { [FieldOffset(0)] public ushort Type; [FieldOffset(8)] public IntPtr Value; }
+        [ComImport, Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface IPropertyStoreShim {
+            int GetCount(out uint count);
+            int GetAt(uint index, out PropKey key);
+            int GetValue(ref PropKey key, out PropVariantString value);
+            int SetValue(ref PropKey key, ref PropVariantString value);
+            int Commit();
+        }
+        [DllImport("shell32.dll")]
+        private static extern int SHGetPropertyStoreForWindow(IntPtr hwnd, ref Guid riid, [MarshalAs(UnmanagedType.Interface)] out IPropertyStoreShim store);
+
+        // System.AppUserModel.* (format id 9F4C2855-...): 2 RelaunchCommand, 3 RelaunchIconResource,
+        // 4 RelaunchDisplayNameResource, 5 ID. VT_LPWSTR = 31.
+        private static void SetString(IPropertyStoreShim store, uint id, string text) {
+            PropKey key = new PropKey { FormatId = new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3"), PropertyId = id };
+            PropVariantString value = new PropVariantString { Type = 31, Value = Marshal.StringToCoTaskMemUni(text) };
+            try { store.SetValue(ref key, ref value); } finally { Marshal.FreeCoTaskMem(value.Value); }
         }
     }
 }

@@ -2,6 +2,10 @@
 
 Detailed notes for each release are in [docs/](docs/).
 
+## 1.1.1 — 2026-11-14
+
+The logo follows the accent colour in the app, the browser tab, and in the exe also the window, taskbar button and tray. The exe icon now includes real 16–64 px sizes, so the arrow no longer disappears in the taskbar and tray. [Notes](docs/release-1.1.1.md)
+
 ## 1.1.0 — 2026-11-14
 
 Interface refresh: the sidebar links to every section and highlights the one in view, one tab style everywhere, cleaner inputs. New Appearance panel: your own image, GIF or video background and any accent colour, saved locally and shareable as a theme file. New app logo. [Notes](docs/release-1.1.0.md)

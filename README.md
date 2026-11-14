@@ -1,8 +1,8 @@
-# A80RT Community Configurator — 1.0.0
+# A80RT Community Configurator — 1.1.0
 
 An unofficial community configurator compatible with LEOBOG A80RT keyboards. This project is not affiliated with or endorsed by LEOBOG. Product names identify compatible hardware only.
 
-**[Download for Windows](https://github.com/buinam1920/a80rt-community-configurator/releases/tag/v1.0.0)** — choose `A80RT-Configurator-1.0.0.exe` under Assets.
+**[Download for Windows](https://github.com/buinam1920/a80rt-community-configurator/releases/tag/v1.1.0)** — choose `A80RT-Configurator-1.1.0.exe` under Assets.
 
 ## Getting started
 
@@ -46,6 +46,7 @@ The executable is unsigned, so Windows SmartScreen may warn on first launch. On 
 - Local profiles, JSON import/export, draft previews, and session recovery.
 - A standalone Windows executable with embedded interface assets and system tray controls. Since 0.4.0-beta.3 it opens its **own window (WebView2)** instead of a browser: the exe talks to the keyboard through the Windows HID API and exposes the same `navigator.hid` surface to the app (`scripts/native/hid-shim.js`, `scripts/native/NativeShell.cs`). Report bytes pass through unchanged, so every measured protocol rule is still enforced by the same JavaScript; the host never builds, alters, retries or originates a report. No device chooser is needed and the keyboard is detected automatically. Closing the window keeps the app in the tray (hotkeys, battery); use the tray menu to exit. `--browser` forces the previous Edge/Chrome app window, which is also the automatic fallback when WebView2 is unavailable. Profiles saved in the browser version live in that browser's storage: export them as JSON there and import them in the window. WebView2 SDK 1.0.4314.35 is redistributed under its license (`vendor/webview2/`).
 - English or Vietnamese interface (VI/EN switch in the top bar; follows the system language by default).
+- Custom appearance (palette button in the top bar): an image, animated GIF or short MP4/WebM video as the background, with darken, blur, panel opacity and position controls and a pause switch; an accent colour from presets, a colour picker or picked from the background. Stored on this machine only; themes can be exported and imported as JSON. Nothing is sent to the keyboard.
 - Readable and keyboard-friendly: text contrast meets WCAG AA, the key map is one Tab stop with arrow-key navigation (Shift+arrow extends the selection), a sticky Apply bar shows write progress and results, deletes ask for confirmation and offer Undo, and motion follows the Windows "reduce motion" setting.
 - Global profile shortcuts with sound feedback and a result balloon from the tray icon (visible over games; the browser version uses web notifications instead). The app window sends its shortcut list to the exe (or `scripts/a80rt_local.py`), which registers them with `RegisterHotKey`.
 - Single-window event dispatch: the bridge selects one app window, prioritizes a connected/read session, and accepts only the first matching result for each event. Events time out after 45 seconds.
@@ -114,7 +115,7 @@ npm run build
 npm test
 ```
 
-The 1.0.0 build passes **285 automated tests**, including executable and Python bridge tests. To build without overwriting an executable that is already running, set `A80RT_BUILD_OUTPUT`. Set `A80RT_TEST_EXE` to test that specific output.
+The 1.1.0 build passes **289 automated tests**, including executable and Python bridge tests. To build without overwriting an executable that is already running, set `A80RT_BUILD_OUTPUT`. Set `A80RT_TEST_EXE` to test that specific output.
 
 For source-based serving, Python's standard library is sufficient:
 
@@ -126,7 +127,7 @@ Alternatively, run `start.cmd`. It prefers the executable when available and oth
 
 To install the PWA, start the local server, open the page, and use the browser's install-app option. Its profiles share storage with the same browser/origin. The service worker uses network-first loading and a versioned offline cache of static interface files. It does not cache the hotkey bridge or manage WebHID/profile data. Open the app with the server running after source updates to receive the new interface.
 
-All 17 JavaScript modules, the entry script, and CSS use the same release token through an import map. Update package version, import map, entry/CSS tokens, snapshot metadata, and service worker VERSION together. Release-graph tests check module coverage and cycles.
+All 18 JavaScript modules, the entry script, and CSS use the same release token through an import map. Update package version, import map, entry/CSS tokens, snapshot metadata, and service worker VERSION together. Release-graph tests check module coverage and cycles.
 
 ## Protocol and limits
 

@@ -2,6 +2,10 @@
 
 Detailed notes for each release are in [docs/](docs/).
 
+## 1.1.0 — 2026-11-14
+
+Interface refresh: the sidebar links to every section and highlights the one in view, one tab style everywhere, cleaner inputs. New Appearance panel: your own image, GIF or video background and any accent colour, saved locally and shareable as a theme file. New app logo. [Notes](docs/release-1.1.0.md)
+
 ## 1.0.0 — 2026-11-05
 
 First stable release. Fixes from the final review: a stuck native write quarantines the connection, a failed connection keeps the draft, one app instance per Windows session, clear port-conflict and WebView2-failure handling, damaged saved profiles are skipped, recovery is saved before Apply, English-mode and accessibility fixes, MIT license and third-party notices. [Notes](docs/release-1.0.0.md)

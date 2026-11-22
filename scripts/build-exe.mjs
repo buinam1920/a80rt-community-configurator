@@ -82,6 +82,7 @@ const {bundle, count} = packAssets();
 fs.writeFileSync(bundlePath, bundle);
 
 const csSource = `// Auto-generated standalone executable for A80RT Configurator ${pkg.version}
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -255,6 +256,7 @@ namespace A80RT {
         private static int Main(string[] args) {
             bool noHotkeys = false;
             bool noBrowser = false;
+            bool startInTray = false;
             string selfTestOut = null;
             EmbeddedAssemblies.Install();
             for (int i = 0; i < args.Length; i++) {
@@ -267,6 +269,7 @@ namespace A80RT {
                 else if (a == "--no-hotkeys") noHotkeys = true;
                 else if (a == "--no-sound") _sound = false;
                 else if (a == "--no-browser") noBrowser = true;
+                else if (a == "--start-in-tray") startInTray = true;
                 else if (a == "--create-shortcut") { CreateDesktopShortcut(false); return 0; }
                 else if (a == "--test-trigger") { _testTrigger = true; noBrowser = true; }
             }
@@ -285,6 +288,7 @@ namespace A80RT {
             bool createdNew;
             using (Mutex mutex = new Mutex(true, mutexName, out createdNew)) {
                 if (!createdNew && !_testTrigger) {
+                    if (startInTray) return 0;
                     // Another instance owns the keyboard: ask it to show its window.
                     try {
                         EventWaitHandle show;
@@ -308,6 +312,7 @@ namespace A80RT {
                     server.Start();
                 } catch (Exception ex) {
                     if (!_testTrigger) {
+                        if (startInTray) return 1;
                         // Only hand over to the port's owner when it is an A80RT bridge; otherwise say why.
                         if (PortServesA80RT(_port)) OpenBrowserWindow("http://localhost:" + _port + "/");
                         else MessageBox.Show("Cổng " + _port + " đang được chương trình khác dùng nên A80RT Configurator không khởi động được. Đóng chương trình đó, hoặc chạy A80RT-Configurator.exe --port <số cổng khác>.", "A80RT Configurator", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -329,7 +334,7 @@ namespace A80RT {
                             try { _invoker.BeginInvoke((MethodInvoker)delegate { OpenAppWindow(url); }); } catch {}
                         }
                     }) { IsBackground = true }.Start();
-                    if (!noBrowser) OpenAppWindow(url);
+                    if (!noBrowser) OpenAppWindow(url, startInTray);
                 }
 
                 Application.Run();
@@ -338,6 +343,33 @@ namespace A80RT {
                 if (_hotkeyWin != null) _hotkeyWin.Dispose();
                 return 0;
             }
+        }
+
+        private const string RunKeyPath = "Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run";
+        private const string RunValueName = "A80RT Configurator";
+
+        private static string AutoStartCommand() {
+            return "\\"" + Application.ExecutablePath + "\\" --start-in-tray";
+        }
+
+        // Starts with Windows only when the Run entry launches this exe quietly in the tray.
+        private static bool AutoStartEnabled() {
+            try {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(RunKeyPath)) {
+                    string value = key == null ? null : key.GetValue(RunValueName) as string;
+                    return string.Equals(value, AutoStartCommand(), StringComparison.OrdinalIgnoreCase);
+                }
+            } catch { return false; }
+        }
+
+        private static bool SetAutoStart(bool enabled) {
+            try {
+                using (RegistryKey key = Registry.CurrentUser.CreateSubKey(RunKeyPath)) {
+                    if (enabled) key.SetValue(RunValueName, AutoStartCommand(), RegistryValueKind.String);
+                    else key.DeleteValue(RunValueName, false);
+                }
+                return true;
+            } catch { return false; }
         }
 
         private static void CreateDesktopShortcut(bool notify) {
@@ -434,6 +466,12 @@ namespace A80RT {
             var soundItem = new ToolStripMenuItem("Tiếng báo khi bấm phím tắt") { Checked = _sound, CheckOnClick = true };
             soundItem.CheckedChanged += (s, e) => _sound = soundItem.Checked;
             var shortcutItem = new ToolStripMenuItem("Tạo lối tắt ngoài Desktop", null, (s, e) => CreateDesktopShortcut(true));
+            var autoStartItem = new ToolStripMenuItem("Khởi động cùng Windows (chạy nền)") { Checked = AutoStartEnabled() };
+            autoStartItem.Click += (s, e) => {
+                bool want = !autoStartItem.Checked;
+                if (SetAutoStart(want)) autoStartItem.Checked = AutoStartEnabled();
+                else _tray.ShowBalloonTip(2000, "A80RT Configurator", "Không ghi được cài đặt khởi động cùng Windows.", ToolTipIcon.Warning);
+            };
             var exitItem = new ToolStripMenuItem("Thoát hoàn toàn", null, (s, e) => { NativeShell.ExitRequested(); Application.Exit(); });
 
             menu.Items.Add(titleItem);
@@ -442,6 +480,7 @@ namespace A80RT {
             menu.Items.Add(openItem);
             menu.Items.Add(soundItem);
             menu.Items.Add(shortcutItem);
+            menu.Items.Add(autoStartItem);
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(exitItem);
 
@@ -536,12 +575,14 @@ namespace A80RT {
             } catch { return false; }
         }
 
-        private static void OpenAppWindow(string url) {
+        private static void OpenAppWindow(string url, bool hidden = false) {
             NativeShell.InitFailed = failedUrl => {
+                if (hidden) return;
                 TrayHint("Không mở được cửa sổ riêng (" + NativeShell.LastError + "); dùng trình duyệt thay thế.");
                 OpenBrowserWindow(failedUrl);
             };
-            if (!_forceBrowser && NativeShell.Show(url, _appIcon)) return;
+            if (!_forceBrowser && NativeShell.Start(url, _appIcon, hidden)) return;
+            if (hidden) return;
             if (!_forceBrowser && NativeShell.LastError != null) TrayHint("Không mở được cửa sổ riêng (" + NativeShell.LastError + "); dùng trình duyệt thay thế.");
             OpenBrowserWindow(url);
         }

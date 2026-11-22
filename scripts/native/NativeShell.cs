@@ -51,8 +51,7 @@ namespace A80RT {
         public static string LastError { get; private set; }
         public static string UserDataFolder;
         public static int RemoteDebuggingPort; // test-only: inspect the page over DevTools
-        // Called (UI thread) when WebView2 fails after the window was shown, e.g. an unwritable
-        // user-data folder; the launcher falls back to the browser window.
+        // Called on the UI thread if WebView2 fails to initialize asynchronously.
         public static Action<string> InitFailed;
         private static bool _initFailed;
 
@@ -65,19 +64,23 @@ namespace A80RT {
             AccentIcon.ApplyToWindow(_form.Handle);
         }
 
-        public static bool Show(string url, Icon icon) {
+        public static bool Start(string url, Icon icon, bool hidden) {
             try {
-                if (_form != null && !_form.IsDisposed) { _form.Reveal(); return true; }
+                if (_form != null && !_form.IsDisposed) {
+                    if (!hidden) _form.Reveal();
+                    return true;
+                }
                 if (_initFailed) return false;
                 PrepareLoader();
                 CoreWebView2Environment.GetAvailableBrowserVersionString();
                 _form = new ShellForm(url, icon);
-                _form.Show();
-                Available = true;
+                _form.Start(hidden);
+                Available = !_initFailed;
                 return true;
             } catch (Exception ex) {
                 LastError = ex.GetType().Name + ": " + ex.Message;
                 Available = false;
+                if (_form != null) { _form.Dispose(); _form = null; }
                 return false;
             }
         }
@@ -147,28 +150,36 @@ namespace A80RT {
             _deviceDebounce = new System.Windows.Forms.Timer();
             _deviceDebounce.Interval = 600;
             _deviceDebounce.Tick += (s, e) => { _deviceDebounce.Stop(); _hid.Rescan(); };
-            Load += async (s, e) => {
-                try {
-                    string data = NativeShell.UserDataFolder ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "A80RT-Configurator", "WebView2");
-                    CoreWebView2EnvironmentOptions options = null;
-                    if (NativeShell.RemoteDebuggingPort > 0) options = new CoreWebView2EnvironmentOptions("--remote-debugging-port=" + NativeShell.RemoteDebuggingPort);
-                    CoreWebView2Environment env = await CoreWebView2Environment.CreateAsync(null, data, options);
-                    await _view.EnsureCoreWebView2Async(env);
-                    CoreWebView2 core = _view.CoreWebView2;
-                    core.Settings.IsStatusBarEnabled = false;
-                    core.Settings.AreDefaultContextMenusEnabled = true;
-                    await core.AddScriptToExecuteOnDocumentCreatedAsync(NativeShell.ReadResourceText("hid-shim.js"));
-                    core.WebMessageReceived += (sender, args) => _hid.Handle(args.TryGetWebMessageAsString());
-                    core.NewWindowRequested += (sender, args) => { args.Handled = true; OpenExternal(args.Uri); };
-                    core.NavigationStarting += (sender, args) => {
-                        if (!args.Uri.StartsWith(_url, StringComparison.OrdinalIgnoreCase)) { args.Cancel = true; OpenExternal(args.Uri); }
-                    };
-                    core.DocumentTitleChanged += (sender, args) => { Text = core.DocumentTitle.Length > 0 ? core.DocumentTitle : "A80RT Configurator"; };
-                    core.Navigate(_url);
-                } catch (Exception ex) {
-                    NativeShell.ReportInitFailure(this, _url, ex);
-                }
-            };
+        }
+
+        public void Start(bool hidden) {
+            if (!hidden) Show();
+            // WebView2 needs a child HWND even before the tray window is first shown.
+            IntPtr viewHandle = _view.Handle;
+            InitializeWebView();
+        }
+
+        private async void InitializeWebView() {
+            try {
+                string data = NativeShell.UserDataFolder ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "A80RT-Configurator", "WebView2");
+                CoreWebView2EnvironmentOptions options = null;
+                if (NativeShell.RemoteDebuggingPort > 0) options = new CoreWebView2EnvironmentOptions("--remote-debugging-port=" + NativeShell.RemoteDebuggingPort);
+                CoreWebView2Environment env = await CoreWebView2Environment.CreateAsync(null, data, options);
+                await _view.EnsureCoreWebView2Async(env);
+                CoreWebView2 core = _view.CoreWebView2;
+                core.Settings.IsStatusBarEnabled = false;
+                core.Settings.AreDefaultContextMenusEnabled = true;
+                await core.AddScriptToExecuteOnDocumentCreatedAsync(NativeShell.ReadResourceText("hid-shim.js"));
+                core.WebMessageReceived += (sender, args) => _hid.Handle(args.TryGetWebMessageAsString());
+                core.NewWindowRequested += (sender, args) => { args.Handled = true; OpenExternal(args.Uri); };
+                core.NavigationStarting += (sender, args) => {
+                    if (!args.Uri.StartsWith(_url, StringComparison.OrdinalIgnoreCase)) { args.Cancel = true; OpenExternal(args.Uri); }
+                };
+                core.DocumentTitleChanged += (sender, args) => { Text = core.DocumentTitle.Length > 0 ? core.DocumentTitle : "A80RT Configurator"; };
+                core.Navigate(_url);
+            } catch (Exception ex) {
+                NativeShell.ReportInitFailure(this, _url, ex);
+            }
         }
 
         private static void OpenExternal(string uri) {

@@ -506,9 +506,9 @@ let presetSwitching=false,hotkeyBridge=null,hotkeyReadySent=null,hotkeyBatterySe
 const hotkeyClient=globalThis.crypto?.randomUUID?.()??`c${Date.now().toString(36)}${Math.random().toString(36).slice(2,12)}`;
 const hotkeyHandled=new Set();
 function hotkeyReady(){const session=state.session;return mode()==='device'&&!!state.reader&&!!session&&!session.invalidated;}
-function reportHotkeyState(active=false){
+function reportHotkeyState(active=false,freshBattery=false){
   if(!hotkeyBridge||typeof fetch==='undefined')return;
-  const ready=hotkeyReady(),battery=state.battery??-1;if(!active&&ready===hotkeyReadySent&&battery===hotkeyBatterySent)return;hotkeyReadySent=ready;hotkeyBatterySent=battery;
+  const ready=hotkeyReady(),battery=state.battery??-1;if(!active&&!freshBattery&&ready===hotkeyReadySent&&battery===hotkeyBatterySent)return;hotkeyReadySent=ready;hotkeyBatterySent=battery;
   fetch('./hotkeys/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client:hotkeyClient,ready,active,battery})})
     .then(response=>response.json()).then(body=>{if(!body?.known)hotkeyReadySent=null;}).catch(()=>{hotkeyReadySent=null;});
 }
@@ -598,7 +598,7 @@ async function connectHotkeyBridge(){
 $('notify-enable')?.addEventListener('click',async()=>{try{await Notification.requestPermission();}catch{}renderHotkeyStatus();});
 // ---------- Pin (chỉ khi không dây) ----------
 // Driver hãng: Electricity = byte 17 của khối thông tin (0x10), đọc lại 5 giây/lần
-// khi packLen==32. App đọc lại 30 giây/lần, chỉ lệnh đọc, bỏ qua khi đang bận.
+// khi packLen==32. App đọc lại 5 giây/lần, chỉ lệnh đọc, bỏ qua khi đang bận.
 const BASE_TITLE=document.title;
 const isReceiver=()=>state.reader?.device?.productId===0xfefc;
 function batteryOf(bytes){const value=bytes?.[17];return Number.isInteger(value)&&value<=100?value:null;}
@@ -614,13 +614,16 @@ function setBattery(value){
     for(const threshold of [20,10])if(value<=threshold&&batteryWarned>threshold){batteryWarned=threshold;const text=`Pin còn ${value}% · cắm sạc sớm`;toast(text,'warning');systemNotify(text,'warning');}
     if(value>25)batteryWarned=101;
   }
-  if(previous!==value){reportHotkeyState();render();}
+  // The tray expires readings after two minutes. A successful poll is fresh
+  // even when its value is unchanged; reporting it must not activate the window.
+  reportHotkeyState(false,true);
+  if(previous!==value)render();
 }
 let batteryPolling=false,batteryTimer=null;
 // Chỉ chạy khi đang nối qua đầu thu; dừng khi ngắt để không giữ tài nguyên vô ích.
 function syncBatteryPolling(){
   const want=!!state.reader&&isReceiver();
-  if(want&&!batteryTimer){batteryTimer=setInterval(pollBattery,30000);batteryTimer?.unref?.();}
+  if(want&&!batteryTimer){batteryTimer=setInterval(pollBattery,5000);batteryTimer?.unref?.();}
   else if(!want&&batteryTimer){clearInterval(batteryTimer);batteryTimer=null;}
 }
 async function pollBattery(){
@@ -628,7 +631,7 @@ async function pollBattery(){
   if(batteryPolling||!reader||!isReceiver()||!state.session||state.reading||state.connecting||state.applying||state.maintaining||presetSwitching)return;
   batteryPolling=true;
   try{const bytes=await reader.transport.readBlock(0x10,32);if(state.reader===reader)setBattery(batteryOf(bytes));}
-  catch{/* bàn phím ngủ hoặc mất sóng: thử lại lần sau */}
+  catch{if(state.reader===reader)setBattery(null);/* Không giữ phần trăm cũ khi lần đọc mới thất bại. */}
   finally{batteryPolling=false;}
 }
 // ---------- Tự kết nối ----------

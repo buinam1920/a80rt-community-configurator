@@ -38,11 +38,74 @@ async function host(tag,{permitted,requestDevice}){
   const hid=new EventTarget();hid.getDevices=async()=>permitted;hid.requestDevice=requestDevice??(async()=>{throw new Error('chooser must not open');});
   globalThis.document={getElementById:get,createElement:()=>new Element(),createTextNode:text=>({textContent:text}),title:'A80RT Configurator'};
   globalThis.window={isSecureContext:true};Object.defineProperty(globalThis,'navigator',{configurable:true,value:{hid}});
-  await import(`../dist/app.js?${tag}`);await settle();
+  const interval=globalThis.setInterval;let batteryPoll,batteryInterval;
+  globalThis.setInterval=(callback,ms,...args)=>{if(callback.name==='pollBattery'){batteryPoll=callback;batteryInterval=ms;}return interval(callback,ms,...args);};
+  try{await import(`../dist/app.js?${tag}`);await settle();}finally{globalThis.setInterval=interval;}
   const meta=()=>Object.fromEntries(get('device-meta').children.reduce((rows,el,i,all)=>i%2?rows:[...rows,[el.textContent,all[i+1]?.textContent]],[]));
   const restore=async()=>{await get('disconnect-button').trigger('click');globalThis.document=old.document;globalThis.window=old.window;if(old.navigator)Object.defineProperty(globalThis,'navigator',old.navigator);else delete globalThis.navigator;};
-  return {get,meta,hid,restore};
+  return {get,meta,hid,restore,pollBattery:()=>batteryPoll(),batteryInterval};
 }
+
+test('battery polling replaces 80% with a critical reading and warns immediately',async()=>{
+  const device=new Receiver(80),{get,meta,pollBattery,batteryInterval,restore}=await host('battery-drop',{permitted:[device]});
+  try{
+    assert.equal(batteryInterval,5000);
+    assert.equal(meta()['Pin'],'80%');
+    device.blocks.device[17]=3;
+    await pollBattery();
+    assert.equal(meta()['Pin'],'3%');
+    assert.match(document.title,/3%/);
+    assert.equal(get('battery-chip').dataset.level,'low');
+    assert.match(get('toast').textContent,/Pin còn 3%/);
+    assert.ok(device.sent.every(packet=>packet[1]>=0x10&&packet[1]<=0x18),'polling only reads');
+  }finally{await restore();}
+});
+
+test('a failed battery poll clears the old percentage and a later reading restores it',async()=>{
+  const device=new Receiver(80),{get,meta,pollBattery,restore}=await host('battery-stale',{permitted:[device]});
+  const send=device.sendReport;
+  try{
+    device.sendReport=async()=>{throw new Error('battery read failed');};
+    await pollBattery();
+    assert.equal(get('battery-chip').hidden,true);
+    assert.doesNotMatch(document.title,/80%/);
+    assert.notEqual(meta()['Pin'],'80%');
+    device.sendReport=send;device.blocks.device[17]=3;
+    await pollBattery();
+    assert.equal(meta()['Pin'],'3%');
+    assert.equal(get('battery-chip').hidden,false);
+  }finally{device.sendReport=send;await restore();}
+});
+
+test('unchanged successful battery polls refresh the native tray without changing window activity',async()=>{
+  const originalFetch=globalThis.fetch,originalEvents=globalThis.EventSource,posts=[];
+  globalThis.fetch=async(url,options)=>{
+    if(url==='./hotkeys/state')posts.push(JSON.parse(options.body));
+    return {ok:true,json:async()=>url==='./hotkeys/config'?{tray:true,bindable:false}:{known:true}};
+  };
+  globalThis.EventSource=class {};
+  let hosted;
+  const device=new Receiver(80),send=device.sendReport;
+  try{
+    hosted=await host('battery-tray-freshness',{permitted:[device]});
+    posts.length=0;
+    // 25 five-second polls span more than the native tray's two-minute expiry.
+    for(let i=0;i<25;i++){await hosted.pollBattery();await settle();}
+    assert.equal(posts.length,25,'each fresh reading reaches the native tray even when unchanged');
+    assert.ok(posts.every(post=>post.battery===80&&post.ready&&!post.active),'freshness does not activate a background window');
+    device.sendReport=async()=>{throw new Error('battery read failed');};
+    await hosted.pollBattery();await settle();
+    assert.equal(posts.at(-1).battery,-1,'failed reads clear the native percentage');
+    device.sendReport=send;
+    await hosted.pollBattery();await settle();
+    assert.equal(posts.at(-1).battery,80,'a fresh reading restores the tray');
+    await hosted.get('disconnect-button').trigger('click');await settle();
+    assert.equal(posts.at(-1).battery,-1,'disconnect clears the tray');
+  }finally{
+    device.sendReport=send;
+    try{await hosted?.restore();}finally{globalThis.fetch=originalFetch;if(originalEvents===undefined)delete globalThis.EventSource;else globalThis.EventSource=originalEvents;}
+  }
+});
 
 test('a previously permitted receiver is opened and read on start without the chooser, and battery is shown',async()=>{
   const device=new Receiver(76),{get,meta,restore}=await host('auto-start',{permitted:[device]});

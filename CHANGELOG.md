@@ -2,6 +2,13 @@
 
 Detailed notes for each release are in [docs/](docs/).
 
+## Unreleased
+
+- Tray menu item "Khởi động cùng Windows (chạy nền)" adds the exe to the current user's startup list with `--start-in-tray`: it starts hidden in the tray (WebView2 and the keyboard connection still load), and opening the exe again shows that same window. A duplicate `--start-in-tray` launch exits quietly.
+- Poll receiver battery every five seconds while idle, matching the manufacturer's interval. Clear the live percentage after a failed poll instead of continuing to display the previous reading.
+- Forward fresh battery readings to the native tray even when the percentage is unchanged, so its two-minute expiry does not hide a reading that is still being refreshed. Background polling does not change the active window for profile hotkeys.
+- Regression tests cover an 80% to 3% update, failed reads and recovery. Battery values still come directly from the device; their accuracy and warning lead time need hardware verification.
+
 ## 1.1.1 — 2026-11-14
 
 The logo follows the accent colour in the app, the browser tab, and in the exe also the window, taskbar button and tray. The exe icon now includes real 16–64 px sizes, so the arrow no longer disappears in the taskbar and tray. [Notes](docs/release-1.1.1.md)

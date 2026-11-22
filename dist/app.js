@@ -56,7 +56,7 @@ function initSectionNav(){
 }
 function mode(){return state.snapshot?.source??'empty';}
 function describeSource(){if(mode()==='demo')return 'Dữ liệu mẫu';if(mode()==='import')return 'Bản đã lưu';if(mode()==='device')return state.reader?'Bàn phím thật':Object.keys(state.snapshot.blocks).length?'Bản đọc trước':'Thông tin thiết bị';return 'Chưa có dữ liệu';}
-function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'1.1.1',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
+function deviceSnapshot(device,interfaceInfo=null){return {schema:'a80rt-reader/v1',appVersion:'1.1.2',source:'device',createdAt:new Date().toISOString(),complete:false,device:{productName:device.productName,vendorId:device.vendorId,productId:device.productId},descriptor:describeDevice(device),interface:interfaceInfo?{...interfaceInfo}:null,blocks:{},packets:[],totalPackets:0};}
 function makeKeyboard(){
   for(const row of LAYOUT){
     const container=document.createElement('div');container.className='key-row';
@@ -581,7 +581,7 @@ async function connectHotkeyBridge(){
   try{
     const response=await fetch('./hotkeys/config',{cache:'no-store'});
     if(!response.ok)return renderHotkeyStatus();
-    hotkeyBridge=await response.json();renderHotkeyStatus();void syncHotkeyBindings();
+    hotkeyBridge=await response.json();renderHotkeyStatus();renderAutostart();void syncHotkeyBindings();
     const events=new EventSource(`./hotkeys/events?client=${encodeURIComponent(hotkeyClient)}`);
     // Mỗi lần (nối lại) kết nối, chương trình nền có thể đã khởi động lại: báo lại trạng thái.
     events.onopen=()=>{hotkeyReadySent=null;reportHotkeyState(!document.hidden&&!!document.hasFocus?.());};
@@ -591,10 +591,32 @@ async function connectHotkeyBridge(){
       hotkeyHandled.add(data.event);if(hotkeyHandled.size>64)hotkeyHandled.delete(hotkeyHandled.values().next().value);
       const preset=presetLibrary.find(data.preset);if(preset)void switchPreset(preset,{global:true,event:data.event});
     };
-    window.addEventListener?.('focus',()=>reportHotkeyState(true));
+    window.addEventListener?.('focus',()=>{reportHotkeyState(true);void refreshAutostart();});
     document.addEventListener?.('visibilitychange',()=>{if(!document.hidden)reportHotkeyState(true);});
   }catch{renderHotkeyStatus();}
 }
+// ---------- Khởi động cùng Windows (chỉ bản .exe) ----------
+// Bản .exe báo trạng thái qua /hotkeys/config (khóa "autostart"); bản Python không có khóa này nên ẩn công tắc.
+// Cùng một mục khởi động với mục trong menu khay; đổi ở bên nào bên kia cũng thấy khi cửa sổ được focus lại.
+function renderAutostart(){
+  const row=$('autostart-row'),toggle=$('autostart-toggle');if(!row||!toggle)return;
+  const known=typeof hotkeyBridge?.autostart==='boolean';row.hidden=!known;if(known)toggle.checked=hotkeyBridge.autostart;
+}
+async function refreshAutostart(){
+  if(typeof hotkeyBridge?.autostart!=='boolean')return;
+  try{const response=await fetch('./hotkeys/config',{cache:'no-store'});if(response.ok){const body=await response.json();if(typeof body?.autostart==='boolean')hotkeyBridge.autostart=body.autostart;renderAutostart();}}catch{}
+}
+$('autostart-toggle')?.addEventListener('change',async event=>{
+  const want=!!event.target.checked;event.target.disabled=true;
+  try{
+    const response=await fetch('./hotkeys/autostart',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:want})});
+    const body=response.ok?await response.json():null;
+    if(typeof body?.autostart==='boolean')hotkeyBridge.autostart=body.autostart;
+    if(!body?.ok)toast('Không ghi được cài đặt khởi động cùng Windows.','error');
+    else toast(body.autostart?'Sẽ chạy nền khi đăng nhập Windows.':'Đã tắt khởi động cùng Windows.','success');
+  }catch{toast('Không ghi được cài đặt khởi động cùng Windows.','error');}
+  finally{event.target.disabled=false;renderAutostart();}
+});
 $('notify-enable')?.addEventListener('click',async()=>{try{await Notification.requestPermission();}catch{}renderHotkeyStatus();});
 // ---------- Pin (chỉ khi không dây) ----------
 // Driver hãng: Electricity = byte 17 của khối thông tin (0x10), đọc lại 5 giây/lần

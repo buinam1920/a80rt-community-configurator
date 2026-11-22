@@ -3,46 +3,46 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="Cấu hình bàn phím LEOBOG A80RT: Rapid Trigger, gán phím, đèn, profile.">
-  <meta name="theme-color" content="#111519"><title>A80RT Configurator · 1.1.1</title>
+  <meta name="theme-color" content="#111519"><title>A80RT Configurator · 1.1.2</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-6 -6 36 36'%3E%3Crect x='-6' y='-6' width='36' height='36' rx='9' fill='%23c3f56b'/%3E%3Cpath fill='%2319270a' fill-rule='evenodd' d='M11.1 3h1.8l8.5 17.8H2.6ZM12 10 15.9 15.2H13.4v5.6h-2.8v-5.6H8.1Z'/%3E%3C/svg%3E">
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=1.1.1">
+  <link rel="stylesheet" href="./styles.css?v=1.1.2">
   <script type="importmap">
   {"imports":{
-    "./app.js":"./app.js?v=1.1.1",
-    "./layout.js":"./layout.js?v=1.1.1",
-    "./protocol.js":"./protocol.js?v=1.1.1",
-    "./device/capabilities.js":"./device/capabilities.js?v=1.1.1",
-    "./device/transport.js":"./device/transport.js?v=1.1.1",
-    "./config/session.js":"./config/session.js?v=1.1.1",
-    "./config/codecs.js":"./config/codecs.js?v=1.1.1",
-    "./config/macros.js":"./config/macros.js?v=1.1.1",
-    "./config/advanced.js":"./config/advanced.js?v=1.1.1",
-    "./config/profiles.js":"./config/profiles.js?v=1.1.1",
-    "./config/presets.js":"./config/presets.js?v=1.1.1",
-    "./i18n.js":"./i18n.js?v=1.1.1",
-    "./i18n-en.js":"./i18n-en.js?v=1.1.1",
-    "./ui/core-editors.js":"./ui/core-editors.js?v=1.1.1",
-    "./ui/advanced-editors.js":"./ui/advanced-editors.js?v=1.1.1",
-    "./ui/device-settings.js":"./ui/device-settings.js?v=1.1.1",
-    "./ui/icons.js":"./ui/icons.js?v=1.1.1",
-    "./ui/theme.js":"./ui/theme.js?v=1.1.1"
+    "./app.js":"./app.js?v=1.1.2",
+    "./layout.js":"./layout.js?v=1.1.2",
+    "./protocol.js":"./protocol.js?v=1.1.2",
+    "./device/capabilities.js":"./device/capabilities.js?v=1.1.2",
+    "./device/transport.js":"./device/transport.js?v=1.1.2",
+    "./config/session.js":"./config/session.js?v=1.1.2",
+    "./config/codecs.js":"./config/codecs.js?v=1.1.2",
+    "./config/macros.js":"./config/macros.js?v=1.1.2",
+    "./config/advanced.js":"./config/advanced.js?v=1.1.2",
+    "./config/profiles.js":"./config/profiles.js?v=1.1.2",
+    "./config/presets.js":"./config/presets.js?v=1.1.2",
+    "./i18n.js":"./i18n.js?v=1.1.2",
+    "./i18n-en.js":"./i18n-en.js?v=1.1.2",
+    "./ui/core-editors.js":"./ui/core-editors.js?v=1.1.2",
+    "./ui/advanced-editors.js":"./ui/advanced-editors.js?v=1.1.2",
+    "./ui/device-settings.js":"./ui/device-settings.js?v=1.1.2",
+    "./ui/icons.js":"./ui/icons.js?v=1.1.2",
+    "./ui/theme.js":"./ui/theme.js?v=1.1.2"
   }}
   </script>
-  <script type="module" src="./app.js?v=1.1.1"></script>
-  <script type="module" src="./ui/theme.js?v=1.1.1"></script>
+  <script type="module" src="./app.js?v=1.1.2"></script>
+  <script type="module" src="./ui/theme.js?v=1.1.2"></script>
   <script>/* Màu nhấn đã lưu: áp dụng trước khi vẽ trang để không nháy màu mặc định. */try{var t=JSON.parse(localStorage.getItem('a80rt-theme')||'null');if(t&&/^#[0-9a-f]{6}$/i.test(t.accent)){var s=document.documentElement.style,n=parseInt(t.accent.slice(1),16);s.setProperty('--accent',t.accent);s.setProperty('--accent-ink',(.299*(n>>16)+.587*(n>>8&255)+.114*(n&255))>150?'#111':'#fff');}}catch(e){}</script>
 </head>
 <body>
   <aside class="sidebar">
-    <a class="brand" href="./" aria-label="A80RT Configurator"><span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M11.1 3h1.8l8.5 17.8H2.6ZM12 10 15.9 15.2H13.4v5.6h-2.8v-5.6H8.1Z"/></svg></span><span>A80RT<span class="brand-sub">CONFIG / 1.1.1</span></span></a>
+    <a class="brand" href="./" aria-label="A80RT Configurator"><span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M11.1 3h1.8l8.5 17.8H2.6ZM12 10 15.9 15.2H13.4v5.6h-2.8v-5.6H8.1Z"/></svg></span><span>A80RT<span class="brand-sub">CONFIG / 1.1.2</span></span></a>
     <nav class="side-nav" aria-label="Các phần"><a href="#keyboard-section" aria-current="true"><span class="nav-icon" data-icon="keyboard"></span><span>Bàn phím</span></a><a href="#core-editors"><span class="nav-icon" data-icon="sliders"></span><span>Chỉnh cấu hình</span></a><a href="#advanced-editors"><span class="nav-icon" data-icon="bolt"></span><span>Macro & phím nâng cao</span></a><a href="#device-settings"><span class="nav-icon" data-icon="nut"></span><span>Thiết lập & bảo trì</span></a><a href="#profiles-panel"><span class="nav-icon" data-icon="folder"></span><span>Hồ sơ cấu hình</span></a><a href="#data-section"><span class="nav-icon" data-icon="pulse"></span><span>Dữ liệu & chẩn đoán</span></a></nav>
     <div class="side-device"><div class="eyebrow">THIẾT BỊ</div><strong id="device-name">Chưa kết nối</strong><div id="device-sub">LEOBOG A80RT / A80RT U</div><div class="device-visual" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><dl id="device-meta"><dt>Kết nối</dt><dd>USB / 2.4 GHz</dd><dt>Trạng thái</dt><dd>Đang chờ</dd></dl></div>
-    <div class="side-bottom"><span class="readonly-dot"></span> XỬ LÝ CỤC BỘ<a href="https://leobog.driveall.cn/" target="_blank" rel="noopener noreferrer" data-icon-after="external">Driver hãng</a></div>
+    <label id="autostart-row" class="side-toggle" title="Chạy nền trong khay khi đăng nhập Windows" hidden><input id="autostart-toggle" type="checkbox"> Khởi động cùng Windows</label><div class="side-bottom"><span class="readonly-dot"></span> XỬ LÝ CỤC BỘ<a href="https://leobog.driveall.cn/" target="_blank" rel="noopener noreferrer" data-icon-after="external">Driver hãng</a></div>
   </aside>
   <main>
-    <header class="topbar"><span>A80RT Configurator</span><span class="topbar-right"><span class="lang-switch" role="group" aria-label="Ngôn ngữ / Language" data-i18n="off"><button type="button" data-lang="vi" aria-pressed="true">VI</button><button type="button" data-lang="en" aria-pressed="false">EN</button></span><span id="battery-chip" class="battery-chip" hidden><span class="battery-shell"><i></i></span><b></b></span><button id="theme-button" type="button" class="theme-button" aria-label="Giao diện" title="Giao diện" aria-haspopup="dialog">Giao diện</button><span class="build-tag">1.1.1</span></span></header>
+    <header class="topbar"><span>A80RT Configurator</span><span class="topbar-right"><span class="lang-switch" role="group" aria-label="Ngôn ngữ / Language" data-i18n="off"><button type="button" data-lang="vi" aria-pressed="true">VI</button><button type="button" data-lang="en" aria-pressed="false">EN</button></span><span id="battery-chip" class="battery-chip" hidden><span class="battery-shell"><i></i></span><b></b></span><button id="theme-button" type="button" class="theme-button" aria-label="Giao diện" title="Giao diện" aria-haspopup="dialog">Giao diện</button><span class="build-tag">1.1.2</span></span></header>
     <section class="page-heading"><div><div class="eyebrow accent">LEOBOG · 82 PHÍM</div><h1>Cấu hình bàn phím<span>.</span></h1></div><span id="connection-pill" class="pill"><i></i> Chưa kết nối</span></section>
     <details class="scope-note"><summary>Ghi được: USB — mọi nhóm · 2.4 GHz — RT và thiết lập chung · Fn — khóa</summary><p>Firmware 1.37. Bản nháp có thay đổi Fn sẽ không áp dụng được.</p></details>
     <div id="hotkey-status" class="hotkey-status" hidden><span id="hotkey-status-text"></span><button id="notify-enable" type="button" class="preset-button" hidden>Bật thông báo</button></div>
@@ -74,7 +74,7 @@
     </section>
     <section id="draft-bar" class="panel draft-bar" aria-label="Bản nháp"><div><strong id="draft-count">0 thay đổi trong bản nháp</strong><p id="apply-reason"></p></div><div class="actions"><button id="revert-undo" class="button quiet" hidden>Lấy lại bản nháp</button><button id="revert-button" class="button quiet" disabled>Hoàn tác</button><button id="apply-button" class="button primary" disabled>Áp dụng</button></div></section>
     <section id="data-section" class="panel data-panel"><div class="panel-heading"><div><h2>Dữ liệu & chẩn đoán</h2></div><div class="actions"><button id="import-button" class="button quiet small">Mở bản đã lưu</button><button id="export-button" class="button quiet small" title="Bản đọc thô và nhật ký gói tin (JSON), dùng để báo lỗi" disabled>Xuất bản đọc</button><input id="import-file" type="file" accept=".json,application/json" hidden></div></div><div id="block-list" class="block-list"></div><details id="diagnostics"><summary><span>Nhật ký giao tiếp</span><span id="packet-count" class="mono muted">0 gói</span></summary><pre id="log">Trống.</pre></details></section>
-    <footer><span>A80RT CONFIG <span class="muted">/</span> 1.1.1</span><a href="https://github.com/buinam1920/a80rt-community-configurator#hardware-evidence" target="_blank" rel="noopener noreferrer" data-icon-after="external">Bằng chứng phần cứng</a></footer>
+    <footer><span>A80RT CONFIG <span class="muted">/</span> 1.1.2</span><a href="https://github.com/buinam1920/a80rt-community-configurator#hardware-evidence" target="_blank" rel="noopener noreferrer" data-icon-after="external">Bằng chứng phần cứng</a></footer>
   </main>
     <dialog id="theme-dialog" class="theme-dialog" aria-labelledby="theme-title">
       <div class="theme-head"><h2 id="theme-title">Giao diện</h2><button id="theme-close" type="button" class="text-button" aria-label="Đóng" title="Đóng">×</button></div>

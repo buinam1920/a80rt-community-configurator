@@ -303,3 +303,9 @@ html.has-bg .topbar{border-bottom-color:color-mix(in srgb,var(--line) 70%,transp
    thanh tác vụ và khay hệ thống của bản .exe (dist/ui/theme.js → /hotkeys/accent). */
 .brand-icon{flex:none}.brand-icon svg{width:26px;height:26px;display:block}
 @media(max-width:650px){.brand-icon svg{width:21px;height:21px}}
+/* Công tắc Khởi động cùng Windows ở cuối thanh bên (chỉ hiện trong bản .exe). */
+.side-toggle{display:flex;align-items:center;gap:9px;margin-top:auto;padding:10px 8px 0;min-height:36px;font-size:12px;color:var(--muted);cursor:pointer}
+.side-toggle:hover{color:var(--text)}
+.side-toggle input{width:18px;height:18px;margin:0;accent-color:var(--accent);cursor:pointer}
+.side-toggle:not([hidden])+.side-bottom{margin-top:0;padding-top:14px}
+@media(max-width:650px){.side-toggle{display:none}}

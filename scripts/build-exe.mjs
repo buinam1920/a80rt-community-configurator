@@ -250,6 +250,7 @@ namespace A80RT {
         private static IntPtr _batteryHicon = IntPtr.Zero;
         private const string BaseTrayText = "A80RT Configurator";
         private static ToolStripMenuItem _hkItem;
+        private static ToolStripMenuItem _autoStartItem;
         [DllImport("user32.dll")] private static extern bool DestroyIcon(IntPtr handle);
 
         [STAThread]
@@ -414,6 +415,8 @@ namespace A80RT {
             body["bindable"] = true;
             // The exe shows hotkey results as tray balloons, so the page needs no web notifications.
             body["tray"] = true;
+            // Start with Windows: the page shows a toggle only when this key is present (exe only).
+            body["autostart"] = AutoStartEnabled();
             return new JavaScriptSerializer().Serialize(body);
         }
 
@@ -467,6 +470,7 @@ namespace A80RT {
             soundItem.CheckedChanged += (s, e) => _sound = soundItem.Checked;
             var shortcutItem = new ToolStripMenuItem("Tạo lối tắt ngoài Desktop", null, (s, e) => CreateDesktopShortcut(true));
             var autoStartItem = new ToolStripMenuItem("Khởi động cùng Windows (chạy nền)") { Checked = AutoStartEnabled() };
+            _autoStartItem = autoStartItem;
             autoStartItem.Click += (s, e) => {
                 bool want = !autoStartItem.Checked;
                 if (SetAutoStart(want)) autoStartItem.Checked = AutoStartEnabled();
@@ -761,7 +765,7 @@ namespace A80RT {
                         }
                         string bodyText = Encoding.UTF8.GetString(bodyBytes, 0, read);
 
-                        if (path != "/hotkeys/result" && path != "/hotkeys/state" && path != "/hotkeys/test-trigger" && path != "/hotkeys/bindings" && path != "/hotkeys/accent") {
+                        if (path != "/hotkeys/result" && path != "/hotkeys/state" && path != "/hotkeys/test-trigger" && path != "/hotkeys/bindings" && path != "/hotkeys/accent" && path != "/hotkeys/autostart") {
                             WriteJson(ns, 404, "{\\"error\\":\\"not found\\"}");
                             return;
                         }
@@ -798,6 +802,18 @@ namespace A80RT {
                             try { next = ParseBindings(trimmed); } catch { next = null; }
                             if (next == null) { WriteJson(ns, 400, "{\\"error\\":\\"bindings\\"}"); return; }
                             WriteJson(ns, 200, OnUiThread(() => { _hotkeyWin.Apply(next); UpdateTrayHotkeys(); return HotkeyConfigJson(); }));
+                            return;
+                        }
+
+                        if (path == "/hotkeys/autostart") {
+                            bool want = ExtractJsonBool(trimmed, "enabled");
+                            string result = OnUiThread(() => {
+                                bool ok = SetAutoStart(want);
+                                bool now = AutoStartEnabled();
+                                if (_autoStartItem != null) _autoStartItem.Checked = now;
+                                return "{\\"ok\\":" + (ok ? "true" : "false") + ",\\"autostart\\":" + (now ? "true" : "false") + "}";
+                            });
+                            WriteJson(ns, 200, result);
                             return;
                         }
 

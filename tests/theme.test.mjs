@@ -48,3 +48,16 @@ test('the exe and the Python bridge both accept the accent colour',()=>{
   assert.match(exe,/path == "\/hotkeys\/accent"/);assert.match(exe,/AccentIcon\.LoadSaved\(\)/);
   assert.match(py,/'\/hotkeys\/accent'/);
 });
+
+test('Start with Windows is a toggle in the exe only, off until the user ticks it',()=>{
+  const exe=fs.readFileSync(new URL('../scripts/build-exe.mjs',import.meta.url),'utf8');
+  const html=fs.readFileSync(new URL('../dist/index.html',import.meta.url),'utf8');
+  const app=fs.readFileSync(new URL('../dist/app.js',import.meta.url),'utf8');
+  const py=fs.readFileSync(new URL('../scripts/a80rt_local.py',import.meta.url),'utf8');
+  assert.match(html,/<label id="autostart-row"[^>]*hidden>/,'hidden until the exe reports the setting');
+  assert.match(exe,/body\["autostart"\] = AutoStartEnabled\(\)/);
+  assert.match(exe,/path == "\/hotkeys\/autostart"/);
+  assert.doesNotMatch(exe,/SetAutoStart\(true\)/,'nothing turns startup on by itself');
+  assert.ok(!py.includes("'autostart'"),'the browser bridge never offers the toggle');
+  assert.match(app,/typeof hotkeyBridge\?\.autostart==='boolean'/);
+});
